@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Admin — Find My Child</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:#f5f5f7;color:#1d1d1f;min-height:100vh}
+button{font-family:inherit;cursor:pointer}input,select,textarea{font-family:inherit}
+:root{--bg:#f5f5f7;--card:#fff;--dark:#1d1d1f;--text:#1d1d1f;--text2:#636366;--text3:#aeaeb2;--border:#e5e5ea;--accent:#0071e3;--green:#34c759;--red:#ff3b30;--orange:#ff9500;--radius:20px;--radius-sm:14px;--radius-xs:10px;--shadow:0 2px 12px rgba(0,0,0,.08);--shadow-lg:0 8px 30px rgba(0,0,0,.12)}
+
+.header{background:var(--dark);padding:14px 20px;display:flex;align-items:center;justify-content:space-between}
+.header .brand{display:flex;align-items:center;gap:10px}
+.header .logo{width:36px;height:36px;background:var(--accent);border-radius:10px;display:flex;align-items:center;justify-content:center}
+.header .logo svg{width:20px;height:20px;fill:#fff}
+.header h1{font-size:15px;font-weight:700;color:#fff}
+.header small{display:block;font-size:11px;color:rgba(255,255,255,.5);margin-top:1px}
+.logout{background:rgba(255,255,255,.1);color:#fff;border:none;border-radius:var(--radius-xs);padding:9px 16px;font-size:13px;font-weight:600}
+main{max-width:800px;margin:0 auto;padding:20px 16px 60px}
+
+/* Login */
+#loginView{max-width:400px;margin:60px auto}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:28px;box-shadow:var(--shadow)}
+.card h2{font-size:22px;font-weight:800;color:var(--text);margin-bottom:6px}
+.card p{font-size:13px;color:var(--text2);margin-bottom:20px}
+.field{margin-bottom:16px}
+.field label{display:block;font-size:11px;color:var(--text2);margin-bottom:8px;font-weight:700;text-transform:uppercase;letter-spacing:.8px}
+.field input,.field select,.field textarea{width:100%;background:var(--bg);border:1.5px solid var(--border);color:var(--text);border-radius:var(--radius-xs);padding:13px 16px;font-size:14px;transition:border-color .2s}
+.field input:focus,.field select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,113,227,.12)}
+.btn{width:100%;background:var(--dark);color:#fff;border:none;border-radius:var(--radius-sm);padding:14px;font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn svg{width:18px;height:18px;fill:#fff}.btn:active{transform:scale(.98)}
+
+/* Stats */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:22px}
+.stat{background:var(--card);border-radius:var(--radius);padding:18px 12px;text-align:center;box-shadow:var(--shadow);border:1px solid var(--border)}
+.stat .icon-wrap{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;margin:0 auto 8px}
+.stat .icon-wrap svg{width:18px;height:18px}
+.stat .num{font-size:28px;font-weight:800;letter-spacing:-1px}
+.stat .lbl{font-size:10px;color:var(--text3);margin-top:4px;font-weight:700;text-transform:uppercase;letter-spacing:.8px}
+.stat.pending .icon-wrap{background:#fff8e6}.stat.pending .icon-wrap svg{fill:var(--orange)}.stat.pending .num{color:var(--orange)}
+.stat.approved .icon-wrap{background:#f0fdf4}.stat.approved .icon-wrap svg{fill:var(--green)}.stat.approved .num{color:var(--green)}
+.stat.rejected .icon-wrap{background:#fff0f0}.stat.rejected .icon-wrap svg{fill:var(--red)}.stat.rejected .num{color:var(--red)}
+.stat.total .icon-wrap{background:#f0f7ff}.stat.total .icon-wrap svg{fill:var(--accent)}.stat.total .num{color:var(--accent)}
+
+/* Tabs */
+.tabs{display:flex;gap:8px;margin-bottom:20px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:none;background:var(--card);border:1.5px solid var(--border);color:var(--text2);border-radius:var(--radius-xs);padding:10px 16px;font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px;transition:.2s}
+.tab svg{width:14px;height:14px;fill:currentColor}
+.tab.active{background:var(--dark);color:#fff;border-color:var(--dark)}
+.tabview{display:none}.tabview.active{display:block;animation:fadeUp .25s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* Items */
+.item{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px;display:flex;gap:14px;align-items:flex-start;box-shadow:var(--shadow);transition:box-shadow .15s}
+.item:hover{box-shadow:var(--shadow-lg)}
+.item img{width:72px;height:72px;object-fit:cover;border-radius:14px;background:#e5e5ea;flex-shrink:0}
+.item .ph{width:72px;height:72px;border-radius:14px;background:#e5e5ea;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.item .ph svg{width:32px;height:32px;fill:#aeaeb2}
+.item .info{flex:1;min-width:0}
+.item .name{font-size:15px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.item .sub{font-size:12px;color:var(--text2);margin-top:4px;line-height:1.5}
+.item .actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.mini{border:none;border-radius:var(--radius-xs);padding:9px 14px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:5px;transition:transform .12s}
+.mini svg{width:12px;height:12px;fill:#fff}
+.mini:active{transform:scale(.95)}
+.mini.approve{background:var(--green);color:#fff}
+.mini.reject{background:var(--red);color:#fff}
+.mini.edit{background:var(--border);color:var(--text)}
+.mini.delete{background:#fff0f0;color:var(--red)}
+.sbadge{display:inline-block;font-size:10px;font-weight:800;padding:3px 10px;border-radius:8px;text-transform:uppercase;letter-spacing:.5px}
+.sbadge.pending{background:#fff8e6;color:#b25000}.sbadge.approved{background:#f0fdf4;color:#0a6b3a}.sbadge.rejected{background:#fff0f0;color:#c92c2c}
+
+.searchrow{display:flex;gap:10px;margin-bottom:16px}
+.searchrow input{flex:1;background:var(--card);border:1.5px solid var(--border);color:var(--text);border-radius:var(--radius-xs);padding:13px 16px;font-size:14px;transition:border-color .2s}
+.searchrow input:focus{outline:none;border-color:var(--accent)}
+.searchrow button{background:var(--dark);border:none;color:#fff;border-radius:var(--radius-xs);padding:0 20px;font-weight:700;font-size:13px}
+.empty{text-align:center;color:var(--text3);padding:44px 20px;font-size:14px}
+
+/* Modal */
+.modal-bg{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.5);display:none;align-items:flex-end;justify-content:center}
+.modal-bg.show{display:flex}
+.modal{background:var(--card);width:100%;max-width:640px;max-height:92vh;overflow-y:auto;border-radius:var(--radius) var(--radius) 0 0;padding:24px 20px 28px}
+@media(min-width:640px){.modal{border-radius:var(--radius);margin-bottom:24px}}
+.modal h3{font-size:20px;font-weight:800;color:var(--text);margin-bottom:18px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
+@media(max-width:480px){.grid2{grid-template-columns:1fr}}
+.modal .actions{display:flex;gap:10px;margin-top:20px}.modal .actions button{flex:1}
+.btn-ghost{background:var(--bg);color:var(--text2);border:none;border-radius:var(--radius-sm);padding:14px;font-size:15px;font-weight:700}
+#toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(80px);background:var(--dark);color:#fff;padding:14px 22px;border-radius:14px;font-size:14px;font-weight:600;z-index:60;opacity:0;transition:all .3s ease;max-width:90vw;text-align:center;box-shadow:var(--shadow-lg)}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}#toast.ok{background:#0a6b3a}#toast.err{background:#c92c2c}
+</style>
+</head>
+<body>
+
+<main id="loginView">
+<div class="card">
+  <h2>Admin Login</h2>
+  <p>Sign in to manage reports, approvals, and settings.</p>
+  <div class="field"><label>Username</label><input id="loginUser" type="text" autocomplete="username"></div>
+  <div class="field"><label>Password</label><input id="loginPass" type="password" autocomplete="current-password"></div>
+  <button class="btn" id="loginBtn"><svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>Login</button>
+</div>
+</main>
+
+<div id="appView" style="display:none">
+<header>
+  <div class="brand"><div class="logo"><svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg></div><div><h1>Admin Panel</h1><small>Find My Child</small></div></div>
+  <button class="logout" id="logoutBtn">Logout</button>
+</header>
+<main>
+  <div class="stats">
+    <div class="stat pending"><div class="icon-wrap"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg></div><div class="num" id="stPending">-</div><div class="lbl">Pending</div></div>
+    <div class="stat approved"><div class="icon-wrap"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg></div><div class="num" id="stApproved">-</div><div class="lbl">Approved</div></div>
+    <div class="stat rejected"><div class="icon-wrap"><svg viewBox="0 0 24 24"><path d="M12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm5 13.59L15.59 17 12 13.41 8.41 17 7 15.59 10.59 12 7 8.41 8.41 7 12 10.59 15.59 7 17 8.41 13.41 12 17 15.59z"/></svg></div><div class="num" id="stRejected">-</div><div class="lbl">Rejected</div></div>
+    <div class="stat total"><div class="icon-wrap"><svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg></div><div class="num" id="stTotal">-</div><div class="lbl">Total</div></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="pending"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>Pending</button>
+    <button class="tab" data-tab="all"><svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>All Children</button>
+    <button class="tab" data-tab="add"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>Add New</button>
+    <button class="tab" data-tab="foundreqs"><svg viewBox="0 0 24 24"><path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6z"/></svg>Found Reqs</button>
+    <button class="tab" data-tab="praise"><svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-7 12h-2v-2h2v2zm0-4h-2V6h2v4z"/></svg>Praises & Gifts</button>
+    <button class="tab" data-tab="donations"><svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>Donations</button>
+  </div>
+
+  <div class="tabview active" id="tv-pending"><div id="pendingList"></div></div>
+  <div class="tabview" id="tv-all"><div class="searchrow"><input id="listSearch" type="text" placeholder="Search by name, address..."><button id="listSearchBtn">Search</button></div><div id="allList"></div></div>
+  <div class="tabview" id="tv-add"><div class="card"><h3 style="font-size:18px;font-weight:800;margin-bottom:16px">Add a child</h3><div id="addFormWrap"></div></div></div>
+  <div class="tabview" id="tv-foundreqs"><div id="frList"></div></div>
+  <div class="tabview" id="tv-praise"><div style="display:flex;gap:8px;margin-bottom:14px"><button class="mini edit" id="pfAll" style="padding:9px 14px">All</button><button class="mini edit" id="pfPending" style="padding:9px 14px">Pending</button><button class="mini approve" id="pfApproved" style="padding:9px 14px">Approved</button></div><div id="praiseList"></div></div>
+  <div class="tabview" id="tv-donations"><div class="stats" style="grid-template-columns:1fr 1fr;margin-bottom:18px"><div class="stat total"><div class="icon-wrap"><svg viewBox="0 0 24 24"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg></div><div class="num" id="donTotal">-</div><div class="lbl">Total raised</div></div><div class="stat approved"><div class="icon-wrap"><svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg></div><div class="num" id="donCount">-</div><div class="lbl">Donations</div></div></div><div id="donList"></div></div>
+</main>
+</div>
+
+<div class="modal-bg" id="modalBg"><div class="modal"><h3 id="modalTitle">Edit child</h3><div id="modalBody"></div></div></div>
+<div id="toast"></div>
+
+<script>
+let token=localStorage.getItem('fmc_admin_token')||'',allChildren=[];
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const money=n=>'₹'+Number(n||0).toLocaleString('en-IN');
+const fmtDate=d=>d?new Date(d).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}):'';
+function toast(msg,type){const t=$('toast');t.textContent=msg;t.className='show '+(type||'ok');setTimeout(()=>t.className='',3200)}
+async function api(path,opts={}){const h=opts.headers||{};if(token)h.Authorization='Bearer '+token;const r=await fetch(path,{...opts,headers:h});if(r.status===401){localStorage.removeItem('fmc_admin_token');token='';showLogin();toast('Session expired.','err');throw new Error('unauthorized')}const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.message||'Request failed');return j}
+
+const iApprove='<svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>';
+const iReject='<svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>';
+const iEdit='<svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>';
+const iDelete='<svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>';
+const iChild='<svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>';
+
+function showLogin(){$('loginView').style.display='block';$('appView').style.display='none'}
+function showApp(){$('loginView').style.display='none';$('appView').style.display='block'}
+$('loginBtn').addEventListener('click',async()=>{try{const r=await api('/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:$('loginUser').value,password:$('loginPass').value})});token=r.token;localStorage.setItem('fmc_admin_token',token);showApp();loadAll()}catch(e){toast(e.message,'err')}});
+$('loginPass').addEventListener('keydown',e=>{if(e.key==='Enter')$('loginBtn').click()});
+$('logoutBtn').addEventListener('click',async()=>{try{await api('/api/admin/logout',{method:'POST'})}catch(e){}localStorage.removeItem('fmc_admin_token');token='';showLogin()});
+
+document.querySelectorAll('.tab').forEach(tab=>{tab.addEventListener('click',()=>{document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.tabview').forEach(v=>v.classList.remove('active'));tab.classList.add('active');$('tv-'+tab.dataset.tab).classList.add('active');if(tab.dataset.tab==='add'&&!$('addFormWrap').innerHTML)renderAddForm();if(tab.dataset.tab==='pending')loadPending();if(tab.dataset.tab==='foundreqs')loadFoundReqs();if(tab.dataset.tab==='praise')loadPraise('');if(tab.dataset.tab==='donations')loadDonations()})});
+
+async function loadFoundReqs(){try{const j=await api('/api/admin/found-requests');$('frList').innerHTML=j.data.length?j.data.map(fr=>`<div class="item"><div class="info"><div class="name">${esc(fr.childId&&fr.childId.fullName||'Unknown')} ${sbadge(fr.status)}</div><div class="sub">Finder: ${esc(fr.finderName||'Anonymous')}${fr.contactNumber?' . '+esc(fr.contactNumber):''}</div>${fr.details?'<div class="sub">'+esc(fr.details)+'</div>':''}<div class="sub">Submitted ${fmtDate(fr.createdAt)}</div><div class="actions"><button class="mini approve" onclick="setFoundStatus('${fr._id}','approved')">${iApprove} Approve</button><button class="mini reject" onclick="setFoundStatus('${fr._id}','rejected')">${iReject} Reject</button></div></div></div>`).join(''):'<div class="empty">No found requests.</div>'}catch(e){toast(e.message,'err')}}
+async function setFoundStatus(id,status){try{await api('/api/admin/found-requests/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({status})});toast(status==='approved'?'Marked as found!':'Rejected.');loadAll();loadFoundReqs()}catch(e){toast(e.message,'err')}}
+
+async function loadPraise(status){try{const[p,g]=await Promise.all([api('/api/admin/praise'+(status?'?status='+status:'')),api('/api/admin/gifts'+(status?'?status='+status:''))]);const items=[...p.data.map(x=>({...x,kind:'praise'})),...g.data.map(x=>({...x,kind:'gift'}))].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));$('praiseList').innerHTML=items.length?items.map(x=>{const label=x.kind==='praise'?'<span class="sbadge approved">PRAISE</span>':'<span class="sbadge pending">GIFT'+(x.amount?' '+money(x.amount):'')+'</span>';const text=x.kind==='praise'?x.text:x.message;return`<div class="item"><div class="info"><div class="name">${esc(x.kind==='praise'?x.userName:x.giverName)} ${sbadge(x.status)} ${label}</div><div class="sub">Child: ${esc(x.childId&&x.childId.fullName||'Unknown')}</div><div class="sub">${esc(text||'')}</div><div class="actions"><button class="mini approve" onclick="setPraiseStatus('${x._id}','${x.kind}','approved')">${iApprove} Approve</button><button class="mini reject" onclick="setPraiseStatus('${x._id}','${x.kind}','rejected')">${iReject} Reject</button><button class="mini delete" onclick="delPraise('${x._id}','${x.kind}')">${iDelete} Delete</button></div></div></div>`}).join(''):'<div class="empty">Nothing here.</div>'}catch(e){toast(e.message,'err')}}
+const praiseResource=k=>k==='praise'?'praise':'gifts';
+async function setPraiseStatus(id,kind,status){try{await api('/api/admin/'+praiseResource(kind)+'/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({status})});toast('Updated.');loadPraise('')}catch(e){toast(e.message,'err')}}
+async function delPraise(id,kind){if(!confirm('Delete?'))return;try{await api('/api/admin/'+praiseResource(kind)+'/'+id,{method:'DELETE'});toast('Deleted.');loadPraise('')}catch(e){toast(e.message,'err')}}
+$('pfAll').addEventListener('click',()=>loadPraise(''));$('pfPending').addEventListener('click',()=>loadPraise('pending'));$('pfApproved').addEventListener('click',()=>loadPraise('approved'));
+
+async function loadDonations(){try{const j=await api('/api/admin/donations');$('donTotal').textContent=money(j.total);$('donCount').textContent=j.data.length;$('donList').innerHTML=j.data.length?j.data.map(d=>`<div class="item"><div class="info"><div class="name">${esc(d.donorName)} <span class="sbadge approved">${money(d.amount)}</span></div><div class="sub">${d.emailId?esc(d.emailId)+' . ':''}${fmtDate(d.createdAt)}</div>${d.message?'<div class="sub">'+esc(d.message)+'</div>':''}<div class="actions"><button class="mini delete" onclick="delDonation('${d._id}')">${iDelete} Delete</button></div></div></div>`).join(''):'<div class="empty">No donations yet.</div>'}catch(e){toast(e.message,'err')}}
+async function delDonation(id){if(!confirm('Delete?'))return;try{await api('/api/admin/donations/'+id,{method:'DELETE'});toast('Deleted.');loadDonations()}catch(e){toast(e.message,'err')}}
+
+async function loadAll(){const[stats,children]=await Promise.all([api('/api/admin/stats'),api('/api/admin/children')]);$('stPending').textContent=stats.data.pending;$('stApproved').textContent=stats.data.approved;$('stRejected').textContent=stats.data.rejected;$('stTotal').textContent=stats.data.total;allChildren=children.data;renderAll($('listSearch').value.trim());renderPending();loadFoundReqs();loadDonations()}
+function sbadge(s){return`<span class="sbadge ${s}">${s.toUpperCase()}</span>`}
+function renderPending(){const p=allChildren.filter(c=>c.status==='pending');$('pendingList').innerHTML=p.length?p.map(c=>itemHtml(c,'pending')).join(''):'<div class="empty">All caught up!</div>'}
+function renderAll(q){const list=q?allChildren.filter(c=>(c.fullName||'').toLowerCase().includes(q)||(c.address||'').toLowerCase().includes(q)||(c.contactNumber||'').includes(q)):allChildren;$('allList').innerHTML=list.length?list.map(c=>itemHtml(c,'all')).join(''):'<div class="empty">No children found.</div>'}
+function itemHtml(c,view){const img=c.image?`<img src="${esc(c.image)}" alt="" loading="lazy" onerror="this.outerHTML='<div class=\\'ph\\'>${iChild.replace(/"/g,'&quot;')}</div>'">`:`<div class="ph">${iChild}</div>`;const acts=view==='pending'?`<button class="mini approve" onclick="setStatus('${c._id}','approved')">${iApprove} Approve</button><button class="mini reject" onclick="setStatus('${c._id}','rejected')">${iReject} Reject</button>`:`<button class="mini edit" onclick="openEdit('${c._id}')">${iEdit} Edit</button><button class="mini delete" onclick="delChild('${c._id}')">${iDelete} Delete</button>`;const sub=[c.gender&&c.age?`${c.gender}, ${c.age} yrs`:(c.gender||(c.age?c.age+' yrs':'')),c.address,c.contactNumber?' '+c.contactNumber:'',c.missingDate?' '+c.missingDate:''].filter(Boolean).join(' . ');return`<div class="item">${img}<div class="info"><div class="name">${esc(c.fullName)||'Unknown'} ${sbadge(c.status)}</div><div class="sub">${esc(sub)}</div><div class="actions">${acts}</div></div></div>`}
+async function setStatus(id,status){try{await api('/api/admin/children/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({status})});toast(status==='approved'?'Approved!':'Rejected.');loadAll()}catch(e){toast(e.message,'err')}}
+async function delChild(id){if(!confirm('Delete permanently?'))return;try{await api('/api/admin/children/'+id,{method:'DELETE'});toast('Deleted.');loadAll()}catch(e){toast(e.message,'err')}}
+const formFields=c=>`<div class="grid2"><div class="field"><label>Full name *</label><input id="f_fullName" value="${esc(c.fullName)}"></div><div class="field"><label>Age</label><input id="f_age" type="number" min="0" max="25" value="${esc(c.age)}"></div><div class="field"><label>Gender</label><select id="f_gender"><option value="">-</option><option ${c.gender==='Male'?'selected':''}>Male</option><option ${c.gender==='Female'?'selected':''}>Female</option></select></div><div class="field"><label>State</label><input id="f_state" value="${esc(c.state)}"></div><div class="field" style="grid-column:1/-1"><label>Address</label><input id="f_address" value="${esc(c.address)}"></div><div class="field"><label>Contact</label><input id="f_contactNumber" value="${esc(c.contactNumber)}"></div><div class="field"><label>Missing date</label><input id="f_missingDate" type="date" value="${esc(c.missingDate)}"></div><div class="field"><label>Missing time</label><input id="f_missingTime" type="time" value="${esc(c.missingTime)}"></div><div class="field"><label>Missing location</label><input id="f_missingLocation" value="${esc(c.missingLocation)}"></div><div class="field"><label>Status</label><select id="f_status"><option value="approved" ${c.status==='approved'?'selected':''}>Approved</option><option value="pending" ${c.status==='pending'?'selected':''}>Pending</option><option value="rejected" ${c.status==='rejected'?'selected':''}>Rejected</option></select></div><div class="field"><label>Found?</label><select id="f_found"><option value="false" ${!c.found?'selected':''}>Missing</option><option value="true" ${c.found?'selected':''}>Found</option></select></div><div class="field"><label>Photo</label><input id="f_image" type="file" accept="image/*"></div><div class="field" style="grid-column:1/-1"><label>Details</label><textarea id="f_info" rows="3">${esc(c.info)}</textarea></div></div>`;
+function renderAddForm(){$('addFormWrap').innerHTML=`<form id="addForm">${formFields({fullName:'',age:'',gender:'',state:'',address:'',contactNumber:'',missingDate:'',missingTime:'',missingLocation:'',status:'approved',found:false,info:''})}<div style="margin-top:18px"><button type="button" class="btn" onclick="submitAdd()">Save child</button></div></form>`}
+function collectForm(){const fd=new FormData();['fullName','age','gender','state','address','contactNumber','missingDate','missingTime','missingLocation','status','info'].forEach(id=>{const v=$('f_'+id).value.trim();if(v!=='')fd.append(id,v)});fd.append('found',$('f_found').value);const file=$('f_image').files[0];if(file)fd.append('image',file);return fd}
+async function submitAdd(){try{await api('/api/admin/children',{method:'POST',body:collectForm()});toast('Child added.');loadAll();renderAddForm()}catch(e){toast(e.message,'err')}}
+function openEdit(id){const c=allChildren.find(x=>x._id===id);if(!c)return;$('modalTitle').textContent='Edit — '+(c.fullName||'');$('modalBody').innerHTML=`<form id="editForm">${formFields(c)}<div class="actions"><button type="button" class="btn" onclick="submitEdit('${id}')">Save changes</button><button type="button" class="btn-ghost" onclick="closeModal()">Cancel</button></div></form>`;$('modalBg').classList.add('show')}
+function closeModal(){$('modalBg').classList.remove('show');$('modalBody').innerHTML=''}
+async function submitEdit(id){try{await api('/api/admin/children/'+id,{method:'PUT',body:collectForm()});toast('Saved.');closeModal();loadAll()}catch(e){toast(e.message,'err')}}
+$('modalBg').addEventListener('click',e=>{if(e.target===$('modalBg'))closeModal()});
+$('listSearchBtn').addEventListener('click',()=>renderAll($('listSearch').value.trim()));
+$('listSearch').addEventListener('keydown',e=>{if(e.key==='Enter')renderAll($('listSearch').value.trim())});
+if(token){api('/api/admin/children').then(()=>{showApp();loadAll()}).catch(()=>showLogin())}else showLogin();
+</script>
+</body>
+</html>

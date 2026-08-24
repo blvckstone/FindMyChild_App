@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Find My Child</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:auto;min-height:100%}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:#f5f5f7;color:#1d1d1f;overscroll-behavior-y:none}
+button{font-family:inherit}input,select,textarea{font-family:inherit}
+
+/* === SYSTEM === */
+:root{
+  --bg:#f5f5f7;--card:#fff;--dark:#1d1d1f;--dark2:#2c2c2e;
+  --text:#1d1d1f;--text2:#636366;--text3:#aeaeb2;
+  --border:#e5e5ea;--border2:#d1d1d6;
+  --accent:#0071e3;--accent2:#0a84ff;
+  --green:#34c759;--red:#ff3b30;--orange:#ff9500;
+  --radius:20px;--radius-sm:14px;--radius-xs:10px;
+  --shadow:0 2px 12px rgba(0,0,0,.08);
+  --shadow-lg:0 8px 30px rgba(0,0,0,.12);
+}
+
+/* === HEADER (dark) === */
+.header{
+  background:var(--dark);padding:16px 20px 20px;
+  position:relative;overflow:hidden;
+}
+.header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:30px;background:var(--bg);border-radius:24px 24px 0 0}
+.header-top{display:flex;justify-content:space-between;align-items:center;position:relative;z-index:2}
+.header-brand{display:flex;align-items:center;gap:10px}
+.header-brand .icon-wrap{width:36px;height:36px;background:var(--accent);border-radius:10px;display:flex;align-items:center;justify-content:center}
+.header-brand .icon-wrap svg{width:20px;height:20px;fill:#fff}
+.header-brand h1{font-size:15px;font-weight:700;color:#fff}
+.header-brand small{font-size:11px;color:rgba(255,255,255,.5);display:block;margin-top:1px}
+.header-right{display:flex;align-items:center;gap:12px;position:relative;z-index:2}
+.status-pill{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.1);border-radius:20px;padding:6px 12px}
+.status-dot{width:6px;height:6px;border-radius:50%;background:#636366}
+.status-dot.on{background:var(--green)}
+.status-dot.off{background:var(--red)}
+.status-pill span{font-size:11px;font-weight:600;color:rgba(255,255,255,.6)}
+.avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#ff6b6b,#ffa07a);display:flex;align-items:center;justify-content:center;cursor:pointer}
+.avatar svg{width:18px;height:18px;fill:#fff}
+
+/* === HERO TEXT (over dark bg) === */
+.hero{padding:24px 20px 32px;position:relative;z-index:2}
+.hero h2{font-size:28px;font-weight:800;color:#fff;line-height:1.15;letter-spacing:-.5px}
+.hero p{font-size:14px;color:rgba(255,255,255,.55);margin-top:6px;line-height:1.5}
+
+/* === SEARCH BAR (on dark bg) === */
+.search-bar{
+  display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.1);
+  border-radius:14px;padding:14px 16px;margin:0 20px 8px;position:relative;z-index:2;cursor:pointer;
+  border:1px solid rgba(255,255,255,.08);
+}
+.search-bar svg{width:18px;height:18px;fill:rgba(255,255,255,.4);flex-shrink:0}
+.search-bar span{font-size:14px;color:rgba(255,255,255,.35);font-weight:500}
+
+/* === MAIN CONTENT === */
+main{max-width:480px;margin:0 auto;padding-bottom:calc(80px + env(safe-area-inset-bottom))}
+.view{display:none}.view.active{display:block;animation:fadeUp .3s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+/* === TAB PILLS === */
+.tab-pills{display:flex;gap:8px;padding:20px 20px 4px;overflow-x:auto;scrollbar-width:none}
+.tab-pills::-webkit-scrollbar{display:none}
+.pill{
+  flex:none;background:var(--card);border:1.5px solid var(--border);color:var(--text2);
+  border-radius:24px;padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;
+  transition:all .2s;display:flex;align-items:center;gap:7px;
+}
+.pill svg{width:15px;height:15px;fill:currentColor}
+.pill.active{background:var(--dark);color:#fff;border-color:var(--dark)}
+.pill:active{transform:scale(.96)}
+
+/* === STATS GRID === */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:16px 20px 8px}
+.stat{background:var(--card);border-radius:var(--radius);padding:20px 16px;text-align:center;box-shadow:var(--shadow);border:1px solid var(--border)}
+.stat .icon-wrap{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 10px}
+.stat .icon-wrap svg{width:20px;height:20px}
+.stat .num{font-size:32px;font-weight:800;line-height:1;letter-spacing:-1px}
+.stat .lbl{font-size:11px;color:var(--text3);margin-top:6px;font-weight:600;text-transform:uppercase;letter-spacing:.8px}
+.stat.red .icon-wrap{background:#fff0f0}.stat.red .icon-wrap svg{fill:var(--red)}.stat.red .num{color:var(--red)}
+.stat.green .icon-wrap{background:#f0fdf4}.stat.green .icon-wrap svg{fill:var(--green)}.stat.green .num{color:var(--green)}
+.stat.blue .icon-wrap{background:#f0f7ff}.stat.blue .icon-wrap svg{fill:var(--accent)}.stat.blue .num{color:var(--accent)}
+
+/* === SECTION === */
+.section{padding:24px 20px 8px}
+.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.section-head h3{font-size:18px;font-weight:800;color:var(--text);letter-spacing:-.3px}
+.section-head .count{font-size:12px;color:var(--text3);font-weight:600}
+
+/* === HORIZONTAL CARD ROW === */
+.hrow{display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;padding:0 0 20px;scrollbar-width:none}
+.hrow::-webkit-scrollbar{display:none}
+.hcard{
+  flex:0 0 200px;scroll-snap-align:start;background:var(--card);border-radius:var(--radius);
+  overflow:hidden;cursor:pointer;box-shadow:var(--shadow);border:1px solid var(--border);
+  transition:transform .15s,box-shadow .15s;
+}
+.hcard:active{transform:scale(.97);box-shadow:var(--shadow-lg)}
+.hcard .photo{height:160px;position:relative;background:#e5e5ea;overflow:hidden}
+.hcard .photo img{width:100%;height:100%;object-fit:cover}
+.hcard .photo .placeholder{width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#e5e5ea,#d1d1d6)}
+.hcard .photo .placeholder svg{width:48px;height:48px;fill:#aeaeb2}
+.hcard .tag{position:absolute;top:12px;left:12px;padding:4px 10px;border-radius:8px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.hcard .tag.missing{background:rgba(255,59,48,.9);color:#fff}
+.hcard .tag.found{background:rgba(52,199,89,.9);color:#fff}
+.hcard .meta{padding:14px 16px 16px}
+.hcard .name{font-size:15px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hcard .sub{font-size:12px;color:var(--text2);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hcard .date{font-size:11px;color:var(--text3);margin-top:5px;font-weight:500}
+
+/* === MESSAGE CARD === */
+.msg-card{
+  background:var(--card);border-radius:var(--radius-sm);padding:16px 18px;
+  margin-bottom:10px;box-shadow:var(--shadow);border:1px solid var(--border);
+  display:flex;gap:14px;align-items:flex-start;
+}
+.msg-card .msg-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.msg-card .msg-icon svg{width:18px;height:18px}
+.msg-card .msg-icon.alert{background:#fff0f0}.msg-card .msg-icon.alert svg{fill:var(--red)}
+.msg-card .msg-icon.notice{background:#fff8e6}.msg-card .msg-icon.notice svg{fill:var(--orange)}
+.msg-card .msg-icon.info{background:#f0f7ff}.msg-card .msg-icon.info svg{fill:var(--accent)}
+.msg-card h4{font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px}
+.msg-card p{font-size:13px;color:var(--text2);line-height:1.5}
+
+/* === DONATE BANNER === */
+.donate-banner{
+  margin:16px 20px;padding:20px;border-radius:var(--radius);
+  background:linear-gradient(135deg,var(--dark),#2c2c2e);cursor:pointer;
+  display:flex;align-items:center;gap:16px;transition:transform .15s;
+}
+.donate-banner:active{transform:scale(.98)}
+.donate-banner .db-icon{width:48px;height:48px;border-radius:14px;background:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.donate-banner .db-icon svg{width:24px;height:24px;fill:#fff}
+.donate-banner h3{font-size:15px;font-weight:700;color:#fff}
+.donate-banner p{font-size:12px;color:rgba(255,255,255,.55);margin-top:3px;line-height:1.5}
+
+/* === SEARCH PAGE === */
+.search-head{padding:24px 20px 6px}
+.search-head h2{font-size:26px;font-weight:800;color:var(--text);letter-spacing:-.5px}
+.search-head p{font-size:14px;color:var(--text2);margin-top:4px;line-height:1.5}
+.form-group{padding:0 20px}
+.field{margin-bottom:16px}
+.field label{display:block;font-size:11px;color:var(--text2);margin-bottom:8px;font-weight:700;text-transform:uppercase;letter-spacing:.8px}
+.field input,.field select,.field textarea{
+  width:100%;background:var(--card);border:1.5px solid var(--border);color:var(--text);
+  border-radius:var(--radius-xs);padding:14px 16px;font-size:15px;
+  transition:border-color .2s,box-shadow .2s;
+}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,113,227,.12)}
+.field .row2{display:flex;gap:12px}.field .row2>div{flex:1}
+.btn{
+  width:100%;background:var(--dark);color:#fff;border:none;border-radius:var(--radius-sm);
+  padding:16px;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:24px;
+  transition:transform .15s;display:flex;align-items:center;justify-content:center;gap:8px;
+}
+.btn svg{width:18px;height:18px;fill:#fff}
+.btn:active{transform:scale(.98)}
+.result-info{padding:4px 0 14px;font-size:13px;color:var(--text3);font-weight:500}
+
+.empty{text-align:center;padding:48px 24px;color:var(--text3)}
+.empty svg{width:48px;height:48px;fill:var(--border2);margin-bottom:12px}
+.empty p{font-size:14px;line-height:1.5}
+
+/* === FOUND/HEROES PAGE === */
+.found-list{padding:8px 20px 24px;display:flex;flex-direction:column;gap:12px}
+.fcard{background:var(--card);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);border:1px solid var(--border)}
+.fcard .fhead{display:flex;gap:14px;padding:16px;align-items:center;cursor:pointer;transition:background .15s}
+.fcard .fhead:active{background:var(--bg)}
+.fcard .fhead img{width:56px;height:56px;object-fit:cover;border-radius:14px;background:#e5e5ea}
+.fcard .fhead .ph{width:56px;height:56px;border-radius:14px;background:#e5e5ea;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.fcard .fhead .ph svg{width:28px;height:28px;fill:#aeaeb2}
+.fcard .fname{font-size:15px;font-weight:700;color:var(--text)}
+.fcard .finder{font-size:12px;color:var(--green);font-weight:600;margin-top:3px}
+.fcard .fdate{font-size:11px;color:var(--text3);margin-top:2px}
+.fcard .fbody{border-top:1px solid var(--border);padding:16px;display:none}
+.fcard.open .fbody{display:block}
+.fbody h4{font-size:12px;color:var(--text3);margin:14px 0 10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px}
+.praise-item{background:var(--bg);border-radius:var(--radius-xs);padding:12px 14px;margin-bottom:10px}
+.praise-item .pn{font-size:13px;font-weight:700;color:var(--accent)}
+.praise-item .pt{font-size:13px;color:var(--text);margin-top:4px;line-height:1.5}
+.gift-item{background:var(--bg);border-radius:var(--radius-xs);padding:12px 14px;margin-bottom:10px;border-left:3px solid #af52de}
+.gift-item .gn{font-size:13px;font-weight:700;color:#af52de}
+.gift-item .gm{font-size:13px;color:var(--text);margin-top:4px;line-height:1.5}
+.gift-item .ga{font-size:12px;color:var(--orange);margin-top:5px;font-weight:700}
+.action-btn{border:none;border-radius:var(--radius-xs);padding:11px 16px;font-size:13px;font-weight:700;cursor:pointer;margin-right:8px;margin-top:12px;display:inline-flex;align-items:center;gap:6px;transition:transform .12s}
+.action-btn:active{transform:scale(.95)}
+.action-btn.gold{background:var(--orange);color:#fff}
+.action-btn.green{background:var(--green);color:#fff}
+.action-btn svg{width:14px;height:14px;fill:#fff}
+
+/* === ME/AUTH === */
+.auth-toggle{display:flex;gap:0;background:var(--bg);border-radius:var(--radius-xs);padding:4px;margin:0 20px 18px}
+.auth-toggle button{flex:1;background:transparent;border:none;color:var(--text3);border-radius:var(--radius-xs);padding:11px;font-size:14px;font-weight:700;cursor:pointer;transition:.2s}
+.auth-toggle button.active{background:var(--card);color:var(--text);box-shadow:var(--shadow)}
+.profile-card{background:var(--card);border-radius:var(--radius);padding:28px 20px;margin:0 20px 18px;box-shadow:var(--shadow);text-align:center}
+.profile-card .av{width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#af52de);display:flex;align-items:center;justify-content:center;margin:0 auto 14px}
+.profile-card .av svg{width:28px;height:28px;fill:#fff}
+.profile-card .pn{font-size:18px;font-weight:800;color:var(--text)}
+.profile-card .ps{font-size:13px;color:var(--text2);margin-top:4px}
+.req-item{background:var(--card);border-radius:var(--radius-sm);padding:14px 16px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:12px;box-shadow:var(--shadow);border:1px solid var(--border)}
+.req-item .rn{font-size:14px;font-weight:700;color:var(--text)}
+.req-item .rd{font-size:11px;color:var(--text3);margin-top:3px}
+.req-badge{font-size:10px;font-weight:800;padding:4px 10px;border-radius:8px;text-transform:uppercase;letter-spacing:.5px;flex-shrink:0}
+.req-badge.pending{background:#fff8e6;color:#b25000}
+.req-badge.approved{background:#f0fdf4;color:#0a6b3a}
+.req-badge.rejected{background:#fff0f0;color:#c92c2c}
+
+/* === DONATE PAGE === */
+.don-list{display:flex;flex-direction:column;gap:10px}
+.don-item{background:var(--card);border-radius:var(--radius-sm);padding:14px 16px;box-shadow:var(--shadow);border:1px solid var(--border)}
+.don-item .drow{display:flex;justify-content:space-between;align-items:center}
+.don-item .dname{font-size:14px;font-weight:700;color:var(--text)}
+.don-item .damt{font-size:14px;font-weight:800;color:var(--accent)}
+.don-item .dmsg{font-size:13px;color:var(--text2);margin-top:5px;line-height:1.5}
+.don-item .ddate{font-size:11px;color:var(--text3);margin-top:5px}
+
+/* === BOTTOM NAV === */
+.nav{
+  position:fixed;bottom:0;left:0;right:0;z-index:30;
+  background:rgba(255,255,255,.88);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border-top:1px solid var(--border);display:flex;padding-bottom:env(safe-area-inset-bottom);
+}
+.nav button{
+  flex:1;background:none;border:none;color:var(--text3);cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  padding:10px 0 8px;font-size:10px;font-weight:600;transition:color .2s;
+}
+.nav button svg{width:22px;height:22px;fill:currentColor;transition:fill .2s}
+.nav button.active{color:var(--accent)}
+
+/* === DETAIL SHEET === */
+.backdrop{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.4);opacity:0;pointer-events:none;transition:opacity .3s}
+.backdrop.show{opacity:1;pointer-events:auto}
+.sheet{
+  position:fixed;left:0;right:0;bottom:0;z-index:50;background:var(--card);
+  border-radius:24px 24px 0 0;max-height:92vh;display:flex;flex-direction:column;
+  transform:translateY(100%);transition:transform .35s cubic-bezier(.32,.72,.28,1);
+  box-shadow:0 -4px 30px rgba(0,0,0,.15);padding-bottom:calc(20px + env(safe-area-inset-bottom));
+}
+.sheet.show{transform:translateY(0)}
+.sheet-scroll{overflow-y:auto}
+.sheet .grab{width:40px;height:4px;border-radius:2px;background:var(--border2);margin:12px auto 4px}
+.sheet .close{
+  position:absolute;top:14px;right:14px;z-index:5;width:40px;height:40px;border-radius:50%;border:none;
+  background:rgba(255,255,255,.95);color:var(--text);display:flex;align-items:center;justify-content:center;
+  cursor:pointer;box-shadow:var(--shadow-lg);transition:transform .15s;
+}
+.sheet .close:active{transform:scale(.9)}
+.sheet .close svg{width:16px;height:16px;fill:var(--text)}
+.sheet .dphoto{width:100%;height:320px;background:#e5e5ea;position:relative;overflow:hidden}
+.sheet .dphoto img{width:100%;height:100%;object-fit:cover}
+.sheet .dphoto .ph{width:100%;height:100%;display:flex;align-items:center;justify-content:center}
+.sheet .dphoto .ph svg{width:80px;height:80px;fill:#aeaeb2}
+.sheet .dbody{padding:20px 20px 10px}
+.sheet .dname{font-size:24px;font-weight:800;color:var(--text);letter-spacing:-.5px}
+.sheet .dsub{font-size:13px;color:var(--text2);margin-top:4px}
+.drow{display:flex;gap:14px;padding:13px 0;border-bottom:1px solid var(--border);font-size:14px}
+.drow:last-child{border-bottom:none}
+.drow .k{flex:0 0 100px;color:var(--text3);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.drow .v{color:var(--text);flex:1;line-height:1.5;word-break:break-word}
+.drow .v a{color:var(--accent);text-decoration:none;font-weight:700}
+.action-row{display:flex;flex-direction:column;gap:10px;padding:18px 20px}
+.btn-call{
+  display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:16px;
+  background:var(--green);color:#fff;border:none;border-radius:var(--radius-sm);
+  font-size:15px;font-weight:700;text-decoration:none;
+}
+.btn-call svg{width:18px;height:18px;fill:#fff}
+.btn-found{
+  display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:15px;
+  background:var(--orange);color:#fff;border:none;border-radius:var(--radius-sm);
+  font-size:15px;font-weight:700;cursor:pointer;
+}
+.btn-found svg{width:18px;height:18px;fill:#fff}
+.btn-praise{
+  display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px;
+  background:var(--bg);color:var(--text);border:none;border-radius:var(--radius-sm);
+  font-size:14px;font-weight:700;cursor:pointer;
+}
+.btn-praise svg{width:16px;height:16px;fill:var(--text2)}
+.dbadge{display:inline-block;font-size:11px;font-weight:800;padding:5px 14px;border-radius:8px;margin-top:12px;text-transform:uppercase;letter-spacing:.5px}
+.dbadge.missing{background:#fff0f0;color:var(--red)}
+.dbadge.found{background:#f0fdf4;color:var(--green)}
+
+/* === MODAL === */
+.modal-bg{position:fixed;inset:0;z-index:55;background:rgba(0,0,0,.5);display:none;align-items:flex-end;justify-content:center}
+.modal-bg.show{display:flex}
+.modal{background:var(--card);width:100%;max-width:560px;max-height:92vh;overflow-y:auto;border-radius:24px 24px 0 0;padding:24px 20px 28px}
+@media(min-width:640px){.modal{border-radius:24px;margin-bottom:24px}}
+.modal h3{font-size:20px;font-weight:800;color:var(--text);margin-bottom:18px}
+.modal .actions{display:flex;gap:10px;margin-top:18px}
+.modal .actions button{flex:1}
+.btn-ghost{background:var(--bg);color:var(--text2);border:none;border-radius:var(--radius-sm);padding:14px;font-size:15px;font-weight:700;cursor:pointer}
+
+/* === TOAST === */
+#toast{
+  position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(80px);
+  background:var(--dark);color:#fff;padding:14px 22px;border-radius:14px;
+  font-size:14px;font-weight:600;z-index:60;opacity:0;
+  transition:all .3s ease;max-width:90vw;text-align:center;box-shadow:var(--shadow-lg);
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#toast.ok{background:#0a6b3a}#toast.err{background:#c92c2c}
+
+/* === MISC === */
+.demo-chip{display:none;margin:12px 20px 0;padding:10px 16px;background:#fff8e6;color:#b25000;border-radius:var(--radius-xs);font-size:12px;font-weight:600}
+.demo-chip.show{display:flex;align-items:center;gap:8px}
+.demo-chip svg{width:16px;height:16px;fill:#b25000;flex-shrink:0}
+
+@media(min-width:640px){main{padding-left:20px;padding-right:20px}.sheet{max-width:560px;margin:0 auto}}
+
+/* === KEYBOARD FIX === */
+body.keyboard-open .nav{display:none}
+body.keyboard-open .header{max-height:0;padding:0;overflow:hidden}
+body.keyboard-open .header::after{display:none}
+body.keyboard-open main{padding-bottom:20px}
+body.keyboard-open .tab-pills-wrap{top:0}
+
+/* === STICKY TABS === */
+.tab-pills-wrap{position:sticky;top:0;z-index:10;background:var(--bg);padding-top:12px;transition:top .2s}
+main{scroll-padding-top:10px}
+.field input:focus,.field textarea:focus,.field select:focus{scroll-margin-top:80px}
+
+/* === DEVELOPER CREDIT FOOTER === */
+.dev-footer{padding:32px 20px 24px;text-align:center;border-top:1px solid var(--border);margin-top:24px;margin-bottom:calc(70px + env(safe-area-inset-bottom))}
+.dev-footer .df-line{font-size:12px;color:var(--text3);line-height:1.7;font-weight:500}
+.dev-footer .df-name{font-size:13px;font-weight:700;color:var(--text);margin-bottom:6px}
+.dev-footer .df-disclaimer{font-size:11px;color:var(--text3);line-height:1.6;margin-top:10px;padding:12px 16px;background:var(--card);border-radius:var(--radius-xs);border:1px solid var(--border)}
+.dev-footer .df-disclaimer strong{color:var(--text2);font-weight:700}
+
+/* === PAGE BACK BUTTON === */
+.page-top{display:flex;align-items:center;gap:10px;padding:14px 20px 0}
+.page-top .back-btn{width:36px;height:36px;border-radius:12px;border:1.5px solid var(--border);background:var(--card);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:transform .12s}
+.page-top .back-btn:active{transform:scale(.92)}
+.page-top .back-btn svg{width:18px;height:18px;fill:var(--text)}
+.page-top h2{font-size:20px;font-weight:800;color:var(--text);letter-spacing:-.3px}
+
+/* === QUICK ACTIONS === */
+.actions-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:16px 20px 8px}
+.action-card{background:var(--card);border-radius:var(--radius-sm);padding:18px 12px;text-align:center;cursor:pointer;border:1px solid var(--border);box-shadow:var(--shadow);transition:transform .15s}
+.action-card:active{transform:scale(.96)}
+.action-card .aicon{width:44px;height:44px;border-radius:13px;display:flex;align-items:center;justify-content:center;margin:0 auto 10px}
+.action-card .aicon svg{width:22px;height:22px}
+.action-card .atitle{font-size:12px;font-weight:700;color:var(--text);line-height:1.3}
+.action-card.report .aicon{background:#fff0f0}.action-card.report .aicon svg{fill:var(--red)}
+.action-card.search .aicon{background:#f0f7ff}.action-card.search .aicon svg{fill:var(--accent)}
+.action-card.donate .aicon{background:#f0fdf4}.action-card.donate .aicon svg{fill:var(--green)}
+
+/* === HOW IT WORKS === */
+.how-grid{display:flex;flex-direction:column;gap:0;padding:8px 20px 16px}
+.how-step{display:flex;gap:16px;align-items:flex-start;position:relative}
+.how-step:not(:last-child){padding-bottom:20px}
+.how-step:not(:last-child)::after{content:'';position:absolute;left:19px;top:44px;bottom:0;width:2px;background:var(--border2)}
+.how-num{width:40px;height:40px;border-radius:50%;background:var(--dark);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;flex-shrink:0;position:relative;z-index:1}
+.how-step h4{font-size:14px;font-weight:700;color:var(--text);margin-bottom:3px}
+.how-step p{font-size:13px;color:var(--text2);line-height:1.5}
+
+/* === RECENT ACTIVITY === */
+.activity-list{padding:0 20px 16px}
+.activity-item{display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--border)}
+.activity-item:last-child{border-bottom:none}
+.activity-item .aavatar{width:42px;height:42px;border-radius:12px;overflow:hidden;background:var(--border);flex-shrink:0}
+.activity-item .aavatar img{width:100%;height:100%;object-fit:cover}
+.activity-item .aavatar .ph{width:100%;height:100%;display:flex;align-items:center;justify-content:center}
+.activity-item .aavatar .ph svg{width:20px;height:20px;fill:#aeaeb2}
+.activity-item .atxt{flex:1;min-width:0}
+.activity-item .atxt .aname{font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.activity-item .atxt .adetail{font-size:12px;color:var(--text2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.activity-item .abadge{flex-shrink:0;font-size:10px;font-weight:700;padding:4px 8px;border-radius:6px;text-transform:uppercase;letter-spacing:.3px}
+.activity-item .abadge.new{background:#fff0f0;color:var(--red)}
+.activity-item .abadge.resolved{background:#f0fdf4;color:var(--green)}
+
+/* === EMERGENCY === */
+.emergency-card{margin:0 20px 16px;padding:16px;background:var(--card);border-radius:var(--radius-sm);border:1px solid var(--border);box-shadow:var(--shadow)}.emergency-card h4{font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.emergency-card h4 svg{width:18px;height:18px;fill:var(--red)}
+.emergency-card .elinks{display:flex;flex-direction:column;gap:8px}
+.emergency-card .elink{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg);border-radius:var(--radius-xs);text-decoration:none;color:var(--text);font-size:13px;font-weight:600;transition:background .15s}
+.emergency-card .elink:active{background:var(--border)}
+.emergency-card .elink svg{width:18px;height:18px;fill:var(--accent);flex-shrink:0}
+
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-top">
+    <div class="header-brand">
+      <div class="icon-wrap"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg></div>
+      <div><h1>Find My Child</h1><small>Reunite families</small></div>
+    </div>
+    <div class="header-right">
+      <div class="status-pill"><span class="status-dot" id="statusDot"></span><span id="statusTxt">Connecting</span></div>
+    </div>
+  </div>
+  <div class="hero">
+    <h2>Every child<br>deserves to be home</h2>
+    <p>Help find missing children across the country.</p>
+  </div>
+  <div class="search-bar" id="heroSearch">
+    <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+    <span>Search by name, address, age...</span>
+  </div>
+</div>
+
+<div class="demo-chip" id="demoChip"><svg viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>Demo mode — database unreachable, showing sample records.</div>
+
+<main>
+  <!-- HOME -->
+  <section class="view active" id="view-home">
+    <div class="stats">
+      <div class="stat red"><div class="icon-wrap"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg></div><div class="num" id="statMissing">-</div><div class="lbl">Missing</div></div>
+      <div class="stat green"><div class="icon-wrap"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg></div><div class="num" id="statFound">-</div><div class="lbl">Found</div></div>
+      <div class="stat blue"><div class="icon-wrap"><svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg></div><div class="num" id="statTotal">-</div><div class="lbl">Total</div></div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="section">
+      <div class="section-head"><h3>Quick Actions</h3></div>
+    </div>
+    <div class="actions-grid">
+      <div class="action-card report" onclick="showView('report')"><div class="aicon"><svg viewBox="0 0 24 24"><path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6z"/></svg></div><div class="atitle">Report<br>Missing</div></div>
+      <div class="action-card search" onclick="showView('search')"><div class="aicon"><svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg></div><div class="atitle">Search<br>Child</div></div>
+      <div class="action-card donate" onclick="showView('donate')"><div class="aicon"><svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg></div><div class="atitle">Donate<br>Now</div></div>
+    </div>
+
+    <!-- How It Works -->
+    <div class="section">
+      <div class="section-head"><h3>How It Works</h3></div>
+    </div>
+    <div class="how-grid">
+      <div class="how-step"><div class="how-num">1</div><div><h4>Report a Missing Child</h4><p>Fill out the form with all known details — name, age, address, last seen location, and a photo if available.</p></div></div>
+      <div class="how-step"><div class="how-num">2</div><div><h4>We Verify & Publish</h4><p>Our admin team reviews every report to ensure accuracy, then publishes it so the community can help.</p></div></div>
+      <div class="how-step"><div class="how-num">3</div><div><h4>Community Helps Find</h4><p>Anyone who sees the child can raise a found request. After verification, the family is reunited.</p></div></div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="section">
+      <div class="section-head"><h3>Recent Activity</h3></div>
+    </div>
+    <div class="activity-list" id="activityList"></div>
+
+    <div class="tab-pills-wrap" id="homeTabs">
+      <div class="tab-pills">
+        <button class="pill active" data-filter="all"><svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>All Records</button>
+        <button class="pill" data-filter="missing"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>Missing</button>
+        <button class="pill" data-filter="found"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>Found</button>
+      </div>
+    </div>
+
+    <div class="section" id="missingSection">
+      <div class="section-head"><h3>Recently Missing</h3><span class="count" id="recentMissingCount"></span></div>
+      <div class="hrow" id="recentMissing"></div>
+    </div>
+
+    <div class="section" id="foundSection">
+      <div class="section-head"><h3>Recently Found</h3><span class="count" id="recentFoundCount"></span></div>
+      <div class="hrow" id="recentFound"></div>
+    </div>
+
+    <div class="donate-banner" id="homeDonate">
+      <div class="db-icon"><svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg></div>
+      <div><h3>Support this platform</h3><p>Donate to keep it running for others.</p></div>
+    </div>
+
+    <div class="section">
+      <div class="section-head"><h3>Important Messages</h3></div>
+      <div id="msgList"></div>
+    </div>
+
+    <div class="emergency-card">
+      <h4><svg viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg> Emergency Contacts</h4>
+      <div class="elinks">
+        <a class="elink" href="tel:1098"><svg viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg> Childline India — 1098</a>
+        <a class="elink" href="tel:112"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/></svg> Police — 112</a>
+        <a class="elink" href="tel:181"><svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg> Women Helpline — 181</a>
+      </div>
+    </div>
+  </section>
+  <section class="view" id="view-search">
+    <div class="page-top"><button class="back-btn" onclick="showView('home')"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button><h2>Search</h2></div>
+    <div class="search-head"><p>Find a child by name, address, age, or any detail.</p></div>
+    <div class="form-group">
+      <div class="field"><label>Search anything</label><input id="q" type="text" placeholder="Name, address, location..."></div>
+      <div class="field"><div class="row2"><div><label>Age</label><input id="age" type="number" min="0" max="25" placeholder="Any"></div><div><label>Gender</label><select id="gender"><option value="">Any</option><option value="male">Male</option><option value="female">Female</option></select></div></div></div>
+      <button class="btn" id="searchBtn"><svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>Search</button>
+      <div class="result-info" id="resultInfo"></div>
+    </div>
+    <div class="hrow" id="searchResults" style="padding-left:20px;padding-right:20px"></div>
+  </section>
+
+  <!-- FOUND -->
+  <section class="view" id="view-found">
+    <div class="page-top"><button class="back-btn" onclick="showView('home')"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button><h2>Found & Heroes</h2></div>
+    <div class="search-head"><p>Children found through this portal and the heroes who found them.</p></div>
+    <div class="found-list" id="foundList"></div>
+  </section>
+
+  <!-- REPORT -->
+  <section class="view" id="view-report">
+    <div class="page-top"><button class="back-btn" onclick="showView('home')"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button><h2>Report Missing</h2></div>
+    <div class="search-head"><p>Submit details below. Our team will verify and publish after approval.</p></div>
+    <div class="form-group">
+      <div class="field"><label>Full name *</label><input id="r_name" type="text" placeholder="Child's full name"></div>
+      <div class="field"><div class="row2"><div><label>Gender</label><select id="r_gender"><option value="">-</option><option>Male</option><option>Female</option></select></div><div><label>Age</label><input id="r_age" type="number" min="0" max="25" placeholder="e.g. 7"></div></div></div>
+      <div class="field"><label>Address</label><input id="r_address" type="text" placeholder="Home address"></div>
+      <div class="field"><div class="row2"><div><label>State</label><input id="r_state" type="text" placeholder="e.g. Maharashtra"></div><div><label>Contact *</label><input id="r_contact" type="tel" placeholder="Family contact"></div></div></div>
+      <div class="field"><div class="row2"><div><label>Missing date</label><input id="r_date" type="date"></div><div><label>Missing time</label><input id="r_time" type="time"></div></div></div>
+      <div class="field"><label>Last seen location</label><input id="r_location" type="text" placeholder="Where last seen?"></div>
+      <div class="field"><label>Details</label><textarea id="r_info" rows="3" placeholder="Clothes, special details..."></textarea></div>
+      <div class="field"><label>Photo (optional)</label><input id="r_photo" type="file" accept="image/*"></div>
+      <button class="btn" id="reportBtn"><svg viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg>Submit for review</button>
+      <div class="result-info" id="reportMsg"></div>
+    </div>
+  </section>
+
+  <!-- ME -->
+  <section class="view" id="view-me">
+    <div class="page-top"><button class="back-btn" onclick="showView('home')"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button><h2>My Account</h2></div>
+    <div class="search-head"><p id="meSub">Log in to raise a found flag, or create an account.</p></div>
+    <div id="meBody"></div>
+  </section>
+
+  <!-- DONATE -->
+  <section class="view" id="view-donate">
+    <div class="page-top"><button class="back-btn" onclick="showView('home')"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button><h2>Donate</h2></div>
+    <div class="search-head"><p>If this platform helped reunite your family, support us to keep it running.</p></div>
+    <div class="form-group">
+      <div class="field"><label>Your name *</label><input id="d_name" type="text" placeholder="Your name"></div>
+      <div class="field"><div class="row2"><div><label>Email</label><input id="d_email" type="email" placeholder="you@email.com"></div><div><label>Amount *</label><input id="d_amount" type="number" min="1" placeholder="500"></div></div></div>
+      <div class="field"><label>Message</label><textarea id="d_msg" rows="2" placeholder="Why are you donating?"></textarea></div>
+      <button class="btn" id="donateBtn"><svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>Donate</button>
+      <div class="result-info" id="donateMsg"></div>
+    </div>
+    <div class="section"><div class="section-head"><h3>Recent Donors</h3><span class="count" id="donTotal"></span></div><div class="don-list" id="donList"></div></div>
+  </section>
+</main>
+
+<!-- DEVELOPER CREDIT -->
+<div class="dev-footer">
+  <div class="df-name">Developed By Er. MD Shoeb</div>
+  <div class="df-line">In Malegaon<br>For Gumshuda Bacho Ki Talash Group</div>
+  <div class="df-disclaimer"><strong>Non-Profitable Initiative</strong> — This is a social help platform created solely to reunite missing children with their families. No commercial purpose. If you wish to support this cause, you can donate voluntarily to help keep this platform running.</div>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="nav">
+  <button id="navHome" class="active"><svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>Home</button>
+  <button id="navSearch"><svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>Search</button>
+  <button id="navFound"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>Found</button>
+  <button id="navReport"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>Report</button>
+  <button id="navMe"><svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>Me</button>
+</nav>
+
+<!-- DETAIL SHEET -->
+<div class="backdrop" id="backdrop"></div>
+<div class="sheet" id="sheet">
+  <div class="grab"></div>
+  <button class="close" id="sheetClose"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
+  <div class="sheet-scroll" id="sheetBody"></div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-bg" id="modalBg"><div class="modal"><h3 id="modalTitle"></h3><div id="modalBody"></div></div></div>
+<div id="toast"></div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const socket=io();const $=id=>document.getElementById(id);
+let allData=[],messages=[],results=[],userToken=localStorage.getItem('fmc_user_token')||'',me=null;
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const money=n=>'₹'+Number(n||0).toLocaleString('en-IN');
+const dateKey=c=>String(c.missingDate||'');
+const byDateDesc=(a,b)=>dateKey(b).localeCompare(dateKey(a));
+const fmtDate=d=>d?new Date(d).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}):'';
+
+function toast(msg,type){const t=$('toast');t.textContent=msg;t.className='show '+(type||'ok');setTimeout(()=>t.className='',3200)}
+async function api(path,opts={}){const h=opts.headers||{};if(userToken)h.Authorization='Bearer '+userToken;const r=await fetch(path,{...opts,headers:h});const j=await r.json().catch(()=>({}));if(r.status===401&&opts.auth){localStorage.removeItem('fmc_user_token');userToken='';me=null;renderMe();throw new Error(j.message||'Please log in.')}if(!r.ok)throw new Error(j.message||'Request failed');return j}
+
+/* --- SVG templates for cards --- */
+const iconChild='<svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>';
+const iconClose='<svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>';
+const iconCall='<svg viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>';
+const iconFlag='<svg viewBox="0 0 24 24"><path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6z"/></svg>';
+const iconCheck='<svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>';
+const iconDelete='<svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>';
+const iconUser='<svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>';
+const iconHeart='<svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>';
+
+/* --- Connection --- */
+socket.on('connect',()=>{$('statusTxt').textContent='Live';$('statusDot').className='status-dot on';socket.emit('load');socket.emit('loadMessages')});
+socket.on('disconnect',()=>{$('statusTxt').textContent='Offline';$('statusDot').className='status-dot off'});
+socket.on('connect_error',()=>{$('statusTxt').textContent='Offline';$('statusDot').className='status-dot off'});
+socket.on('getAllData',d=>{allData=(d&&d.data)||[];$('demoChip').classList.toggle('show',!!(d&&d.demo));renderHome();renderFound()});
+socket.on('getMessages',d=>{messages=(d&&d.data)||[];renderMessages()});
+socket.on('getSearchData',d=>{results=(d&&d.data)||[];$('demoChip').classList.toggle('show',!!(d&&d.demo));renderResults()});
+socket.on('dataChanged',()=>socket.emit('load'));
+
+/* --- Tab filtering --- */
+let activeFilter='all';
+document.querySelectorAll('.pill[data-filter]').forEach(p=>{p.addEventListener('click',()=>{
+  document.querySelectorAll('.pill[data-filter]').forEach(x=>x.classList.remove('active'));
+  p.classList.add('active');activeFilter=p.dataset.filter;renderHome();
+})});
+
+/* --- Home --- */
+function renderHome(){
+  const missing=allData.filter(c=>!c.found),found=allData.filter(c=>c.found);
+  $('statMissing').textContent=missing.length;$('statFound').textContent=found.length;$('statTotal').textContent=allData.length;
+  const showMissing=activeFilter==='all'||activeFilter==='missing';
+  const showFound=activeFilter==='all'||activeFilter==='found';
+  $('missingSection').style.display=showMissing?'block':'none';
+  $('foundSection').style.display=showFound?'block':'none';
+  const rm=missing.slice().sort(byDateDesc).slice(0,10);
+  const rf=found.slice().sort(byDateDesc).slice(0,10);
+  $('recentMissingCount').textContent=rm.length+(missing.length>rm.length?'+':'');
+  $('recentFoundCount').textContent=rf.length+(found.length>rf.length?'+':'');
+  $('recentMissing').innerHTML=rm.length?rm.map(cardHtml).join(''):'<div class="empty"><p>No missing records.</p></div>';
+  $('recentFound').innerHTML=rf.length?rf.map(cardHtml).join(''):'<div class="empty"><p>No found records.</p></div>';
+}
+const msgTypes={alert:'alert',notice:'notice',info:'info'};
+const msgIcons={alert:'<svg viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>',notice:'<svg viewBox="0 0 24 24"><path d="M18 11v2h4v-2h-4zm-2 6.61c.96.71 2.21 1.65 3.2 2.39.4-.53.8-1.07 1.2-1.6-.99-.74-2.24-1.68-3.2-2.4-.4.54-.8 1.08-1.2 1.61zM20.4 5.6c-.4-.53-.8-1.07-1.2-1.6-.99.74-2.24 1.68-3.2 2.4.4.53.8 1.07 1.2 1.6.96-.72 2.21-1.65 3.2-2.4zM4 9c-1.1 0-2 .9-2 2v2c0 1.1.9 2 2 2h1l5 3V6L5 9H4zm11.5 3c0-1.33-.58-2.53-1.5-3.35v6.69c.92-.81 1.5-2.01 1.5-3.34z"/></svg>',info:'<svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>'};
+function renderMessages(){$('msgList').innerHTML=messages.map(m=>`<div class="msg-card"><div class="msg-icon ${msgTypes[m.type]||'notice'}">${msgIcons[m.type]||msgIcons.notice}</div><div><h4>${esc(m.title)}</h4><p>${esc(m.body)}</p></div></div>`).join('')||'<div class="empty"><p>No messages.</p></div>'}
+
+function photoHtml(c){return c.image?`<img src="${esc(c.image)}" alt="${esc(c.fullName||'child')}" loading="lazy" onerror="this.remove()">`:iconChild.replace('width="24"','width="48"').replace('height="24"','height="48"')}
+function cardHtml(c){
+  const ageLine=[c.gender,c.age?c.age+' yrs':null].filter(Boolean).join(' . ');
+  const tagClass=c.found?'found':'missing';
+  const tagText=c.found?'Found':'Missing';
+  return `<div class="hcard" onclick="openDetail('${esc(c._id)}')"><div class="photo">${c.image?`<img src="${esc(c.image)}" alt="" loading="lazy" onerror="this.outerHTML='<div class=\\'placeholder\\'>${iconChild.replace(/"/g,'&quot;')}</div>'">`:`<div class="placeholder">${iconChild}</div>`}<span class="tag ${tagClass}">${tagText}</span></div><div class="meta"><div class="name">${esc(c.fullName)||'Unknown'}</div><div class="sub">${esc(ageLine)||esc(c.address)||''}</div><div class="date">${esc(c.missingDate)||''}</div></div></div>`}
+
+/* --- Detail --- */
+function openDetail(id){
+  const c=allData.concat(results).find(x=>String(x._id)===String(id));if(!c)return;
+  const rows=[];const add=(k,v)=>{if(v!=null&&String(v).trim()!=='')rows.push(`<div class="drow"><div class="k">${k}</div><div class="v">${v}</div></div>`)};
+  add('Gender / Age',esc([c.gender,c.age?c.age+' yrs':null].filter(Boolean).join(', ')));
+  add('Address',esc(c.address));add('State',esc(c.state));
+  if(c.contactNumber)add('Contact',`<a href="tel:${esc(c.contactNumber)}">${esc(c.contactNumber)}</a>`);
+  if(c.missingDate)add('Missing',esc(c.missingDate+(c.missingTime?' '+c.missingTime:'')));
+  add('Location',esc(c.missingLocation));
+  if(c.found)add('Found by',esc(c.finderName||'Someone'));
+  if(c.found&&c.foundLocation)add('Found details',esc(c.foundLocation));
+  add('Disability',esc(c.disabilityInfo||c.disability));add('Details',esc(c.info));
+  let actions='';
+  if(c.found){actions=`<div class="action-row"><button class="btn-praise" onclick="closeDetail();openFoundFor('${esc(c._id)}')">${iconCheck} View praise & gifts</button></div>`}
+  else if(me){actions=`<div class="action-row"><button class="btn-found" onclick="openFoundForm('${esc(c._id)}','${esc(c.fullName||'')}')">${iconFlag} This child has been found</button></div>`}
+  else{actions=`<div class="action-row"><button class="btn-found" onclick="closeDetail();showView('me')">${iconUser} Log in to report found</button></div>`}
+  $('sheetBody').innerHTML=`<div class="dphoto">${c.image?`<img src="${esc(c.image)}" alt="" loading="lazy">`:`<div class="ph">${iconChild}</div>`}</div><div class="dbody"><div class="dname">${esc(c.fullName)||'Unknown'}</div><div class="dsub">${esc(c.uploadedBy?'Reported by '+c.uploadedBy:'')}</div><span class="dbadge ${c.found?'found':'missing'}">${c.found?'FOUND':'MISSING'}</span>${rows.join('')}${c.contactNumber&&!c.found?`<div class="action-row" style="padding-top:8px"><a class="btn-call" href="tel:${esc(c.contactNumber)}">${iconCall} Call ${esc(c.contactNumber)}</a></div>`:''}${actions}</div>`;
+  $('backdrop').classList.add('show');$('sheet').classList.add('show');document.body.style.overflow='hidden';
+}
+function closeDetail(){$('backdrop').classList.remove('show');$('sheet').classList.remove('show');document.body.style.overflow=''}
+
+/* --- Search --- */
+function doSearch(){const q=$('q').value.trim(),age=$('age').value.trim(),gender=$('gender').value;if(!q&&!age&&!gender){$('resultInfo').textContent='Type something to search.';$('searchResults').innerHTML='';return}$('resultInfo').textContent='Searching...';socket.emit('searchChildren',{query:q,age,gender})}
+function renderResults(){if(!results.length){$('resultInfo').textContent='No matching child found.';$('searchResults').innerHTML='<div class="empty"><p>No results found.</p></div>';return}$('resultInfo').textContent=results.length+' match(es) found.';$('searchResults').innerHTML=results.map(cardHtml).join('')}
+
+/* --- Found --- */
+function renderFound(){
+  const found=allData.filter(c=>c.found).sort(byDateDesc);
+  if(!found.length){$('foundList').innerHTML='<div class="empty"><p>No children marked as found yet.</p></div>';return}
+  $('foundList').innerHTML=found.map(c=>`<div class="fcard" id="fcard-${esc(c._id)}"><div class="fhead" onclick="toggleFound('${esc(c._id)}')">${c.image?`<img src="${esc(c.image)}" loading="lazy" onerror="this.outerHTML='<div class=\\'ph\\'>${iconChild.replace(/"/g,'&quot;')}</div>'">`:`<div class="ph">${iconChild}</div>`}<div style="flex:1;min-width:0"><div class="fname">${esc(c.fullName)||'Unknown'}</div><div class="finder">Found by ${esc(c.finderName||'Someone')}</div><div class="fdate">${esc(c.missingDate||'')}${c.foundDate?' . Found '+fmtDate(c.foundDate):''}</div></div><span style="color:var(--text3);font-size:18px" id="fcarrow-${esc(c._id)}">&#9662;</span></div><div class="fbody" id="fbody-${esc(c._id)}"><div id="praiseBox-${esc(c._id)}"><div class="empty"><p>Loading...</p></div></div><button class="action-btn gold" onclick="openPraiseForm('${esc(c._id)}','${esc(c.fullName||'')}')">Praise</button><button class="action-btn green" onclick="openGiftForm('${esc(c._id)}','${esc(c.fullName||'')}')">Give a gift</button></div></div>`).join('');
+}
+async function toggleFound(id){const card=$('fcard-'+id);if(!card)return;card.classList.toggle('open');$('fcarrow-'+id).textContent=card.classList.contains('open')?'\u25B4':'\u25BE';if(card.classList.contains('open')&&!$('praiseBox-'+id).dataset.loaded){try{const j=await api('/api/praise?childId='+id);const{praises,gifts}=j.data;$('praiseBox-'+id).dataset.loaded='1';let html='<h4>Praises ('+praises.length+')</h4>'+(praises.length?praises.map(p=>`<div class="praise-item"><div class="pn">${esc(p.userName)}</div><div class="pt">${esc(p.text)}</div></div>`).join(''):'<p style="font-size:12px;color:var(--text3)">No praises yet.</p>');html+='<h4>Gifts ('+gifts.length+')</h4>'+(gifts.length?gifts.map(g=>`<div class="gift-item"><div class="gn">${esc(g.giverName)}${g.amount?' . '+money(g.amount):''}</div><div class="gm">${esc(g.message)}</div></div>`).join(''):'<p style="font-size:12px;color:var(--text3)">No gifts yet.</p>');$('praiseBox-'+id).innerHTML=html}catch(e){$('praiseBox-'+id).innerHTML=`<p style="color:var(--red);font-size:13px">${esc(e.message)}</p>`}}}
+function openFoundFor(id){showView('found');setTimeout(()=>{const card=$('fcard-'+id);if(!card)return;if(!card.classList.contains('open'))toggleFound(id);card.scrollIntoView({behavior:'smooth',block:'center'})},250)}
+
+/* --- Report --- */
+$('reportBtn').addEventListener('click',async()=>{const name=$('r_name').value.trim(),contact=$('r_contact').value.trim(),msg=$('reportMsg');if(!name){msg.textContent='Enter the child\'s full name.';return}if(!contact){msg.textContent='Enter a contact number.';return}const fd=new FormData();fd.append('fullName',name);fd.append('gender',$('r_gender').value);fd.append('age',$('r_age').value);fd.append('address',$('r_address').value.trim());fd.append('state',$('r_state').value.trim());fd.append('contactNumber',contact);fd.append('missingDate',$('r_date').value);fd.append('missingTime',$('r_time').value);fd.append('missingLocation',$('r_location').value.trim());fd.append('info',$('r_info').value.trim());const file=$('r_photo').files[0];if(file)fd.append('image',file);const btn=$('reportBtn');btn.disabled=true;btn.textContent='Submitting...';msg.textContent='';try{const r=await fetch('/api/children',{method:'POST',body:fd});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.message||'Failed');msg.textContent=j.message;$('r_name').value='';$('r_gender').value='';$('r_age').value='';$('r_address').value='';$('r_state').value='';$('r_contact').value='';$('r_date').value='';$('r_time').value='';$('r_location').value='';$('r_info').value='';$('r_photo').value=''}catch(e){msg.textContent=e.message}finally{btn.disabled=false;btn.textContent='Submit for review'}});
+
+/* --- Navigation --- */
+function showView(name){['home','search','found','report','me','donate'].forEach(v=>$('view-'+v).classList.toggle('active',v===name));['navHome','navSearch','navFound','navReport','navMe'].forEach(n=>$(n).classList.toggle('active',n==='nav'+name.charAt(0).toUpperCase()+name.slice(1)));if(name==='me')renderMe();if(name==='donate')loadDonations();if(name==='found')renderFound();window.scrollTo(0,0)}
+$('heroSearch').addEventListener('click',()=>{showView('search');setTimeout(()=>$('q').focus(),300)})
+$('navHome').addEventListener('click',()=>showView('home'));
+$('navSearch').addEventListener('click',()=>showView('search'));
+$('navFound').addEventListener('click',()=>showView('found'));
+$('navReport').addEventListener('click',()=>showView('report'));
+$('navMe').addEventListener('click',()=>showView('me'));
+$('homeDonate').addEventListener('click',()=>showView('donate'));
+$('searchBtn').addEventListener('click',doSearch);
+$('q').addEventListener('keydown',e=>{if(e.key==='Enter')doSearch()});
+
+/* --- Modal --- */
+function openModal(title,html){$('modalTitle').textContent=title;$('modalBody').innerHTML=html;$('modalBg').classList.add('show')}
+function closeModal(){$('modalBg').classList.remove('show');$('modalBody').innerHTML=''}
+$('modalBg').addEventListener('click',e=>{if(e.target===$('modalBg'))closeModal()});
+
+/* --- Found request --- */
+function openFoundForm(childId,childName){openModal('Report found — '+childName,`<div class="field"><label>Who found?</label><select id="ff_claim"><option value="me">I found this child</option><option value="someone">Someone else found</option></select></div><div class="field"><label>Finder's name</label><input id="ff_name" type="text" placeholder="Name" value="${esc(me&&me.userFullName||'')}"></div><div class="field"><label>Contact</label><input id="ff_contact" type="tel" placeholder="Contact number" value="${esc(me&&me.userContactNumber||'')}"></div><div class="field"><label>Details</label><textarea id="ff_details" rows="3" placeholder="Where/how found?"></textarea></div><div class="actions"><button class="btn" style="margin:0" onclick="submitFound('${childId}')">Send request</button><button class="btn-ghost" onclick="closeModal()">Cancel</button></div>`)}
+async function submitFound(childId){try{const j=await api('/api/found-requests',{method:'POST',auth:true,headers:{'Content-Type':'application/json'},body:JSON.stringify({childId,claimType:$('ff_claim').value,finderName:$('ff_name').value.trim(),contactNumber:$('ff_contact').value.trim(),details:$('ff_details').value.trim()})});closeModal();toast(j.message)}catch(e){toast(e.message,'err')}}
+
+/* --- Praise/Gift --- */
+function openPraiseForm(childId,childName){openModal('Praise the hero — '+childName,`<div class="field"><label>Your name</label><input id="pf_name" type="text" placeholder="Name" value="${esc(me?me.userFullName:'')}"></div><div class="field"><label>Praise *</label><textarea id="pf_text" rows="3" placeholder="Thank this hero..."></textarea></div><div class="actions"><button class="btn" style="margin:0" onclick="submitPraise('${childId}')">Send praise</button><button class="btn-ghost" onclick="closeModal()">Cancel</button></div>`)}
+async function submitPraise(childId){try{const j=await api('/api/praise',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({childId,userName:$('pf_name').value.trim(),text:$('pf_text').value.trim()})});closeModal();toast(j.message)}catch(e){toast(e.message,'err')}}
+function openGiftForm(childId,childName){openModal('Give a gift — '+childName,`<div class="field"><label>Your name</label><input id="gf_name" type="text" placeholder="Name" value="${esc(me?me.userFullName:'')}"></div><div class="field"><label>Amount</label><input id="gf_amount" type="number" min="1" placeholder="Optional"></div><div class="field"><label>Message *</label><textarea id="gf_msg" rows="3" placeholder="Heartfelt message..."></textarea></div><div class="actions"><button class="btn" style="margin:0" onclick="submitGift('${childId}')">Send gift</button><button class="btn-ghost" onclick="closeModal()">Cancel</button></div>`)}
+async function submitGift(childId){try{const j=await api('/api/gifts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({childId,giverName:$('gf_name').value.trim(),amount:$('gf_amount').value,message:$('gf_msg').value.trim()})});closeModal();toast(j.message)}catch(e){toast(e.message,'err')}}
+
+/* --- Me --- */
+let authMode='login';
+function renderMe(){$('meBody').innerHTML='';if(me){$('meSub').textContent='Welcome back!';$('meBody').innerHTML=`<div class="profile-card"><div class="av">${iconUser}</div><div class="pn">${esc(me.userFullName)}</div><div class="ps">${esc(me.userContactNumber)}${me.emailId?' . '+esc(me.emailId):''}</div></div><div class="section" style="padding:0 20px 8px"><div class="section-head"><h3>My Found Requests</h3></div><div id="myReqs"></div></div><div class="donate-banner" id="meDonate" style="margin:16px 20px"><div class="db-icon">${iconHeart}</div><div><h3>Support this platform</h3><p>Donate if this portal helped you.</p></div></div><div style="padding:0 20px"><button class="btn-ghost" style="width:100%" onclick="logoutUser()">Log out</button></div>`;$('meDonate').addEventListener('click',()=>showView('donate'));loadMyRequests()}else{$('meSub').textContent='Log in to raise a found flag, or create an account.';$('meBody').innerHTML=`<div class="auth-toggle"><button id="authLoginBtn" class="active">Log in</button><button id="authSignupBtn">Sign up</button></div><div id="authForm" style="padding:0 20px"></div>`;$('authLoginBtn').addEventListener('click',()=>setAuthMode('login'));$('authSignupBtn').addEventListener('click',()=>setAuthMode('signup'));setAuthMode('login')}}
+function setAuthMode(mode){authMode=mode;const l=$('authLoginBtn'),s=$('authSignupBtn');if(l)l.classList.toggle('active',mode==='login');if(s)s.classList.toggle('active',mode==='signup');$('authForm').innerHTML=mode==='login'?`<div class="field"><label>Contact or email</label><input id="ai_id" type="text" placeholder="e.g. 98xxxxxxxx"></div><div class="field"><label>Password</label><input id="ai_pass" type="password"></div><button class="btn" onclick="doLogin()">Log in</button>`:`<div class="field"><label>Full name *</label><input id="as_name" type="text" placeholder="Your name"></div><div class="field"><label>Contact *</label><input id="as_contact" type="tel" placeholder="Number"></div><div class="field"><label>Email</label><input id="as_email" type="email" placeholder="Email"></div><div class="field"><label>Password * (min 6)</label><input id="as_pass" type="password"></div><button class="btn" onclick="doSignup()">Create account</button>`}
+async function doLogin(){try{const j=await api('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({identifier:$('ai_id').value.trim(),password:$('ai_pass').value})});userToken=j.token;localStorage.setItem('fmc_user_token',j.token);me=j.user;toast(j.message);renderMe()}catch(e){toast(e.message,'err')}}
+async function doSignup(){try{const j=await api('/api/auth/signup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fullName:$('as_name').value.trim(),contactNumber:$('as_contact').value.trim(),emailId:$('as_email').value.trim(),password:$('as_pass').value})});userToken=j.token;localStorage.setItem('fmc_user_token',j.token);me=j.user;toast(j.message);renderMe()}catch(e){toast(e.message,'err')}}
+function logoutUser(){if(userToken)fetch('/api/auth/logout',{method:'POST',headers:{Authorization:'Bearer '+userToken}}).catch(()=>{});localStorage.removeItem('fmc_user_token');userToken='';me=null;toast('Logged out.');renderMe()}
+async function loadMyRequests(){const box=$('myReqs');if(!box)return;try{const j=await api('/api/found-requests/me',{auth:true});box.innerHTML=j.data.length?j.data.map(r=>`<div class="req-item"><div><div class="rn">${esc(r.finderName||'Anonymous')}</div><div class="rd">${fmtDate(r.createdAt)}${r.details?' . '+esc(String(r.details).slice(0,60)):''}</div></div><span class="req-badge ${r.status}">${r.status.toUpperCase()}</span></div>`).join(''):'<div class="empty"><p>No found requests yet.</p></div>'}catch(e){box.innerHTML=`<p style="color:var(--red);font-size:13px">${esc(e.message)}</p>`}}
+
+/* --- Donations --- */
+$('donateBtn').addEventListener('click',async()=>{const msg=$('donateMsg');try{const j=await api('/api/donations',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({donorName:$('d_name').value.trim(),emailId:$('d_email').value.trim(),amount:$('d_amount').value,message:$('d_msg').value.trim()})});msg.textContent=j.message;$('d_name').value='';$('d_email').value='';$('d_amount').value='';$('d_msg').value='';loadDonations()}catch(e){msg.textContent=e.message}});
+async function loadDonations(){try{const j=await api('/api/donations');$('donTotal').textContent=money(j.total)+' raised';$('donList').innerHTML=j.data.length?j.data.map(d=>`<div class="don-item"><div class="drow"><span class="dname">${esc(d.donorName)}</span><span class="damt">${money(d.amount)}</span></div>${d.message?'<div class="dmsg">'+esc(d.message)+'</div>':''}<div class="ddate">${fmtDate(d.createdAt)}</div></div>`).join(''):'<div class="empty"><p>No donations yet.</p></div>'}catch(e){}}
+
+/* --- Keyboard fix --- */
+function scrollFocusedIntoView(){setTimeout(()=>{const el=document.activeElement;if(el&&(el.tagName==='INPUT'||el.tagName==='TEXTAREA'||el.tagName==='SELECT')){const rect=el.getBoundingClientRect();const vh=window.visualViewport?window.visualViewport.height:window.innerHeight;if(rect.bottom>vh-20||rect.top<60){el.scrollIntoView({behavior:'smooth',block:'center'})}}},200)}
+if(window.visualViewport){window.visualViewport.addEventListener('resize',()=>{const vh=window.visualViewport.height;const full=window.innerHeight;const open=vh<full*0.75;document.body.classList.toggle('keyboard-open',open);if(open)scrollFocusedIntoView()})}document.addEventListener('focusin',e=>{if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'||e.target.tagName==='SELECT')scrollFocusedIntoView()})
+
+/* --- Activity feed --- */
+function renderActivity(){
+  const recent=allData.slice().sort(byDateDesc).slice(0,6);
+  if(!recent.length){$('activityList').innerHTML='';return}
+  $('activityList').innerHTML=recent.map(c=>{const tagClass=c.found?'resolved':'new';const tagText=c.found?'Found':'New';return `<div class="activity-item" onclick="openDetail('${esc(c._id)}')" style="cursor:pointer"><div class="aavatar">${c.image?`<img src="${esc(c.image)}" alt="" loading="lazy" onerror="this.remove()">`:`<div class="ph">${iconChild}</div>`}</div><div class="atxt"><div class="aname">${esc(c.fullName)||'Unknown'}</div><div class="adetail">${esc(c.address||c.missingLocation||c.missingDate||'')}</div></div><span class="abadge ${tagClass}">${tagText}</span></div>`}).join('')
+}
+const origRenderHome=renderHome;
+renderHome=function(){origRenderHome();renderActivity()};
+
+/* --- Boot --- */
+$('backdrop').addEventListener('click',closeDetail);
+$('sheetClose').addEventListener('click',closeDetail);
+if(userToken)api('/api/auth/me',{auth:true}).then(j=>{me=j.user}).catch(()=>{});
+</script>
+</body>
+</html>
