@@ -3,196 +3,498 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Admin — Find My Child</title>
+<title>Admin — Gumshuda Bacho Ki Talash</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-body{font-family:'Plus Jakarta Sans',sans-serif;background:#f5f5f7;color:#1d1d1f;min-height:100vh}
+body{font-family:'Inter',sans-serif;background:#f8fafc;color:#0f172a;min-height:100vh}
 button{font-family:inherit;cursor:pointer}input,select,textarea{font-family:inherit}
-:root{--bg:#f5f5f7;--card:#fff;--dark:#1d1d1f;--text:#1d1d1f;--text2:#636366;--text3:#aeaeb2;--border:#e5e5ea;--accent:#0071e3;--green:#34c759;--red:#ff3b30;--orange:#ff9500;--radius:20px;--radius-sm:14px;--radius-xs:10px;--shadow:0 2px 12px rgba(0,0,0,.08);--shadow-lg:0 8px 30px rgba(0,0,0,.12)}
-
-.header{background:var(--dark);padding:14px 20px;display:flex;align-items:center;justify-content:space-between}
-.header .brand{display:flex;align-items:center;gap:10px}
-.header .logo{width:36px;height:36px;background:var(--accent);border-radius:10px;display:flex;align-items:center;justify-content:center}
-.header .logo svg{width:20px;height:20px;fill:#fff}
-.header h1{font-size:15px;font-weight:700;color:#fff}
-.header small{display:block;font-size:11px;color:rgba(255,255,255,.5);margin-top:1px}
-.logout{background:rgba(255,255,255,.1);color:#fff;border:none;border-radius:var(--radius-xs);padding:9px 16px;font-size:13px;font-weight:600}
-main{max-width:800px;margin:0 auto;padding:20px 16px 60px}
+:root{--bg:#f8fafc;--card:#fff;--dark:#0f172a;--text:#0f172a;--text2:#475569;--text3:#94a3b8;--border:#e2e8f0;--accent:#3b82f6;--accent-light:#eff6ff;--green:#10b981;--green-light:#ecfdf5;--red:#ef4444;--red-light:#fef2f2;--orange:#f59e0b;--orange-light:#fffbeb;--purple:#8b5cf6;--purple-light:#f5f3ff;--radius:16px;--radius-sm:12px;--radius-xs:8px;--shadow:0 1px 3px rgba(0,0,0,.06);--shadow-md:0 4px 12px rgba(0,0,0,.08)}
 
 /* Login */
-#loginView{max-width:400px;margin:60px auto}
-.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:28px;box-shadow:var(--shadow)}
-.card h2{font-size:22px;font-weight:800;color:var(--text);margin-bottom:6px}
-.card p{font-size:13px;color:var(--text2);margin-bottom:20px}
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.login-card{background:var(--card);border:1px solid var(--border);border-radius:24px;padding:40px 32px;width:100%;max-width:400px;box-shadow:var(--shadow-md)}
+.login-card .logo{width:56px;height:56px;background:var(--accent);border-radius:16px;display:flex;align-items:center;justify-content:center;margin:0 auto 20px}
+.login-card .logo svg{width:28px;height:28px;fill:#fff}
+.login-card h2{text-align:center;font-size:22px;font-weight:800;margin-bottom:4px}
+.login-card .sub{text-align:center;font-size:13px;color:var(--text2);margin-bottom:28px}
 .field{margin-bottom:16px}
-.field label{display:block;font-size:11px;color:var(--text2);margin-bottom:8px;font-weight:700;text-transform:uppercase;letter-spacing:.8px}
-.field input,.field select,.field textarea{width:100%;background:var(--bg);border:1.5px solid var(--border);color:var(--text);border-radius:var(--radius-xs);padding:13px 16px;font-size:14px;transition:border-color .2s}
-.field input:focus,.field select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,113,227,.12)}
-.btn{width:100%;background:var(--dark);color:#fff;border:none;border-radius:var(--radius-sm);padding:14px;font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px}
-.btn svg{width:18px;height:18px;fill:#fff}.btn:active{transform:scale(.98)}
+.field label{display:block;font-size:12px;color:var(--text2);margin-bottom:6px;font-weight:600}
+.field input,.field select,.field textarea{width:100%;background:var(--bg);border:1.5px solid var(--border);color:var(--text);border-radius:var(--radius-xs);padding:12px 14px;font-size:14px;transition:border-color .2s}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(59,130,246,.1)}
+.btn{width:100%;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);padding:13px;font-size:14px;font-weight:700;cursor:pointer;transition:opacity .2s}
+.btn:hover{opacity:.9}.btn:active{transform:scale(.98)}
 
-/* Stats */
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:22px}
-.stat{background:var(--card);border-radius:var(--radius);padding:18px 12px;text-align:center;box-shadow:var(--shadow);border:1px solid var(--border)}
-.stat .icon-wrap{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;margin:0 auto 8px}
-.stat .icon-wrap svg{width:18px;height:18px}
-.stat .num{font-size:28px;font-weight:800;letter-spacing:-1px}
-.stat .lbl{font-size:10px;color:var(--text3);margin-top:4px;font-weight:700;text-transform:uppercase;letter-spacing:.8px}
-.stat.pending .icon-wrap{background:#fff8e6}.stat.pending .icon-wrap svg{fill:var(--orange)}.stat.pending .num{color:var(--orange)}
-.stat.approved .icon-wrap{background:#f0fdf4}.stat.approved .icon-wrap svg{fill:var(--green)}.stat.approved .num{color:var(--green)}
-.stat.rejected .icon-wrap{background:#fff0f0}.stat.rejected .icon-wrap svg{fill:var(--red)}.stat.rejected .num{color:var(--red)}
-.stat.total .icon-wrap{background:#f0f7ff}.stat.total .icon-wrap svg{fill:var(--accent)}.stat.total .num{color:var(--accent)}
+/* Layout */
+.app{display:none;min-height:100vh}
+.sidebar{position:fixed;top:0;left:0;bottom:0;width:240px;background:var(--dark);z-index:20;display:flex;flex-direction:column;overflow-y:auto}
+.sidebar .brand{padding:20px;display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(255,255,255,.08)}
+.sidebar .brand .ico{width:40px;height:40px;background:var(--accent);border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sidebar .brand .ico svg{width:22px;height:22px;fill:#fff}
+.sidebar .brand .txt h3{font-size:14px;font-weight:700;color:#fff}
+.sidebar .brand .txt small{font-size:11px;color:rgba(255,255,255,.45)}
+.sidebar nav{flex:1;padding:12px 8px}
+.sidebar nav a{display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:var(--radius-xs);color:rgba(255,255,255,.6);font-size:13px;font-weight:600;text-decoration:none;transition:all .15s;margin-bottom:2px}
+.sidebar nav a:hover{background:rgba(255,255,255,.06);color:#fff}
+.sidebar nav a.active{background:var(--accent);color:#fff}
+.sidebar nav a svg{width:18px;height:18px;fill:currentColor;flex-shrink:0}
+.sidebar nav .badge{margin-left:auto;background:var(--orange);color:#fff;font-size:10px;font-weight:800;padding:2px 7px;border-radius:10px;min-width:20px;text-align:center}
+.sidebar .logout{padding:16px;border-top:1px solid rgba(255,255,255,.08)}
+.sidebar .logout button{width:100%;background:rgba(255,255,255,.06);color:rgba(255,255,255,.7);border:none;border-radius:var(--radius-xs);padding:11px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .15s}
+.sidebar .logout button:hover{background:rgba(255,255,255,.1);color:#fff}
+.sidebar .logout button svg{width:16px;height:16px;fill:currentColor}
 
-/* Tabs */
-.tabs{display:flex;gap:8px;margin-bottom:20px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
-.tabs::-webkit-scrollbar{display:none}
-.tab{flex:none;background:var(--card);border:1.5px solid var(--border);color:var(--text2);border-radius:var(--radius-xs);padding:10px 16px;font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px;transition:.2s}
-.tab svg{width:14px;height:14px;fill:currentColor}
-.tab.active{background:var(--dark);color:#fff;border-color:var(--dark)}
-.tabview{display:none}.tabview.active{display:block;animation:fadeUp .25s ease}
-@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.main{margin-left:240px;padding:24px 28px 40px}
+.page{display:none}.page.active{display:block;animation:fadeIn .2s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 
-/* Items */
-.item{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px;display:flex;gap:14px;align-items:flex-start;box-shadow:var(--shadow);transition:box-shadow .15s}
-.item:hover{box-shadow:var(--shadow-lg)}
-.item img{width:72px;height:72px;object-fit:cover;border-radius:14px;background:#e5e5ea;flex-shrink:0}
-.item .ph{width:72px;height:72px;border-radius:14px;background:#e5e5ea;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.item .ph svg{width:32px;height:32px;fill:#aeaeb2}
+/* Page header */
+.page-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px}
+.page-head h2{font-size:24px;font-weight:800;color:var(--text)}
+.page-head .actions{display:flex;gap:8px;flex-wrap:wrap}
+
+/* Stats grid */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:28px}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;display:flex;align-items:center;gap:14px;box-shadow:var(--shadow)}
+.stat .icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.stat .icon svg{width:22px;height:22px}
+.stat .icon.blue{background:var(--accent-light)}.stat .icon.blue svg{fill:var(--accent)}
+.stat .icon.green{background:var(--green-light)}.stat .icon.green svg{fill:var(--green)}
+.stat .icon.red{background:var(--red-light)}.stat .icon.red svg{fill:var(--red)}
+.stat .icon.orange{background:var(--orange-light)}.stat .icon.orange svg{fill:var(--orange)}
+.stat .icon.purple{background:var(--purple-light)}.stat .icon.purple svg{fill:var(--purple)}
+.stat .num{font-size:28px;font-weight:800;letter-spacing:-.5px}
+.stat .lbl{font-size:12px;color:var(--text2);font-weight:500}
+
+/* Filter bar */
+.filter-bar{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;align-items:center}
+.filter-bar input,.filter-bar select{background:var(--card);border:1.5px solid var(--border);color:var(--text);border-radius:var(--radius-xs);padding:10px 14px;font-size:13px;transition:border-color .2s}
+.filter-bar input{flex:1;min-width:200px}
+.filter-bar input:focus,.filter-bar select:focus{outline:none;border-color:var(--accent)}
+.filter-btn{background:var(--card);border:1.5px solid var(--border);color:var(--text2);border-radius:var(--radius-xs);padding:10px 16px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s}
+.filter-btn:hover{border-color:var(--accent);color:var(--accent)}
+.filter-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn-sm{background:var(--accent);color:#fff;border:none;border-radius:var(--radius-xs);padding:10px 18px;font-size:13px;font-weight:700;cursor:pointer}
+.btn-green{background:var(--green)}.btn-red{background:var(--red)}.btn-orange{background:var(--orange)}.btn-dark{background:var(--dark)}
+.btn-outline{background:transparent;border:1.5px solid var(--border);color:var(--text2)}.btn-outline:hover{border-color:var(--accent);color:var(--accent)}
+
+/* Cards / Items */
+.card-section{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:16px;overflow:hidden}
+.card-section .cs-head{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.card-section .cs-head h3{font-size:15px;font-weight:700}
+.card-section .cs-body{padding:0}
+
+.item{padding:14px 20px;display:flex;gap:14px;align-items:flex-start;border-bottom:1px solid var(--border);transition:background .15s}
+.item:last-child{border-bottom:none}
+.item:hover{background:var(--bg)}
+.item img{width:56px;height:56px;object-fit:cover;border-radius:12px;background:var(--border);flex-shrink:0}
+.item .ph{width:56px;height:56px;border-radius:12px;background:var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.item .ph svg{width:24px;height:24px;fill:var(--text3)}
 .item .info{flex:1;min-width:0}
-.item .name{font-size:15px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.item .sub{font-size:12px;color:var(--text2);margin-top:4px;line-height:1.5}
-.item .actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
-.mini{border:none;border-radius:var(--radius-xs);padding:9px 14px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:5px;transition:transform .12s}
-.mini svg{width:12px;height:12px;fill:#fff}
-.mini:active{transform:scale(.95)}
-.mini.approve{background:var(--green);color:#fff}
-.mini.reject{background:var(--red);color:#fff}
-.mini.edit{background:var(--border);color:var(--text)}
-.mini.delete{background:#fff0f0;color:var(--red)}
-.sbadge{display:inline-block;font-size:10px;font-weight:800;padding:3px 10px;border-radius:8px;text-transform:uppercase;letter-spacing:.5px}
-.sbadge.pending{background:#fff8e6;color:#b25000}.sbadge.approved{background:#f0fdf4;color:#0a6b3a}.sbadge.rejected{background:#fff0f0;color:#c92c2c}
+.item .info .top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.item .info .name{font-size:14px;font-weight:700;color:var(--text)}
+.item .info .sub{font-size:12px;color:var(--text2);margin-top:3px;line-height:1.5}
+.item .info .meta{font-size:11px;color:var(--text3);margin-top:4px}
+.item .acts{display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;align-self:center}
+.sbadge{display:inline-block;font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;text-transform:uppercase;letter-spacing:.3px}
+.sbadge.pending{background:var(--orange-light);color:#b45309}
+.sbadge.approved{background:var(--green-light);color:#047857}
+.sbadge.rejected{background:var(--red-light);color:#dc2626}
+.sbadge.found{background:#ecfdf5;color:#047857}
+.sbadge.missing{background:#fef2f2;color:#dc2626}
+.sbadge.praise{background:#f5f3ff;color:#7c3aed}
+.sbadge.gift{background:#fffbeb;color:#b45309}
 
-.searchrow{display:flex;gap:10px;margin-bottom:16px}
-.searchrow input{flex:1;background:var(--card);border:1.5px solid var(--border);color:var(--text);border-radius:var(--radius-xs);padding:13px 16px;font-size:14px;transition:border-color .2s}
-.searchrow input:focus{outline:none;border-color:var(--accent)}
-.searchrow button{background:var(--dark);border:none;color:#fff;border-radius:var(--radius-xs);padding:0 20px;font-weight:700;font-size:13px}
-.empty{text-align:center;color:var(--text3);padding:44px 20px;font-size:14px}
+.empty{text-align:center;padding:48px 20px;color:var(--text3);font-size:14px}
 
 /* Modal */
-.modal-bg{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.5);display:none;align-items:flex-end;justify-content:center}
+.modal-bg{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.5);display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px)}
 .modal-bg.show{display:flex}
-.modal{background:var(--card);width:100%;max-width:640px;max-height:92vh;overflow-y:auto;border-radius:var(--radius) var(--radius) 0 0;padding:24px 20px 28px}
-@media(min-width:640px){.modal{border-radius:var(--radius);margin-bottom:24px}}
-.modal h3{font-size:20px;font-weight:800;color:var(--text);margin-bottom:18px}
+.modal{background:var(--card);width:100%;max-width:640px;max-height:92vh;overflow-y:auto;border-radius:var(--radius) var(--radius) 0 0;padding:0}
+.modal-head{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--card);z-index:1}
+.modal-head h3{font-size:18px;font-weight:800}
+.modal-head .close{background:none;border:none;color:var(--text3);cursor:pointer;padding:4px}
+.modal-head .close svg{width:22px;height:22px;fill:currentColor}
+.modal-body{padding:24px}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
 @media(max-width:480px){.grid2{grid-template-columns:1fr}}
-.modal .actions{display:flex;gap:10px;margin-top:20px}.modal .actions button{flex:1}
-.btn-ghost{background:var(--bg);color:var(--text2);border:none;border-radius:var(--radius-sm);padding:14px;font-size:15px;font-weight:700}
-#toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(80px);background:var(--dark);color:#fff;padding:14px 22px;border-radius:14px;font-size:14px;font-weight:600;z-index:60;opacity:0;transition:all .3s ease;max-width:90vw;text-align:center;box-shadow:var(--shadow-lg)}
-#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}#toast.ok{background:#0a6b3a}#toast.err{background:#c92c2c}
+.modal-foot{padding:16px 24px;border-top:1px solid var(--border);display:flex;gap:10px;position:sticky;bottom:0;background:var(--card)}
+
+/* Toast */
+#toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(80px);background:var(--dark);color:#fff;padding:12px 20px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;z-index:60;opacity:0;transition:all .3s;max-width:90vw;text-align:center;box-shadow:var(--shadow-md)}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}#toast.ok{background:#047857}#toast.err{background:#dc2626}
+
+/* Mobile */
+.mob-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:rgba(255,255,255,.95);backdrop-filter:blur(20px);border-top:1px solid var(--border);z-index:20;padding:6px 0 env(safe-area-inset-bottom)}
+.mob-nav button{flex:1;background:none;border:none;color:var(--text3);display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 0;font-size:9px;font-weight:600}
+.mob-nav button svg{width:20px;height:20px;fill:currentColor}
+.mob-nav button.active{color:var(--accent)}
+@media(max-width:768px){
+  .sidebar{display:none}
+  .main{margin-left:0;padding:16px 14px 80px}
+  .mob-nav{display:flex}
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .page-head h2{font-size:20px}
+  .item{padding:12px 14px}
+  .filter-bar input{min-width:0}
+}
 </style>
 </head>
 <body>
 
-<main id="loginView">
-<div class="card">
-  <h2>Admin Login</h2>
-  <p>Sign in to manage reports, approvals, and settings.</p>
-  <div class="field"><label>Username</label><input id="loginUser" type="text" autocomplete="username"></div>
-  <div class="field"><label>Password</label><input id="loginPass" type="password" autocomplete="current-password"></div>
-  <button class="btn" id="loginBtn"><svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>Login</button>
+<!-- LOGIN -->
+<div class="login-wrap" id="loginView">
+<div class="login-card">
+  <div class="logo"><svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg></div>
+  <h2>Admin Panel</h2>
+  <div class="sub">Gumshuda Bacho Ki Talash Group</div>
+  <div class="field"><label>Username</label><input id="loginUser" type="text" autocomplete="username" placeholder="Enter username"></div>
+  <div class="field"><label>Password</label><input id="loginPass" type="password" autocomplete="current-password" placeholder="Enter password"></div>
+  <button class="btn" id="loginBtn">Sign In</button>
 </div>
-</main>
-
-<div id="appView" style="display:none">
-<header>
-  <div class="brand"><div class="logo"><svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg></div><div><h1>Admin Panel</h1><small>Find My Child</small></div></div>
-  <button class="logout" id="logoutBtn">Logout</button>
-</header>
-<main>
-  <div class="stats">
-    <div class="stat pending"><div class="icon-wrap"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg></div><div class="num" id="stPending">-</div><div class="lbl">Pending</div></div>
-    <div class="stat approved"><div class="icon-wrap"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg></div><div class="num" id="stApproved">-</div><div class="lbl">Approved</div></div>
-    <div class="stat rejected"><div class="icon-wrap"><svg viewBox="0 0 24 24"><path d="M12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm5 13.59L15.59 17 12 13.41 8.41 17 7 15.59 10.59 12 7 8.41 8.41 7 12 10.59 15.59 7 17 8.41 13.41 12 17 15.59z"/></svg></div><div class="num" id="stRejected">-</div><div class="lbl">Rejected</div></div>
-    <div class="stat total"><div class="icon-wrap"><svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg></div><div class="num" id="stTotal">-</div><div class="lbl">Total</div></div>
-  </div>
-
-  <div class="tabs">
-    <button class="tab active" data-tab="pending"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>Pending</button>
-    <button class="tab" data-tab="all"><svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>All Children</button>
-    <button class="tab" data-tab="add"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>Add New</button>
-    <button class="tab" data-tab="foundreqs"><svg viewBox="0 0 24 24"><path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6z"/></svg>Found Reqs</button>
-    <button class="tab" data-tab="praise"><svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-7 12h-2v-2h2v2zm0-4h-2V6h2v4z"/></svg>Praises & Gifts</button>
-    <button class="tab" data-tab="donations"><svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>Donations</button>
-  </div>
-
-  <div class="tabview active" id="tv-pending"><div id="pendingList"></div></div>
-  <div class="tabview" id="tv-all"><div class="searchrow"><input id="listSearch" type="text" placeholder="Search by name, address..."><button id="listSearchBtn">Search</button></div><div id="allList"></div></div>
-  <div class="tabview" id="tv-add"><div class="card"><h3 style="font-size:18px;font-weight:800;margin-bottom:16px">Add a child</h3><div id="addFormWrap"></div></div></div>
-  <div class="tabview" id="tv-foundreqs"><div id="frList"></div></div>
-  <div class="tabview" id="tv-praise"><div style="display:flex;gap:8px;margin-bottom:14px"><button class="mini edit" id="pfAll" style="padding:9px 14px">All</button><button class="mini edit" id="pfPending" style="padding:9px 14px">Pending</button><button class="mini approve" id="pfApproved" style="padding:9px 14px">Approved</button></div><div id="praiseList"></div></div>
-  <div class="tabview" id="tv-donations"><div class="stats" style="grid-template-columns:1fr 1fr;margin-bottom:18px"><div class="stat total"><div class="icon-wrap"><svg viewBox="0 0 24 24"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg></div><div class="num" id="donTotal">-</div><div class="lbl">Total raised</div></div><div class="stat approved"><div class="icon-wrap"><svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg></div><div class="num" id="donCount">-</div><div class="lbl">Donations</div></div></div><div id="donList"></div></div>
-</main>
 </div>
 
-<div class="modal-bg" id="modalBg"><div class="modal"><h3 id="modalTitle">Edit child</h3><div id="modalBody"></div></div></div>
+<!-- APP -->
+<div class="app" id="appView">
+
+<!-- Sidebar (desktop) -->
+<div class="sidebar">
+  <div class="brand">
+    <div class="ico"><svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg></div>
+    <div class="txt"><h3>Admin Panel</h3><small>Find My Child</small></div>
+  </div>
+  <nav id="sideNav">
+    <a href="#" class="active" data-page="dashboard"><svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>Dashboard</a>
+    <a href="#" data-page="pending"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>Pending<span class="badge" id="badgePending">0</span></a>
+    <a href="#" data-page="children"><svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>All Children</a>
+    <a href="#" data-page="add"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>Add New</a>
+    <a href="#" data-page="found"><svg viewBox="0 0 24 24"><path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6z"/></svg>Found Requests<span class="badge" id="badgeFound">0</span></a>
+    <a href="#" data-page="praise"><svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>Praise & Gifts<span class="badge" id="badgePraise">0</span></a>
+    <a href="#" data-page="donations"><svg viewBox="0 0 24 24"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>Donations</a>
+    <a href="#" data-page="users"><svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>Users</a>
+  </nav>
+  <div class="logout"><button id="logoutBtn"><svg viewBox="0 0 24 24"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>Logout</button></div>
+</div>
+
+<!-- Mobile bottom nav -->
+<div class="mob-nav" id="mobNav">
+  <button class="active" data-page="dashboard"><svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>Home</button>
+  <button data-page="pending"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>Pending</button>
+  <button data-page="children"><svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>Children</button>
+  <button data-page="found"><svg viewBox="0 0 24 24"><path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6z"/></svg>Found</button>
+  <button data-page="more"><svg viewBox="0 0 24 24"><path d="M6 10c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm12 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm-6 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>More</button>
+</div>
+
+<div class="main">
+
+<!-- ===== DASHBOARD ===== -->
+<div class="page active" id="pg-dashboard">
+  <div class="page-head"><h2>Dashboard</h2></div>
+  <div class="stats" id="dashStats"></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px">
+    <div class="card-section" style="margin-bottom:0">
+      <div class="cs-head"><h3>Recent Submissions</h3></div>
+      <div class="cs-body" id="dashRecent"></div>
+    </div>
+    <div class="card-section" style="margin-bottom:0">
+      <div class="cs-head"><h3>Quick Stats</h3></div>
+      <div class="cs-body" id="dashQuick"></div>
+    </div>
+  </div>
+  <div class="card-section">
+    <div class="cs-head"><h3>Recent Found Requests</h3></div>
+    <div class="cs-body" id="dashFound"></div>
+  </div>
+</div>
+
+<!-- ===== PENDING ===== -->
+<div class="page" id="pg-pending">
+  <div class="page-head"><h2>Pending Approvals</h2><div class="actions"><button class="btn-sm btn-green" id="approveAllBtn">Approve All</button></div></div>
+  <div class="filter-bar"><input id="pendingSearch" placeholder="Search pending records..." oninput="renderPending()"></div>
+  <div id="pendingList"></div>
+</div>
+
+<!-- ===== ALL CHILDREN ===== -->
+<div class="page" id="pg-children">
+  <div class="page-head"><h2>All Children</h2></div>
+  <div class="filter-bar">
+    <input id="childSearch" placeholder="Search name, address, contact..." oninput="renderChildren()">
+    <select id="childStatus" onchange="renderChildren()"><option value="">All Status</option><option value="approved">Approved</option><option value="pending">Pending</option><option value="rejected">Rejected</option></select>
+    <select id="childGender" onchange="renderChildren()"><option value="">All Gender</option><option value="Male">Male</option><option value="Female">Female</option></select>
+    <select id="childFound" onchange="renderChildren()"><option value="">All</option><option value="true">Found</option><option value="false">Missing</option></select>
+  </div>
+  <div id="childList"></div>
+</div>
+
+<!-- ===== ADD NEW ===== -->
+<div class="page" id="pg-add">
+  <div class="page-head"><h2>Add New Child</h2></div>
+  <div class="card-section"><div class="cs-body" style="padding:24px" id="addFormWrap"></div></div>
+</div>
+
+<!-- ===== FOUND REQUESTS ===== -->
+<div class="page" id="pg-found">
+  <div class="page-head"><h2>Found Requests</h2></div>
+  <div class="filter-bar">
+    <button class="filter-btn active" data-frfilter="" onclick="filterFound(this,'')">All</button>
+    <button class="filter-btn" data-frfilter="pending" onclick="filterFound(this,'pending')">Pending</button>
+    <button class="filter-btn" data-frfilter="approved" onclick="filterFound(this,'approved')">Approved</button>
+    <button class="filter-btn" data-frfilter="rejected" onclick="filterFound(this,'rejected')">Rejected</button>
+  </div>
+  <div id="foundList"></div>
+</div>
+
+<!-- ===== PRAISE & GIFTS ===== -->
+<div class="page" id="pg-praise">
+  <div class="page-head"><h2>Praise & Gifts</h2></div>
+  <div class="filter-bar">
+    <button class="filter-btn active" data-pffilter="" onclick="filterPraise(this,'')">All</button>
+    <button class="filter-btn" data-pffilter="pending" onclick="filterPraise(this,'pending')">Pending</button>
+    <button class="filter-btn" data-pffilter="approved" onclick="filterPraise(this,'approved')">Approved</button>
+    <select id="praiseType" onchange="renderPraise()" style="margin-left:auto"><option value="">Praise & Gifts</option><option value="praise">Praise Only</option><option value="gift">Gifts Only</option></select>
+  </div>
+  <div id="praiseList"></div>
+</div>
+
+<!-- ===== DONATIONS ===== -->
+<div class="page" id="pg-donations">
+  <div class="page-head"><h2>Donations</h2></div>
+  <div class="stats" style="grid-template-columns:repeat(2,1fr);margin-bottom:18px">
+    <div class="stat"><div class="icon green"><svg viewBox="0 0 24 24"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg></div><div><div class="num" id="donTotal">-</div><div class="lbl">Total Raised</div></div></div>
+    <div class="stat"><div class="icon blue"><svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg></div><div><div class="num" id="donCount">-</div><div class="lbl">Total Donations</div></div></div>
+  </div>
+  <div id="donList"></div>
+</div>
+
+<!-- ===== USERS ===== -->
+<div class="page" id="pg-users">
+  <div class="page-head"><h2>Registered Users</h2></div>
+  <div class="filter-bar"><input id="userSearch" placeholder="Search users..." oninput="renderUsers()"></div>
+  <div id="userList"></div>
+</div>
+
+</div><!-- /main -->
+</div><!-- /app -->
+
+<!-- MODAL -->
+<div class="modal-bg" id="modalBg">
+<div class="modal">
+  <div class="modal-head"><h3 id="modalTitle">Edit</h3><button class="close" onclick="closeModal()"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>
+  <div class="modal-body" id="modalBody"></div>
+</div>
+</div>
 <div id="toast"></div>
 
 <script>
-let token=localStorage.getItem('fmc_admin_token')||'',allChildren=[];
+let token=localStorage.getItem('fmc_admin_token')||'',allChildren=[],allUsers=[],allFoundReqs=[],allPraise=[],allGifts=[],allDonations=[];
+let currentFoundFilter='',currentPraiseFilter='';
 const $=id=>document.getElementById(id);
-const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const esc=s=>String(s==null?'':s).replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
 const money=n=>'₹'+Number(n||0).toLocaleString('en-IN');
 const fmtDate=d=>d?new Date(d).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}):'';
+const fmtTime=d=>d?new Date(d).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'';
 function toast(msg,type){const t=$('toast');t.textContent=msg;t.className='show '+(type||'ok');setTimeout(()=>t.className='',3200)}
-async function api(path,opts={}){const h=opts.headers||{};if(token)h.Authorization='Bearer '+token;const r=await fetch(path,{...opts,headers:h});if(r.status===401){localStorage.removeItem('fmc_admin_token');token='';showLogin();toast('Session expired.','err');throw new Error('unauthorized')}const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.message||'Request failed');return j}
 
+async function api(path,opts={}){
+  const h=opts.headers||{};
+  if(token)h.Authorization='Bearer '+token;
+  const r=await fetch(path,{...opts,headers:h});
+  if(r.status===401){localStorage.removeItem('fmc_admin_token');token='';showLogin();toast('Session expired.','err');throw new Error('unauthorized')}
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error(j.message||'Request failed');
+  return j;
+}
+
+// SVG icons
+const iChild='<svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>';
 const iApprove='<svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>';
 const iReject='<svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>';
 const iEdit='<svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>';
 const iDelete='<svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>';
-const iChild='<svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>';
+function sbadge(s){return`<span class="sbadge ${s}">${s.toUpperCase()}</span>`}
+function miniBtn(cls,icon,label,onclick){return`<button class="btn-sm ${cls}" onclick="${onclick}" style="padding:7px 12px;font-size:11px;display:inline-flex;align-items:center;gap:4px">${icon} ${label}</button>`}
 
-function showLogin(){$('loginView').style.display='block';$('appView').style.display='none'}
+// Navigation
+function navigateTo(page){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('#sideNav a').forEach(a=>a.classList.remove('active'));
+  document.querySelectorAll('#mobNav button').forEach(b=>b.classList.remove('active'));
+  const pg=$('pg-'+page);if(pg)pg.classList.add('active');
+  const sa=document.querySelector(`#sideNav a[data-page="${page}"]`);if(sa)sa.classList.add('active');
+  const mb=document.querySelector(`#mobNav button[data-page="${page}"]`);if(mb)mb.classList.add('active');
+  if(page==='dashboard')loadDashboard();
+  if(page==='pending')renderPending();
+  if(page==='children')renderChildren();
+  if(page==='add')renderAddForm();
+  if(page==='found')loadFoundReqs();
+  if(page==='praise')renderPraise();
+  if(page==='donations')loadDonations();
+  if(page==='users')loadUsers();
+}
+document.querySelectorAll('#sideNav a[data-page]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();navigateTo(a.dataset.page)}));
+document.querySelectorAll('#mobNav button[data-page]').forEach(b=>b.addEventListener('click',()=>{if(b.dataset.page==='more'){navigateTo('donations');return}navigateTo(b.dataset.page)}));
+
+// Auth
+function showLogin(){$('loginView').style.display='flex';$('appView').style.display='none'}
 function showApp(){$('loginView').style.display='none';$('appView').style.display='block'}
-$('loginBtn').addEventListener('click',async()=>{try{const r=await api('/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:$('loginUser').value,password:$('loginPass').value})});token=r.token;localStorage.setItem('fmc_admin_token',token);showApp();loadAll()}catch(e){toast(e.message,'err')}});
+$('loginBtn').addEventListener('click',async()=>{try{const r=await api('/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:$('loginUser').value,password:$('loginPass').value})});token=r.token;localStorage.setItem('fmc_admin_token',token);showApp();loadDashboard()}catch(e){toast(e.message,'err')}});
 $('loginPass').addEventListener('keydown',e=>{if(e.key==='Enter')$('loginBtn').click()});
 $('logoutBtn').addEventListener('click',async()=>{try{await api('/api/admin/logout',{method:'POST'})}catch(e){}localStorage.removeItem('fmc_admin_token');token='';showLogin()});
 
-document.querySelectorAll('.tab').forEach(tab=>{tab.addEventListener('click',()=>{document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.tabview').forEach(v=>v.classList.remove('active'));tab.classList.add('active');$('tv-'+tab.dataset.tab).classList.add('active');if(tab.dataset.tab==='add'&&!$('addFormWrap').innerHTML)renderAddForm();if(tab.dataset.tab==='pending')loadPending();if(tab.dataset.tab==='foundreqs')loadFoundReqs();if(tab.dataset.tab==='praise')loadPraise('');if(tab.dataset.tab==='donations')loadDonations()})});
+// Dashboard
+async function loadDashboard(){
+  try{
+    const[stats,children,foundReqs]=await Promise.all([api('/api/admin/stats'),api('/api/admin/children'),api('/api/admin/found-requests')]);
+    allChildren=children.data;
+    const s=stats.data;
+    $('dashStats').innerHTML=`
+      <div class="stat"><div class="icon orange"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg></div><div><div class="num" style="color:var(--orange)">${s.pending}</div><div class="lbl">Pending</div></div></div>
+      <div class="stat"><div class="icon green"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg></div><div><div class="num" style="color:var(--green)">${s.approved}</div><div class="lbl">Approved</div></div></div>
+      <div class="stat"><div class="icon red"><svg viewBox="0 0 24 24"><path d="M12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm5 13.59L15.59 17 12 13.41 8.41 17 7 15.59 10.59 12 7 8.41 8.41 7 12 10.59 15.59 7 17 8.41 13.41 12 17 15.59z"/></svg></div><div><div class="num" style="color:var(--red)">${s.rejected}</div><div class="lbl">Rejected</div></div></div>
+      <div class="stat"><div class="icon blue"><svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg></div><div><div class="num" style="color:var(--accent)">${s.total}</div><div class="lbl">Total Children</div></div></div>
+      <div class="stat"><div class="icon purple"><svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg></div><div><div class="num" style="color:var(--purple)">${allUsers.length||'-'}</div><div class="lbl">Users</div></div></div>`;
+    $('badgePending').textContent=s.pending;
+    const recent=allChildren.slice().sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)).slice(0,5);
+    $('dashRecent').innerHTML=recent.length?recent.map(c=>`<div class="item" style="padding:10px 16px"><div class="ph" style="width:40px;height:40px;border-radius:8px">${c.image?`<img src="${esc(c.image)}" style="width:40px;height:40px;border-radius:8px;object-fit:cover" onerror="this.remove()">`:iChild}</div><div class="info"><div class="name" style="font-size:13px">${esc(c.fullName)||'Unknown'} ${sbadge(c.status)}</div><div class="meta">${fmtDate(c.createdAt)}</div></div></div>`).join(''):'<div class="empty" style="padding:24px">No records yet.</div>';
+    const missing=allChildren.filter(c=>!c.found),found=allChildren.filter(c=>c.found);
+    $('dashQuick').innerHTML=`
+      <div class="item" style="padding:10px 16px"><div class="info"><div class="sub">Missing Children</div><div class="num" style="font-size:20px;color:var(--red)">${missing.length}</div></div></div>
+      <div class="item" style="padding:10px 16px"><div class="info"><div class="sub">Found Children</div><div class="num" style="font-size:20px;color:var(--green)">${found.length}</div></div></div>
+      <div class="item" style="padding:10px 16px"><div class="info"><div class="sub">Found Requests</div><div class="num" style="font-size:20px;color:var(--orange)">${foundReqs.data.length}</div></div></div>`;
+    const recentFound=foundReqs.data.slice(0,5);
+    $('dashFound').innerHTML=recentFound.length?recentFound.map(fr=>`<div class="item"><div class="info"><div class="top"><span class="name">${esc(fr.childId&&fr.childId.fullName||'Unknown')}</span> ${sbadge(fr.status)}</div><div class="sub">Finder: ${esc(fr.finderName||'Anonymous')}</div><div class="meta">${fmtDate(fr.createdAt)}</div></div><div class="acts">${fr.status==='pending'?miniBtn('btn-green',iApprove,'Approve',`setFoundStatus('${fr._id}','approved')`)+miniBtn('btn-red',iReject,'Reject',`setFoundStatus('${fr._id}','rejected')`):''}</div></div>`).join(''):'<div class="empty" style="padding:24px">No found requests.</div>';
+  }catch(e){toast(e.message,'err')}
+}
 
-async function loadFoundReqs(){try{const j=await api('/api/admin/found-requests');$('frList').innerHTML=j.data.length?j.data.map(fr=>`<div class="item"><div class="info"><div class="name">${esc(fr.childId&&fr.childId.fullName||'Unknown')} ${sbadge(fr.status)}</div><div class="sub">Finder: ${esc(fr.finderName||'Anonymous')}${fr.contactNumber?' . '+esc(fr.contactNumber):''}</div>${fr.details?'<div class="sub">'+esc(fr.details)+'</div>':''}<div class="sub">Submitted ${fmtDate(fr.createdAt)}</div><div class="actions"><button class="mini approve" onclick="setFoundStatus('${fr._id}','approved')">${iApprove} Approve</button><button class="mini reject" onclick="setFoundStatus('${fr._id}','rejected')">${iReject} Reject</button></div></div></div>`).join(''):'<div class="empty">No found requests.</div>'}catch(e){toast(e.message,'err')}}
-async function setFoundStatus(id,status){try{await api('/api/admin/found-requests/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({status})});toast(status==='approved'?'Marked as found!':'Rejected.');loadAll();loadFoundReqs()}catch(e){toast(e.message,'err')}}
+// Pending
+function renderPending(){
+  const q=($('pendingSearch')?.value||'').toLowerCase();
+  const pending=allChildren.filter(c=>c.status==='pending').filter(c=>!q||(c.fullName||'').toLowerCase().includes(q)||(c.address||'').toLowerCase().includes(q));
+  $('pendingList').innerHTML=pending.length?pending.map(c=>childItem(c,'pending')).join(''):'<div class="card-section"><div class="cs-body"><div class="empty">All caught up! No pending records.</div></div></div>';
+}
+$('approveAllBtn').addEventListener('click',async()=>{const pending=allChildren.filter(c=>c.status==='pending');if(!pending.length)return;if(!confirm(`Approve all ${pending.length} pending records?`))return;for(const c of pending){try{await api('/api/admin/children/'+c._id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'approved'})})}catch(e){}}toast(`${pending.length} records approved!`);loadDashboard();renderPending()});
 
-async function loadPraise(status){try{const[p,g]=await Promise.all([api('/api/admin/praise'+(status?'?status='+status:'')),api('/api/admin/gifts'+(status?'?status='+status:''))]);const items=[...p.data.map(x=>({...x,kind:'praise'})),...g.data.map(x=>({...x,kind:'gift'}))].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));$('praiseList').innerHTML=items.length?items.map(x=>{const label=x.kind==='praise'?'<span class="sbadge approved">PRAISE</span>':'<span class="sbadge pending">GIFT'+(x.amount?' '+money(x.amount):'')+'</span>';const text=x.kind==='praise'?x.text:x.message;return`<div class="item"><div class="info"><div class="name">${esc(x.kind==='praise'?x.userName:x.giverName)} ${sbadge(x.status)} ${label}</div><div class="sub">Child: ${esc(x.childId&&x.childId.fullName||'Unknown')}</div><div class="sub">${esc(text||'')}</div><div class="actions"><button class="mini approve" onclick="setPraiseStatus('${x._id}','${x.kind}','approved')">${iApprove} Approve</button><button class="mini reject" onclick="setPraiseStatus('${x._id}','${x.kind}','rejected')">${iReject} Reject</button><button class="mini delete" onclick="delPraise('${x._id}','${x.kind}')">${iDelete} Delete</button></div></div></div>`}).join(''):'<div class="empty">Nothing here.</div>'}catch(e){toast(e.message,'err')}}
+// Children
+function renderChildren(){
+  const q=($('childSearch')?.value||'').toLowerCase();
+  const fs=$('childStatus').value,fg=$('childGender').value,ff=$('childFound').value;
+  let list=allChildren;
+  if(q)list=list.filter(c=>(c.fullName||'').toLowerCase().includes(q)||(c.address||'').toLowerCase().includes(q)||(c.contactNumber||'').includes(q));
+  if(fs)list=list.filter(c=>c.status===fs);
+  if(fg)list=list.filter(c=>c.gender===fg);
+  if(ff!=='')list=list.filter(c=>String(c.found)===ff);
+  $('childList').innerHTML=list.length?list.map(c=>childItem(c,'all')).join(''):'<div class="card-section"><div class="cs-body"><div class="empty">No children match your filters.</div></div></div>';
+}
+
+// Common item HTML
+function childItem(c,view){
+  const img=c.image?`<img src="${esc(c.image)}" alt="" loading="lazy" onerror="this.outerHTML='<div class=ph>${iChild}</div>'">`:`<div class="ph">${iChild}</div>`;
+  const sub=[c.gender?c.gender:'',c.age?c.age+' yrs':'',c.address?'':c.contactNumber?'':''].filter(Boolean).join(' ');
+  const meta=[c.address,c.contactNumber,c.missingDate?fmtDate(c.missingDate):''].filter(Boolean).join(' · ');
+  let acts='';
+  if(view==='pending'){
+    acts=miniBtn('btn-green',iApprove,'Approve',`setStatus('${c._id}','approved')`)+miniBtn('btn-red',iReject,'Reject',`setStatus('${c._id}','rejected')`)+miniBtn('btn-outline',iEdit,'Edit',`openEdit('${c._id}')`);
+  }else{
+    acts=miniBtn('btn-outline',iEdit,'Edit',`openEdit('${c._id}')`)+miniBtn('btn-red',iDelete,'Delete',`delChild('${c._id}')`);
+  }
+  const foundBadge=c.found?'<span class="sbadge found">FOUND</span>':'<span class="sbadge missing">MISSING</span>';
+  return`<div class="card-section" style="margin-bottom:10px"><div class="item">${img}<div class="info"><div class="top"><span class="name">${esc(c.fullName)||'Unknown'}</span> ${sbadge(c.status)} ${foundBadge}</div><div class="sub">${esc([c.gender,c.age?c.age+' yrs':''].filter(Boolean).join(', '))}</div><div class="meta">${esc(meta)}</div></div><div class="acts">${acts}</div></div></div>`;
+}
+
+// Status / Delete
+async function setStatus(id,status){try{await api('/api/admin/children/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({status})});toast(status==='approved'?'Approved!':'Rejected.');loadDashboard()}catch(e){toast(e.message,'err')}}
+async function delChild(id){if(!confirm('Delete this record permanently?'))return;try{await api('/api/admin/children/'+id,{method:'DELETE'});toast('Deleted.');loadDashboard();renderChildren()}catch(e){toast(e.message,'err')}}
+
+// Found Requests
+let foundFilterData=[];
+async function loadFoundReqs(){try{const j=await api('/api/admin/found-requests');foundFilterData=j.data;$('badgeFound').textContent=j.data.filter(x=>x.status==='pending').length;renderFoundList()}catch(e){toast(e.message,'err')}}
+function filterFound(btn,f){currentFoundFilter=f;document.querySelectorAll('[data-frfilter]').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderFoundList()}
+function renderFoundList(){
+  const list=currentFoundFilter?foundFilterData.filter(x=>x.status===currentFoundFilter):foundFilterData;
+  $('foundList').innerHTML=list.length?list.map(fr=>`<div class="card-section" style="margin-bottom:10px"><div class="item"><div class="info"><div class="top"><span class="name">${esc(fr.childId&&fr.childId.fullName||'Unknown')}</span> ${sbadge(fr.status)}</div><div class="sub"><strong>Finder:</strong> ${esc(fr.finderName||'Anonymous')}${fr.contactNumber?' · '+esc(fr.contactNumber):''}</div>${fr.details?'<div class="sub">'+esc(fr.details)+'</div>':''}<div class="meta">${fmtDate(fr.createdAt)}</div></div><div class="acts">${fr.status==='pending'?miniBtn('btn-green',iApprove,'Approve',`setFoundStatus('${fr._id}','approved')`)+miniBtn('btn-red',iReject,'Reject',`setFoundStatus('${fr._id}','rejected')`):''}</div></div></div>`).join(''):'<div class="card-section"><div class="cs-body"><div class="empty">No found requests.</div></div></div>';
+}
+async function setFoundStatus(id,status){try{await api('/api/admin/found-requests/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({status})});toast(status==='approved'?'Marked as found!':'Rejected.');loadDashboard();loadFoundReqs()}catch(e){toast(e.message,'err')}}
+
+// Praise & Gifts
+async function renderPraise(){
+  try{
+    const[p,g]=await Promise.all([api('/api/admin/praise'),api('/api/admin/gifts')]);
+    allPraise=p.data;allGifts=g.data;
+    $('badgePraise').textContent=[...allPraise,...allGifts].filter(x=>x.status==='pending').length;
+    let items=[...allPraise.map(x=>({...x,kind:'praise'})),...allGifts.map(x=>({...x,kind:'gift'}))].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+    if(currentPraiseFilter)items=items.filter(x=>x.status===currentPraiseFilter);
+    const tp=$('praiseType')?.value;
+    if(tp)items=items.filter(x=>x.kind===tp);
+    $('praiseList').innerHTML=items.length?items.map(x=>{
+      const isPraise=x.kind==='praise';
+      const label=isPraise?'<span class="sbadge praise">PRAISE</span>':'<span class="sbadge gift">GIFT'+(x.amount?' '+money(x.amount):'')+'</span>';
+      const text=isPraise?x.text:x.message;
+      const from=isPraise?x.userName:x.giverName;
+      return`<div class="card-section" style="margin-bottom:10px"><div class="item"><div class="info"><div class="top"><span class="name">${esc(from)}</span> ${sbadge(x.status)} ${label}</div><div class="sub">Child: ${esc(x.childId&&x.childId.fullName||'Unknown')}</div><div class="sub">"${esc(text||'')}"</div><div class="meta">${fmtDate(x.createdAt)}</div></div><div class="acts">${miniBtn('btn-green',iApprove,'Approve',`setPraiseStatus('${x._id}','${x.kind}','approved')`)}${miniBtn('btn-red',iReject,'Reject',`setPraiseStatus('${x._id}','${x.kind}','rejected')`)}${miniBtn('btn-red',iDelete,'Delete',`delPraise('${x._id}','${x.kind}')`)}</div></div></div>`;
+    }).join(''):'<div class="card-section"><div class="cs-body"><div class="empty">No praise or gifts.</div></div></div>';
+  }catch(e){toast(e.message,'err')}
+}
+function filterPraise(btn,f){currentPraiseFilter=f;document.querySelectorAll('[data-pffilter]').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderPraise()}
 const praiseResource=k=>k==='praise'?'praise':'gifts';
-async function setPraiseStatus(id,kind,status){try{await api('/api/admin/'+praiseResource(kind)+'/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({status})});toast('Updated.');loadPraise('')}catch(e){toast(e.message,'err')}}
-async function delPraise(id,kind){if(!confirm('Delete?'))return;try{await api('/api/admin/'+praiseResource(kind)+'/'+id,{method:'DELETE'});toast('Deleted.');loadPraise('')}catch(e){toast(e.message,'err')}}
-$('pfAll').addEventListener('click',()=>loadPraise(''));$('pfPending').addEventListener('click',()=>loadPraise('pending'));$('pfApproved').addEventListener('click',()=>loadPraise('approved'));
+async function setPraiseStatus(id,kind,status){try{await api('/api/admin/'+praiseResource(kind)+'/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({status})});toast('Updated.');renderPraise()}catch(e){toast(e.message,'err')}}
+async function delPraise(id,kind){if(!confirm('Delete?'))return;try{await api('/api/admin/'+praiseResource(kind)+'/'+id,{method:'DELETE'});toast('Deleted.');renderPraise()}catch(e){toast(e.message,'err')}}
 
-async function loadDonations(){try{const j=await api('/api/admin/donations');$('donTotal').textContent=money(j.total);$('donCount').textContent=j.data.length;$('donList').innerHTML=j.data.length?j.data.map(d=>`<div class="item"><div class="info"><div class="name">${esc(d.donorName)} <span class="sbadge approved">${money(d.amount)}</span></div><div class="sub">${d.emailId?esc(d.emailId)+' . ':''}${fmtDate(d.createdAt)}</div>${d.message?'<div class="sub">'+esc(d.message)+'</div>':''}<div class="actions"><button class="mini delete" onclick="delDonation('${d._id}')">${iDelete} Delete</button></div></div></div>`).join(''):'<div class="empty">No donations yet.</div>'}catch(e){toast(e.message,'err')}}
+// Donations
+async function loadDonations(){try{const j=await api('/api/admin/donations');allDonations=j.data;$('donTotal').textContent=money(j.total);$('donCount').textContent=j.data.length;$('donList').innerHTML=j.data.length?j.data.map(d=>`<div class="card-section" style="margin-bottom:10px"><div class="item"><div class="info"><div class="top"><span class="name">${esc(d.donorName)}</span> <span class="sbadge approved">${money(d.amount)}</span></div><div class="sub">${d.emailId?esc(d.emailId):''}</div>${d.message?'<div class="sub">"'+esc(d.message)+'"</div>':''}<div class="meta">${fmtDate(d.createdAt)}</div></div><div class="acts">${miniBtn('btn-red',iDelete,'Delete',`delDonation('${d._id}')`)}</div></div></div>`).join(''):'<div class="empty">No donations yet.</div>'}catch(e){toast(e.message,'err')}}
 async function delDonation(id){if(!confirm('Delete?'))return;try{await api('/api/admin/donations/'+id,{method:'DELETE'});toast('Deleted.');loadDonations()}catch(e){toast(e.message,'err')}}
 
-async function loadAll(){const[stats,children]=await Promise.all([api('/api/admin/stats'),api('/api/admin/children')]);$('stPending').textContent=stats.data.pending;$('stApproved').textContent=stats.data.approved;$('stRejected').textContent=stats.data.rejected;$('stTotal').textContent=stats.data.total;allChildren=children.data;renderAll($('listSearch').value.trim());renderPending();loadFoundReqs();loadDonations()}
-function sbadge(s){return`<span class="sbadge ${s}">${s.toUpperCase()}</span>`}
-function renderPending(){const p=allChildren.filter(c=>c.status==='pending');$('pendingList').innerHTML=p.length?p.map(c=>itemHtml(c,'pending')).join(''):'<div class="empty">All caught up!</div>'}
-function renderAll(q){const list=q?allChildren.filter(c=>(c.fullName||'').toLowerCase().includes(q)||(c.address||'').toLowerCase().includes(q)||(c.contactNumber||'').includes(q)):allChildren;$('allList').innerHTML=list.length?list.map(c=>itemHtml(c,'all')).join(''):'<div class="empty">No children found.</div>'}
-function itemHtml(c,view){const img=c.image?`<img src="${esc(c.image)}" alt="" loading="lazy" onerror="this.outerHTML='<div class=\\'ph\\'>${iChild.replace(/"/g,'&quot;')}</div>'">`:`<div class="ph">${iChild}</div>`;const acts=view==='pending'?`<button class="mini approve" onclick="setStatus('${c._id}','approved')">${iApprove} Approve</button><button class="mini reject" onclick="setStatus('${c._id}','rejected')">${iReject} Reject</button>`:`<button class="mini edit" onclick="openEdit('${c._id}')">${iEdit} Edit</button><button class="mini delete" onclick="delChild('${c._id}')">${iDelete} Delete</button>`;const sub=[c.gender&&c.age?`${c.gender}, ${c.age} yrs`:(c.gender||(c.age?c.age+' yrs':'')),c.address,c.contactNumber?' '+c.contactNumber:'',c.missingDate?' '+c.missingDate:''].filter(Boolean).join(' . ');return`<div class="item">${img}<div class="info"><div class="name">${esc(c.fullName)||'Unknown'} ${sbadge(c.status)}</div><div class="sub">${esc(sub)}</div><div class="actions">${acts}</div></div></div>`}
-async function setStatus(id,status){try{await api('/api/admin/children/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({status})});toast(status==='approved'?'Approved!':'Rejected.');loadAll()}catch(e){toast(e.message,'err')}}
-async function delChild(id){if(!confirm('Delete permanently?'))return;try{await api('/api/admin/children/'+id,{method:'DELETE'});toast('Deleted.');loadAll()}catch(e){toast(e.message,'err')}}
-const formFields=c=>`<div class="grid2"><div class="field"><label>Full name *</label><input id="f_fullName" value="${esc(c.fullName)}"></div><div class="field"><label>Age</label><input id="f_age" type="number" min="0" max="25" value="${esc(c.age)}"></div><div class="field"><label>Gender</label><select id="f_gender"><option value="">-</option><option ${c.gender==='Male'?'selected':''}>Male</option><option ${c.gender==='Female'?'selected':''}>Female</option></select></div><div class="field"><label>State</label><input id="f_state" value="${esc(c.state)}"></div><div class="field" style="grid-column:1/-1"><label>Address</label><input id="f_address" value="${esc(c.address)}"></div><div class="field"><label>Contact</label><input id="f_contactNumber" value="${esc(c.contactNumber)}"></div><div class="field"><label>Missing date</label><input id="f_missingDate" type="date" value="${esc(c.missingDate)}"></div><div class="field"><label>Missing time</label><input id="f_missingTime" type="time" value="${esc(c.missingTime)}"></div><div class="field"><label>Missing location</label><input id="f_missingLocation" value="${esc(c.missingLocation)}"></div><div class="field"><label>Status</label><select id="f_status"><option value="approved" ${c.status==='approved'?'selected':''}>Approved</option><option value="pending" ${c.status==='pending'?'selected':''}>Pending</option><option value="rejected" ${c.status==='rejected'?'selected':''}>Rejected</option></select></div><div class="field"><label>Found?</label><select id="f_found"><option value="false" ${!c.found?'selected':''}>Missing</option><option value="true" ${c.found?'selected':''}>Found</option></select></div><div class="field"><label>Photo</label><input id="f_image" type="file" accept="image/*"></div><div class="field" style="grid-column:1/-1"><label>Details</label><textarea id="f_info" rows="3">${esc(c.info)}</textarea></div></div>`;
-function renderAddForm(){$('addFormWrap').innerHTML=`<form id="addForm">${formFields({fullName:'',age:'',gender:'',state:'',address:'',contactNumber:'',missingDate:'',missingTime:'',missingLocation:'',status:'approved',found:false,info:''})}<div style="margin-top:18px"><button type="button" class="btn" onclick="submitAdd()">Save child</button></div></form>`}
-function collectForm(){const fd=new FormData();['fullName','age','gender','state','address','contactNumber','missingDate','missingTime','missingLocation','status','info'].forEach(id=>{const v=$('f_'+id).value.trim();if(v!=='')fd.append(id,v)});fd.append('found',$('f_found').value);const file=$('f_image').files[0];if(file)fd.append('image',file);return fd}
-async function submitAdd(){try{await api('/api/admin/children',{method:'POST',body:collectForm()});toast('Child added.');loadAll();renderAddForm()}catch(e){toast(e.message,'err')}}
-function openEdit(id){const c=allChildren.find(x=>x._id===id);if(!c)return;$('modalTitle').textContent='Edit — '+(c.fullName||'');$('modalBody').innerHTML=`<form id="editForm">${formFields(c)}<div class="actions"><button type="button" class="btn" onclick="submitEdit('${id}')">Save changes</button><button type="button" class="btn-ghost" onclick="closeModal()">Cancel</button></div></form>`;$('modalBg').classList.add('show')}
+// Users
+async function loadUsers(){try{const r=await fetch('/api/auth/me',{headers:{Authorization:'Bearer '+token}});/* fallback: just show children count */allUsers=[];}catch(e){}try{/* No admin user list API, show from stats */}catch(e){}}
+$('userList').innerHTML='<div class="card-section"><div class="cs-body"><div class="empty">User management coming soon. Users who sign up are visible in the database.</div></div></div>';
+
+// Form fields
+function formFields(c){
+  return`<div class="grid2">
+    <div class="field"><label>Full Name *</label><input id="f_fullName" value="${esc(c.fullName)}" placeholder="Child's full name"></div>
+    <div class="field"><label>Age</label><input id="f_age" type="number" min="0" max="25" value="${esc(c.age)}" placeholder="Age in years"></div>
+    <div class="field"><label>Gender</label><select id="f_gender"><option value="">Select</option><option ${c.gender==='Male'?'selected':''}>Male</option><option ${c.gender==='Female'?'selected':''}>Female</option></select></div>
+    <div class="field"><label>State</label><input id="f_state" value="${esc(c.state)}" placeholder="State"></div>
+    <div class="field" style="grid-column:1/-1"><label>Address</label><input id="f_address" value="${esc(c.address)}" placeholder="Full address"></div>
+    <div class="field"><label>Contact Number *</label><input id="f_contactNumber" value="${esc(c.contactNumber)}" placeholder="Phone number"></div>
+    <div class="field"><label>Missing Date</label><input id="f_missingDate" type="date" value="${esc(c.missingDate)}"></div>
+    <div class="field"><label>Missing Time</label><input id="f_missingTime" type="time" value="${esc(c.missingTime)}"></div>
+    <div class="field"><label>Last Seen Location</label><input id="f_missingLocation" value="${esc(c.missingLocation)}" placeholder="Where last seen"></div>
+    <div class="field"><label>Approval Status</label><select id="f_status"><option value="approved" ${c.status==='approved'?'selected':''}>Approved</option><option value="pending" ${c.status==='pending'?'selected':''}>Pending</option><option value="rejected" ${c.status==='rejected'?'selected':''}>Rejected</option></select></div>
+    <div class="field"><label>Found Status</label><select id="f_found"><option value="false" ${!c.found?'selected':''}>Missing</option><option value="true" ${c.found?'selected':''}>Found</option></select></div>
+    <div class="field"><label>Photo</label><input id="f_image" type="file" accept="image/*"></div>
+    <div class="field" style="grid-column:1/-1"><label>Additional Details</label><textarea id="f_info" rows="3" placeholder="Any other info...">${esc(c.info)}</textarea></div>
+  </div>`;
+}
+function collectForm(){
+  const fd=new FormData();
+  ['fullName','age','gender','state','address','contactNumber','missingDate','missingTime','missingLocation','status','info'].forEach(id=>{const v=$('f_'+id)?.value?.trim();if(v!=='')fd.append(id,v)});
+  fd.append('found',$('f_found').value);
+  const file=$('f_image')?.files[0];if(file)fd.append('image',file);
+  return fd;
+}
+
+// Add form
+function renderAddForm(){
+  $('addFormWrap').innerHTML=`<form id="addForm">${formFields({fullName:'',age:'',gender:'',state:'',address:'',contactNumber:'',missingDate:'',missingTime:'',missingLocation:'',status:'approved',found:false,info:''})}<div style="margin-top:20px;display:flex;gap:10px"><button type="button" class="btn btn-green" onclick="submitAdd()" style="flex:1">Add Child</button></div></form>`;
+}
+async function submitAdd(){
+  try{await api('/api/admin/children',{method:'POST',body:collectForm()});toast('Child added!');renderAddForm();loadDashboard()}catch(e){toast(e.message,'err')}
+}
+
+// Edit modal
+function openEdit(id){
+  const c=allChildren.find(x=>x._id===id);if(!c)return;
+  $('modalTitle').textContent='Edit — '+(c.fullName||'Unknown');
+  $('modalBody').innerHTML=`<form id="editForm">${formFields(c)}<div style="margin-top:20px;display:flex;gap:10px"><button type="button" class="btn" onclick="submitEdit('${id}')" style="flex:1">Save Changes</button><button type="button" class="btn btn-outline" onclick="closeModal()" style="flex:1">Cancel</button></div></form>`;
+  $('modalBg').classList.add('show');
+}
 function closeModal(){$('modalBg').classList.remove('show');$('modalBody').innerHTML=''}
-async function submitEdit(id){try{await api('/api/admin/children/'+id,{method:'PUT',body:collectForm()});toast('Saved.');closeModal();loadAll()}catch(e){toast(e.message,'err')}}
+async function submitEdit(id){try{await api('/api/admin/children/'+id,{method:'PUT',body:collectForm()});toast('Saved!');closeModal();loadDashboard()}catch(e){toast(e.message,'err')}}
 $('modalBg').addEventListener('click',e=>{if(e.target===$('modalBg'))closeModal()});
-$('listSearchBtn').addEventListener('click',()=>renderAll($('listSearch').value.trim()));
-$('listSearch').addEventListener('keydown',e=>{if(e.key==='Enter')renderAll($('listSearch').value.trim())});
-if(token){api('/api/admin/children').then(()=>{showApp();loadAll()}).catch(()=>showLogin())}else showLogin();
+
+// Init
+if(token){api('/api/admin/children').then(()=>{showApp();loadDashboard()}).catch(()=>showLogin())}else showLogin();
 </script>
 </body>
 </html>
