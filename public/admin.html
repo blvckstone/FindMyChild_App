@@ -96,7 +96,7 @@ button{font-family:inherit;cursor:pointer}input,select,textarea{font-family:inhe
 .item .info .top{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .item .info .name{font-size:14px;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
 .item .info .sub{font-size:12px;color:var(--text2);margin-top:3px;line-height:1.5;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
-.item .info .meta{font-size:11px;color:var(--text3);margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.item .info .meta{font-size:11px;color:var(--text3);margin-top:3px;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical}
 .item .acts{display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;align-self:center}
 .sbadge{display:inline-block;font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;text-transform:uppercase;letter-spacing:.3px}
 .sbadge.pending{background:var(--orange-light);color:#b45309}
@@ -390,9 +390,10 @@ function renderChildren(){
 
 // Common item HTML
 function childItem(c,view){
-  const img=c.image?`<img src="${esc(c.image)}" alt="" loading="lazy" onerror="this.outerHTML='<div class=ph>${iChild}</div>'">`:`<div class="ph">${iChild}</div>`;
-  const sub=[c.gender?c.gender:'',c.age?c.age+' yrs':'',c.address?'':c.contactNumber?'':''].filter(Boolean).join(' ');
-  const meta=[c.address,c.contactNumber,c.missingDate?fmtDate(c.missingDate):''].filter(Boolean).join(' · ');
+  let imgHtml=`<div class="ph">${iChild}</div>`;
+  if(c.image){imgHtml=`<img src="${esc(c.image)}" alt="" loading="lazy" onerror="this.onerror=null;this.parentNode.innerHTML='${iChild.replace(/'/g,"\\'")}'">`;}
+  const sub=[c.gender?c.gender:'',c.age?c.age+' yrs':''].filter(Boolean).join(', ');
+  const metaLine=[c.contactNumber,c.missingDate?fmtDate(c.missingDate):''].filter(Boolean).join(' · ');
   let acts='';
   if(view==='pending'){
     acts=miniBtn('btn-green',iApprove,'Approve',`setStatus('${c._id}','approved')`)+miniBtn('btn-red',iReject,'Reject',`setStatus('${c._id}','rejected')`)+miniBtn('btn-outline',iEdit,'Edit',`openEdit('${c._id}')`);
@@ -400,7 +401,7 @@ function childItem(c,view){
     acts=miniBtn('btn-outline',iEdit,'Edit',`openEdit('${c._id}')`)+miniBtn('btn-red',iDelete,'Delete',`delChild('${c._id}')`);
   }
   const foundBadge=c.found?'<span class="sbadge found">FOUND</span>':'<span class="sbadge missing">MISSING</span>';
-  return`<div class="card-section" style="margin-bottom:10px"><div class="item">${img}<div class="info"><div class="top"><span class="name">${esc(c.fullName)||'Unknown'}</span> ${sbadge(c.status)} ${foundBadge}</div><div class="sub">${esc([c.gender,c.age?c.age+' yrs':''].filter(Boolean).join(', '))}</div><div class="meta">${esc(meta)}</div></div><div class="acts">${acts}</div></div></div>`;
+  return`<div class="card-section" style="margin-bottom:10px"><div class="item">${imgHtml}<div class="info"><div class="top"><span class="name">${esc(c.fullName)||'Unknown'}</span> ${sbadge(c.status)} ${foundBadge}</div><div class="sub">${esc(sub)}</div><div class="meta">${esc(c.address||'')}</div>${metaLine?`<div class="meta">${esc(metaLine)}</div>`:''}</div><div class="acts">${acts}</div></div></div>`;
 }
 
 // Status / Delete
