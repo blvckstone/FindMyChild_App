@@ -390,8 +390,7 @@ function renderChildren(){
 
 // Common item HTML
 function childItem(c,view){
-  let imgHtml=`<div class="ph">${iChild}</div>`;
-  if(c.image){imgHtml=`<img src="${esc(c.image)}" alt="" loading="lazy" onerror="this.onerror=null;this.parentNode.innerHTML='${iChild.replace(/'/g,"\\'")}'">`;}
+  const imgWrap=c.image?`<div class="ph" style="position:relative"><img src="${esc(c.image)}" alt="" loading="lazy" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:12px" onerror="this.style.display='none'">${iChild}</div>`:`<div class="ph">${iChild}</div>`;
   const sub=[c.gender?c.gender:'',c.age?c.age+' yrs':''].filter(Boolean).join(', ');
   const metaLine=[c.contactNumber,c.missingDate?fmtDate(c.missingDate):''].filter(Boolean).join(' · ');
   let acts='';
@@ -401,7 +400,7 @@ function childItem(c,view){
     acts=miniBtn('btn-outline',iEdit,'Edit',`openEdit('${c._id}')`)+miniBtn('btn-red',iDelete,'Delete',`delChild('${c._id}')`);
   }
   const foundBadge=c.found?'<span class="sbadge found">FOUND</span>':'<span class="sbadge missing">MISSING</span>';
-  return`<div class="card-section" style="margin-bottom:10px"><div class="item">${imgHtml}<div class="info"><div class="top"><span class="name">${esc(c.fullName)||'Unknown'}</span> ${sbadge(c.status)} ${foundBadge}</div><div class="sub">${esc(sub)}</div><div class="meta">${esc(c.address||'')}</div>${metaLine?`<div class="meta">${esc(metaLine)}</div>`:''}</div><div class="acts">${acts}</div></div></div>`;
+  return`<div class="card-section" style="margin-bottom:10px"><div class="item">${imgWrap}<div class="info"><div class="top"><span class="name">${esc(c.fullName)||'Unknown'}</span> ${sbadge(c.status)} ${foundBadge}</div><div class="sub">${esc(sub)}</div><div class="meta">${esc(c.address||'')}</div>${metaLine?`<div class="meta">${esc(metaLine)}</div>`:''}</div><div class="acts">${acts}</div></div></div>`;
 }
 
 // Status / Delete
