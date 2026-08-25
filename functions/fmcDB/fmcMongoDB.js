@@ -25,6 +25,11 @@ const dataSchema = mongoose.Schema({
     // pending = waiting for admin approval, approved = visible publicly, rejected = denied
     status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' }
 });
+dataSchema.index({ status: 1 });
+dataSchema.index({ createdAt: -1 });
+dataSchema.index({ fullName: 'text', address: 'text', contactNumber: 'text' });
+dataSchema.index({ gender: 1 });
+dataSchema.index({ age: 1 });
 
 // Cache the connection so we only connect to the database once.
 let connectionPromise = null;

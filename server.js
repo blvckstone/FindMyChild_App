@@ -42,6 +42,13 @@ const getByAddressData = require('./functions/getByAddressData/getByAddressData.
 const getBySearchData = require('./functions/getBySearchData/getBySearchData.js');
 const getMessages = require('./functions/getMessages/getMessages.js');
 
+// ---- Server-side cache for instant responses ----
+const dataCache = { data: null, ts: 0, messages: null, mts: 0, ads: null, ats: 0 };
+const CACHE_TTL = 30000; // 30 seconds
+function getCached(key) { return dataCache[key] && (Date.now() - dataCache[key + 'Ts'] < CACHE_TTL) ? dataCache[key] : null; }
+function setCache(key, val) { dataCache[key] = val; dataCache[key + 'Ts'] = Date.now(); }
+function clearDataCache() { dataCache.data = null; dataCache.messages = null; dataCache.ads = null; }
+
 //-----------------------------------------------Google OAuth (optional)---------------------------------------------------------->
 const googleClientId = process.env.GOOGLE_CLIENT_ID;
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
@@ -157,7 +164,8 @@ app.post('/api/children', async (req, res) => {
         if (!db.success) return res.status(500).json({ success: false, message: "Database unavailable." });
         const Child = db.data;
         const child = await Child.create(data);
-        io.emit('dataChanged');
+        io.emit('dataChanged'); clearDataCache();
+        dataCache.data = null; dataCache.messages = null;
         res.status(201).json({ success: true, message: "Report submitted! It will be published after admin approval.", data: child });
     } catch (error) {
         console.error("POST /api/children error:", error.message);
@@ -266,7 +274,7 @@ app.post('/api/found-requests', requireAuth, async (req, res) => {
             contactNumber: req.body.contactNumber ? String(req.body.contactNumber).trim() : '',
             details: req.body.details ? String(req.body.details).trim().slice(0, 500) : ''
         });
-        io.emit('dataChanged');
+        io.emit('dataChanged'); clearDataCache();
         res.status(201).json({ success: true, message: "Found request submitted! Admin will verify and approve it.", data: fr });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -313,7 +321,7 @@ app.post('/api/praise', async (req, res) => {
             text: text.slice(0, 500),
             status: 'pending'
         });
-        io.emit('dataChanged');
+        io.emit('dataChanged'); clearDataCache();
         res.status(201).json({ success: true, message: "Thank you! Your praise will appear after admin approval.", data: praise });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -335,7 +343,7 @@ app.post('/api/gifts', async (req, res) => {
             amount: req.body.amount && !isNaN(Number(req.body.amount)) ? Number(req.body.amount) : undefined,
             status: 'pending'
         });
-        io.emit('dataChanged');
+        io.emit('dataChanged'); clearDataCache();
         res.status(201).json({ success: true, message: "Gift sent! It will appear after admin approval.", data: gift });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -356,7 +364,7 @@ app.post('/api/donations', async (req, res) => {
             amount,
             message: req.body.message ? String(req.body.message).trim().slice(0, 500) : ''
         });
-        io.emit('dataChanged');
+        io.emit('dataChanged'); clearDataCache();
         res.status(201).json({ success: true, message: "Thank you for your generous support! ❤️", data: donation });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -448,7 +456,7 @@ app.post('/api/admin/children', requireAdmin, async (req, res) => {
         const db = await fmcConnectMongoDB();
         if (!db.success) return res.status(500).json({ success: false, message: "Database unavailable." });
         const child = await db.data.create(data);
-        io.emit('dataChanged');
+        io.emit('dataChanged'); clearDataCache();
         res.status(201).json({ success: true, message: "Child added.", data: child });
     } catch (error) {
         console.error("POST /api/admin/children error:", error.message);
@@ -485,7 +493,7 @@ app.put('/api/admin/children/:id', requireAdmin, async (req, res) => {
 
         const child = await Child.findByIdAndUpdate(req.params.id, data, { new: true, runValidators: true });
         if (!child) return res.status(404).json({ success: false, message: "Child not found." });
-        io.emit('dataChanged');
+        io.emit('dataChanged'); clearDataCache();
         res.json({ success: true, message: "Child updated.", data: child });
     } catch (error) {
         console.error("PUT /api/admin/children error:", error.message);
@@ -502,7 +510,7 @@ app.delete('/api/admin/children/:id', requireAdmin, async (req, res) => {
         if (!child) return res.status(404).json({ success: false, message: "Child not found." });
         // Clean up Cloudinary image to save storage
         if (child.image) await deleteImage(child.image);
-        io.emit('dataChanged');
+        io.emit('dataChanged'); clearDataCache();
         res.json({ success: true, message: "Child deleted." });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -545,7 +553,7 @@ app.put('/api/admin/found-requests/:id', requireAdmin, async (req, res) => {
                 }
             );
         }
-        io.emit('dataChanged');
+        io.emit('dataChanged'); clearDataCache();
         res.json({ success: true, message: status === 'approved' ? "Marked as found. The finder is now praised on the Found page." : "Found request rejected." });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -570,7 +578,7 @@ app.put('/api/admin/praise/:id', requireAdmin, async (req, res) => {
         const { Praise } = await getModels();
         const p = await Praise.findByIdAndUpdate(req.params.id, { status: req.body.status }, { new: true });
         if (!p) return res.status(404).json({ success: false, message: "Praise not found." });
-        io.emit('dataChanged');
+        io.emit('dataChanged'); clearDataCache();
         res.json({ success: true, message: "Praise updated." });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -606,7 +614,7 @@ app.put('/api/admin/gifts/:id', requireAdmin, async (req, res) => {
         const { Gift } = await getModels();
         const g = await Gift.findByIdAndUpdate(req.params.id, { status: req.body.status }, { new: true });
         if (!g) return res.status(404).json({ success: false, message: "Gift not found." });
-        io.emit('dataChanged');
+        io.emit('dataChanged'); clearDataCache();
         res.json({ success: true, message: "Gift updated." });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -642,6 +650,204 @@ app.delete('/api/admin/donations/:id', requireAdmin, async (req, res) => {
         const d = await Donation.findByIdAndDelete(req.params.id);
         if (!d) return res.status(404).json({ success: false, message: "Donation not found." });
         res.json({ success: true, message: "Donation deleted." });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// ---- Analytics tracking ----
+app.post('/api/analytics', async (req, res) => {
+    try {
+        const { Analytics } = await getModels();
+        const { type, page, section, data, sessionId } = req.body;
+        if (!type) return res.status(400).json({ success: false, message: 'type required' });
+        await Analytics.create({
+            sessionId: sessionId || req.ip,
+            type, page, section, data,
+            userAgent: (req.headers['user-agent'] || '').slice(0, 200),
+            ip: req.ip
+        });
+        res.json({ success: true });
+    } catch (e) { res.json({ success: true }); }
+});
+
+app.get('/api/analytics/active', async (req, res) => {
+    try {
+        const { Analytics } = await getModels();
+        const since = new Date(Date.now() - 15 * 60 * 1000);
+        const active = await Analytics.distinct('sessionId', { createdAt: { $gte: since } });
+        res.json({ success: true, count: active.length });
+    } catch (e) { res.json({ success: true, count: 0 }); }
+});
+
+// ---- Public: active ads ----
+app.get('/api/ads', async (req, res) => {
+    try {
+        const cached = getCached('ads');
+        if (cached) return res.json(cached);
+        const { Advertisement } = await getModels();
+        const now = new Date();
+        const ads = await Advertisement.find({
+            active: true,
+            $or: [{ startDate: { $exists: false } }, { startDate: { $lte: now } }],
+            $or: [{ endDate: { $exists: false } }, { endDate: { $gte: now } }]
+        }).sort({ priority: -1 }).limit(20).lean();
+        const result = { success: true, data: ads };
+        setCache('ads', result);
+        res.json(result);
+    } catch (e) { res.json({ success: true, data: [] }); }
+});
+
+app.post('/api/ads/:id/click', async (req, res) => {
+    try {
+        const { Advertisement } = await getModels();
+        await Advertisement.findByIdAndUpdate(req.params.id, { $inc: { clicks: 1 } });
+        res.json({ success: true });
+    } catch (e) { res.json({ success: true }); }
+});
+
+app.post('/api/ads/:id/impression', async (req, res) => {
+    try {
+        const { Advertisement } = await getModels();
+        await Advertisement.findByIdAndUpdate(req.params.id, { $inc: { impressions: 1 } });
+        res.json({ success: true });
+    } catch (e) { res.json({ success: true }); }
+});
+
+// ---- Cached data endpoint for instant load ----
+app.get('/api/data', async (req, res) => {
+    try {
+        const cached = getCached('data');
+        if (cached) return res.json(cached);
+        const data = await getAllData();
+        const result = { success: true, data };
+        setCache('data', result);
+        res.json(result);
+    } catch (e) { res.json({ success: true, data: [] }); }
+});
+
+app.get('/api/messages', async (req, res) => {
+    try {
+        const cached = getCached('messages');
+        if (cached) return res.json(cached);
+        const data = await getMessages();
+        const result = { success: true, data };
+        setCache('messages', result);
+        res.json(result);
+    } catch (e) { res.json({ success: true, data: [] }); }
+});
+
+// ---- Admin: analytics dashboard ----
+app.get('/api/admin/analytics', requireAdmin, async (req, res) => {
+    try {
+        const { Analytics, User, Child, Donation, FoundRequest } = await getModels();
+        const now = Date.now();
+        const day = 24 * 60 * 60 * 1000;
+        const [totalVisits, todayVisits, uniqueSessions, sectionViews, pageViews, recentVisits, userCount, childCount, donationTotal, donationAgg, foundCount] = await Promise.all([
+            Analytics.countDocuments({}),
+            Analytics.countDocuments({ createdAt: { $gte: new Date(now - day) } }),
+            Analytics.distinct('sessionId', { createdAt: { $gte: new Date(now - 30 * day) } }),
+            Analytics.aggregate([
+                { $match: { type: 'section_view', createdAt: { $gte: new Date(now - 7 * day) } } },
+                { $group: { _id: '$section', count: { $sum: 1 } } },
+                { $sort: { count: -1 } },
+                { $limit: 20 }
+            ]),
+            Analytics.aggregate([
+                { $match: { createdAt: { $gte: new Date(now - 7 * day) } } },
+                { $group: { _id: '$type', count: { $sum: 1 } } },
+                { $sort: { count: -1 } }
+            ]),
+            Analytics.find().sort({ createdAt: -1 }).limit(50).lean(),
+            User.countDocuments({}),
+            Child.countDocuments({}),
+            Donation.countDocuments({}),
+            Donation.aggregate([{ $group: { _id: null, total: { $sum: '$amount' } } }]),
+            FoundRequest.countDocuments({})
+        ]);
+        const weekVisits = await Analytics.countDocuments({ createdAt: { $gte: new Date(now - 7 * day) } });
+        res.json({ success: true, data: {
+            totalVisits, todayVisits, weekVisits,
+            uniqueUsers: uniqueSessions.length,
+            sectionViews, pageViews, recentVisits,
+            userCount, childCount, donationCount: donationTotal,
+            donationTotal: (donationAgg[0] && donationAgg[0].total) || 0,
+            foundCount
+        }});
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// ---- Admin: advertisements ----
+app.get('/api/admin/ads', requireAdmin, async (req, res) => {
+    try {
+        const { Advertisement } = await getModels();
+        const ads = await Advertisement.find().sort({ createdAt: -1 });
+        res.json({ success: true, data: ads });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+app.post('/api/admin/ads', requireAdmin, async (req, res) => {
+    try {
+        const { Advertisement } = await getModels();
+        const b = req.body;
+        const imagePath = await saveImage(req.files && req.files.image);
+        const ad = await Advertisement.create({
+            title: String(b.title || '').trim().slice(0, 100),
+            imageUrl: imagePath || String(b.imageUrl || '').trim(),
+            linkUrl: String(b.linkUrl || '').trim(),
+            type: b.type || 'banner',
+            position: b.position || 'home',
+            active: b.active !== 'false',
+            priority: Number(b.priority) || 0,
+            advertiserName: String(b.advertiserName || '').trim().slice(0, 100),
+            startDate: b.startDate || null,
+            endDate: b.endDate || null
+        });
+        dataCache.ads = null;
+        res.status(201).json({ success: true, message: 'Ad created.', data: ad });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+app.put('/api/admin/ads/:id', requireAdmin, async (req, res) => {
+    try {
+        const { Advertisement } = await getModels();
+        const b = req.body;
+        const update = {};
+        if (b.title !== undefined) update.title = String(b.title).trim().slice(0, 100);
+        if (b.linkUrl !== undefined) update.linkUrl = String(b.linkUrl).trim();
+        if (b.type !== undefined) update.type = b.type;
+        if (b.position !== undefined) update.position = b.position;
+        if (b.active !== undefined) update.active = b.active === 'true' || b.active === true;
+        if (b.priority !== undefined) update.priority = Number(b.priority);
+        if (b.advertiserName !== undefined) update.advertiserName = String(b.advertiserName).trim().slice(0, 100);
+        if (b.startDate !== undefined) update.startDate = b.startDate;
+        if (b.endDate !== undefined) update.endDate = b.endDate;
+        if (b.imageUrl !== undefined) update.imageUrl = String(b.imageUrl).trim();
+        const imagePath = await saveImage(req.files && req.files.image);
+        if (imagePath) update.imageUrl = imagePath;
+        const ad = await Advertisement.findByIdAndUpdate(req.params.id, update, { new: true });
+        if (!ad) return res.status(404).json({ success: false, message: 'Ad not found.' });
+        dataCache.ads = null;
+        res.json({ success: true, message: 'Ad updated.', data: ad });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+app.delete('/api/admin/ads/:id', requireAdmin, async (req, res) => {
+    try {
+        const { Advertisement } = await getModels();
+        const ad = await Advertisement.findByIdAndDelete(req.params.id);
+        if (!ad) return res.status(404).json({ success: false, message: 'Ad not found.' });
+        if (ad.imageUrl) await deleteImage(ad.imageUrl);
+        dataCache.ads = null;
+        res.json({ success: true, message: 'Ad deleted.' });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }

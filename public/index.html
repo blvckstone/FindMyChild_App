@@ -96,6 +96,26 @@ main{max-width:480px;margin:0 auto;padding-bottom:calc(80px + env(safe-area-inse
 /* === HORIZONTAL CARD ROW === */
 .hrow{display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;padding:0 0 20px;scrollbar-width:none}
 .hrow::-webkit-scrollbar{display:none}
+/* === SCALABLE CARD GRID === */
+.scard-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;padding:0 20px}
+.scard{background:var(--card);border-radius:var(--radius);overflow:hidden;cursor:pointer;border:1px solid var(--border);transition:transform .15s,box-shadow .15s;box-shadow:var(--shadow)}
+.scard:active{transform:scale(.98);box-shadow:var(--shadow-lg)}
+.scard-img{height:180px;position:relative;background:linear-gradient(135deg,#e5e5ea,#d1d1d6);overflow:hidden}
+.scard-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1}
+.scard-img .ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.scard-img .ph svg{width:56px;height:56px;fill:#aeaeb2}
+.scard-badge{position:absolute;top:12px;left:12px;padding:4px 12px;border-radius:8px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;z-index:2}
+.scard-badge.missing{background:rgba(255,59,48,.9);color:#fff}
+.scard-badge.found{background:rgba(52,199,89,.9);color:#fff}
+.scard-body{padding:14px 16px 16px}
+.scard-name{font-size:15px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:6px}
+.scard-info{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);flex-wrap:wrap}
+.scard-age{background:var(--bg);padding:2px 8px;border-radius:6px;font-weight:600;font-size:11px}
+.scard-loc{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px}
+.scard-date{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text3);margin-top:8px;font-weight:500}
+@media(max-width:600px){.scard-grid{grid-template-columns:1fr 1fr;gap:10px;padding:0 16px}.scard-img{height:140px}}
+
+/* === HORIZONTAL CARDS (home page) === */
 .hcard{
   flex:0 0 200px;scroll-snap-align:start;background:var(--card);border-radius:var(--radius);
   overflow:hidden;cursor:pointer;box-shadow:var(--shadow);border:1px solid var(--border);
@@ -465,6 +485,9 @@ main{scroll-padding-top:10px}
       <div class="stat blue"><div class="icon-wrap"><svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg></div><div class="num" id="statTotal">-</div><div class="lbl">Total</div></div>
     </div>
 
+    <!-- Ad Banner -->
+    <div id="adBanner" style="padding:0 20px;margin-bottom:8px;display:none"></div>
+
     <!-- Quick Actions -->
     <div class="section">
       <div class="section-head"><h3>Quick Actions</h3></div>
@@ -544,7 +567,7 @@ main{scroll-padding-top:10px}
       <button class="btn" id="searchBtn"><svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:#fff"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>Search</button>
       <div class="result-info" id="resultInfo"></div>
     </div>
-    <div class="hrow" id="searchResults" style="padding-left:20px;padding-right:20px"></div>
+    <div id="searchResults"></div>
   </section>
 
   <!-- FOUND -->
@@ -650,8 +673,8 @@ const iconHeart='<svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.3
 socket.on('connect',()=>{$('statusTxt').textContent='Live';$('statusDot').className='status-dot on';socket.emit('load');socket.emit('loadMessages')});
 socket.on('disconnect',()=>{$('statusTxt').textContent='Offline';$('statusDot').className='status-dot off'});
 socket.on('connect_error',()=>{$('statusTxt').textContent='Offline';$('statusDot').className='status-dot off'});
-socket.on('getAllData',d=>{allData=(d&&d.data)||[];$('demoChip').classList.toggle('show',!!(d&&d.demo));renderHome();renderFound()});
-socket.on('getMessages',d=>{messages=(d&&d.data)||[];renderMessages()});
+socket.on('getAllData',d=>{allData=(d&&d.data)||[];saveCache('allData',allData);$('demoChip').classList.toggle('show',!!(d&&d.demo));renderHome();renderFound()});
+socket.on('getMessages',d=>{messages=(d&&d.data)||[];saveCache('messages',messages);renderMessages()});
 socket.on('getSearchData',d=>{results=(d&&d.data)||[];$('demoChip').classList.toggle('show',!!(d&&d.demo));renderResults()});
 socket.on('dataChanged',()=>socket.emit('load'));
 
@@ -683,15 +706,26 @@ function renderMessages(){$('msgList').innerHTML=messages.map(m=>`<div class="ms
 
 function photoHtml(c){if(!c.image)return '<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%"><svg viewBox="0 0 24 24" style="width:48px;height:48px;fill:#aeaeb2"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg></div>';return '<img src="'+esc(c.image)+'" alt="'+esc(c.fullName||'child')+'" loading="lazy" onerror="this.style.display=\'none\'">'}
 function cardHtml(c){
-  const ageLine=[c.gender,c.age?c.age+' yrs':null].filter(Boolean).join(' . ');
   const tagClass=c.found?'found':'missing';
-  const tagText=c.found?'Found':'Missing';
+  const tagText=c.found?'FOUND':'MISSING';
   const imgTag=c.image?'<img src="'+esc(c.image)+'" alt="" loading="lazy" onerror="this.style.display=\'none\'">':'';
-  return '<div class="hcard" onclick="openDetail(\''+esc(c._id)+'\')"><div class="photo"><div class="placeholder">'+iconChild+'</div>'+imgTag+'<span class="tag '+tagClass+'">'+tagText+'</span></div><div class="meta"><div class="name">'+(esc(c.fullName)||'Unknown')+'</div><div class="sub">'+(esc(ageLine)||esc(c.address)||'')+'</div><div class="date">'+(esc(c.missingDate)||'')+'</div></div></div>'}
+  const genderIcon=c.gender==='Male'?'<svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:var(--blue)"><circle cx="12" cy="7" r="4"/><path d="M12 14c-4.42 0-8 1.79-8 4v2h16v-2c0-2.21-3.58-4-8-4z"/></svg>':c.gender==='Female'?'<svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:var(--pink,crimson)"><circle cx="12" cy="7" r="4"/><path d="M12 14c-4.42 0-8 1.79-8 4v2h16v-2c0-2.21-3.58-4-8-4z"/></svg>':'';
+  const ageStr=c.age?'<span class="card-age">'+esc(String(c.age))+'</span>':'';
+  return '<div class="scard" onclick="openDetail(\''+esc(c._id)+'\')">'+
+    '<div class="scard-img">'+
+      '<div class="ph">'+iconChild+'</div>'+imgTag+
+      '<span class="scard-badge '+tagClass+'">'+tagText+'</span>'+
+    '</div>'+
+    '<div class="scard-body">'+
+      '<div class="scard-name">'+(esc(c.fullName)||'Unknown')+'</div>'+
+      '<div class="scard-info">'+genderIcon+ageStr+(c.address?'<span class="card-loc">'+esc(c.address.slice(0,40))+'</span>':'')+'</div>'+
+      (c.missingDate?'<div class="scard-date"><svg viewBox="0 0 24 24" style="width:12px;height:12px;fill:var(--text3)"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11z"/></svg> '+esc(c.missingDate)+'</div>':'')+
+    '</div>'+
+  '</div>'}
 
 /* --- Detail --- */
 function openDetail(id){
-  const c=allData.concat(results).find(x=>String(x._id)===String(id));if(!c)return;
+  const c=allData.concat(results).find(x=>String(x._id)===String(id));if(!c)return;track('detail_open',id,{name:c.fullName});
   const rows=[];const add=(k,v)=>{if(v!=null&&String(v).trim()!=='')rows.push(`<div class="drow"><div class="k">${k}</div><div class="v">${v}</div></div>`)};
   add('Gender',esc(c.gender||'Unknown'));add('Age',c.age?c.age+' years':'Not specified');
   add('Address',esc(c.address));add('State',esc(c.state));
@@ -716,8 +750,8 @@ function closeDetail(){$('backdrop').classList.remove('show');$('sheet').classLi
 
 /* --- Search --- */
 function setFilter(el,filter){document.querySelectorAll('#view-search .filter-chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');activeFilter=filter;doSearch()}
-function doSearch(){const q=($('q')||{}).value||'';const gender=($('gender')||{}).value||'';const ageMin=($('ageMin')||{}).value||'';const ageMax=($('ageMax')||{}).value||'';const sortBy=($('sortBy')||{}).value||'recent';const query=q.trim();if(!query&&!gender&&!ageMin&&!ageMax&&activeFilter==='all'){$('resultInfo').textContent='Type something or select a filter.';$('searchResults').innerHTML='';return}$('resultInfo').textContent='Searching...';socket.emit('searchChildren',{query,gender,ageMin,ageMax,filter:activeFilter,sortBy})}
-function renderResults(){let filtered=results.slice();const sortBy=($('sortBy')||{}).value||'recent';const ageMin=parseInt(($('ageMin')||{}).value)||0;const ageMax=parseInt(($('ageMax')||{}).value)||99;if(ageMin||ageMax<99)filtered=filtered.filter(c=>c.age>=ageMin&&c.age<=ageMax);if(activeFilter==='missing')filtered=filtered.filter(c=>!c.found);if(activeFilter==='found')filtered=filtered.filter(c=>c.found);if(activeFilter==='recent')filtered=filtered.sort(byDateDesc).slice(0,10);if(activeFilter==='week'){const w=Date.now()-7*86400000;filtered=filtered.filter(c=>new Date(c.createdAt).getTime()>w)}if(sortBy==='oldest')filtered.sort((a,b)=>new Date(a.createdAt)-new Date(b.createdAt));else if(sortBy==='name')filtered.sort((a,b)=>(a.fullName||'').localeCompare(b.fullName||''));else if(sortBy==='age')filtered.sort((a,b)=>(a.age||0)-(b.age||0));else filtered.sort(byDateDesc);if(!filtered.length){$('resultInfo').textContent='No matching child found.';$('searchResults').innerHTML='<div class="empty"><p>No results found.</p></div>';return}$('resultInfo').textContent=filtered.length+' match(es) found';$('searchResults').innerHTML=filtered.map(cardHtml).join('')}
+function doSearch(){const q=($('q')||{}).value||'';const gender=($('gender')||{}).value||'';const ageMin=($('ageMin')||{}).value||'';const ageMax=($('ageMax')||{}).value||'';const sortBy=($('sortBy')||{}).value||'recent';const query=q.trim();if(!query&&!gender&&!ageMin&&!ageMax&&activeFilter==='all'){$('resultInfo').textContent='Type something or select a filter.';$('searchResults').innerHTML='';return}$('resultInfo').textContent='Searching...';track('search',{query,filter:activeFilter});socket.emit('searchChildren',{query,gender,ageMin,ageMax,filter:activeFilter,sortBy})}
+function renderResults(){let filtered=results.slice();const sortBy=($('sortBy')||{}).value||'recent';const ageMin=parseInt(($('ageMin')||{}).value)||0;const ageMax=parseInt(($('ageMax')||{}).value)||99;if(ageMin||ageMax<99)filtered=filtered.filter(c=>c.age>=ageMin&&c.age<=ageMax);if(activeFilter==='missing')filtered=filtered.filter(c=>!c.found);if(activeFilter==='found')filtered=filtered.filter(c=>c.found);if(activeFilter==='recent')filtered=filtered.sort(byDateDesc).slice(0,10);if(activeFilter==='week'){const w=Date.now()-7*86400000;filtered=filtered.filter(c=>new Date(c.createdAt).getTime()>w)}if(sortBy==='oldest')filtered.sort((a,b)=>new Date(a.createdAt)-new Date(b.createdAt));else if(sortBy==='name')filtered.sort((a,b)=>(a.fullName||'').localeCompare(b.fullName||''));else if(sortBy==='age')filtered.sort((a,b)=>(a.age||0)-(b.age||0));else filtered.sort(byDateDesc);if(!filtered.length){$('resultInfo').textContent='No matching child found.';$('searchResults').innerHTML='<div class="empty"><p>No results found.</p></div>';return}$('resultInfo').textContent=filtered.length+' match(es) found';$('searchResults').innerHTML='<div class="scard-grid">'+filtered.map(cardHtml).join('')+'</div>'}
 
 /* --- Found --- */
 let foundFilterMode='all';
@@ -739,7 +773,7 @@ function openFoundFor(id){showView('found');setTimeout(()=>{const card=$('fcard-
 $('reportBtn').addEventListener('click',async()=>{const name=$('r_name').value.trim(),contact=$('r_contact').value.trim(),msg=$('reportMsg');if(!name){msg.textContent='Enter the child\'s full name.';return}if(!contact){msg.textContent='Enter a contact number.';return}const fd=new FormData();fd.append('fullName',name);fd.append('gender',$('r_gender').value);fd.append('age',$('r_age').value);fd.append('address',$('r_address').value.trim());fd.append('state',$('r_state').value.trim());fd.append('contactNumber',contact);fd.append('missingDate',$('r_date').value);fd.append('missingTime',$('r_time').value);fd.append('missingLocation',$('r_location').value.trim());fd.append('info',$('r_info').value.trim());const file=$('r_photo').files[0];if(file)fd.append('image',file);const btn=$('reportBtn');btn.disabled=true;btn.textContent='Submitting...';msg.textContent='';try{const r=await fetch('/api/children',{method:'POST',body:fd});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.message||'Failed');msg.textContent=j.message;$('r_name').value='';$('r_gender').value='';$('r_age').value='';$('r_address').value='';$('r_state').value='';$('r_contact').value='';$('r_date').value='';$('r_time').value='';$('r_location').value='';$('r_info').value='';$('r_photo').value=''}catch(e){msg.textContent=e.message}finally{btn.disabled=false;btn.textContent='Submit for review'}});
 
 /* --- Navigation --- */
-function showView(name){['home','search','found','report','me','donate'].forEach(v=>$('view-'+v).classList.toggle('active',v===name));['navHome','navSearch','navFound','navReport','navMe'].forEach(n=>$(n).classList.toggle('active',n==='nav'+name.charAt(0).toUpperCase()+name.slice(1)));if(name==='me')renderMe();if(name==='donate')loadDonations();if(name==='found')renderFound();window.scrollTo(0,0)}
+function showView(name){['home','search','found','report','me','donate'].forEach(v=>$('view-'+v).classList.toggle('active',v===name));['navHome','navSearch','navFound','navReport','navMe'].forEach(n=>$(n).classList.toggle('active',n==='nav'+name.charAt(0).toUpperCase()+name.slice(1)));if(name==='me')renderMe();if(name==='donate')loadDonations();if(name==='found')renderFound();trackSection(name);window.scrollTo(0,0)}
 $('heroSearch').addEventListener('click',()=>{showView('search');setTimeout(()=>$('q').focus(),300)})
 $('navHome').addEventListener('click',()=>showView('home'));
 $('navSearch').addEventListener('click',()=>showView('search'));
@@ -788,8 +822,8 @@ async function sendOtp(){const email=($('as_email')||{}).value||'';if(!email||!/
 async function verifyOtpCode(){const email=($('as_email')||{}).value||'';const code=($('as_otp')||{}).value||'';if(!code||code.length!==6){showOtpMsg('Enter 6-digit code','err');return}try{await api('/api/auth/verify-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email.trim(),code})});showOtpMsg('Email verified!','ok');$('as_otp').style.borderColor='var(--green)';$('as_otp').disabled=true;$('verifyOtpBtn').textContent='Verified';$('verifyOtpBtn').style.color='var(--green)'}catch(e){showOtpMsg(e.message,'err')}}
 function showOtpMsg(msg,type){const el=$('otpMsg');el.style.display='block';el.textContent=msg;el.style.color=type==='ok'?'var(--green)':'var(--red)'}
 function checkPwStrength(){const pw=($('as_pass')||{}).value||'';const el=$('pwStrength');if(!pw){el.style.display='none';return}let msg='',ok=false;if(pw.length>=8&&/[A-Z]/.test(pw)&&/[0-9]/.test(pw)&&/[!@#$%^&*()_+\-=\[\]{};':"\\\|,.<>\/?]/.test(pw)){msg='Strong password';ok=true}else{msg='Need 8+ chars, 1 uppercase, 1 number, 1 special'}el.style.display='block';el.textContent=msg;el.style.color=ok?'var(--green)':'var(--red)'}
-async function doLogin(){try{const id=($('ai_id')||{}).value||'';const pw=($('ai_pass')||{}).value||'';if(!id){toast('Enter phone or email','err');return}if(!pw){toast('Enter password','err');return}const j=await api('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({identifier:id.trim(),password:pw})});userToken=j.token;localStorage.setItem('fmc_user_token',j.token);me=j.user;toast(j.message);renderMe()}catch(e){toast(e.message,'err')}}
-async function doSignup(){try{const name=($('as_name')||{}).value||'';const phone=($('as_contact')||{}).value||'';const email=($('as_email')||{}).value||'';const pw=($('as_pass')||{}).value||'';if(!name.trim()||name.trim().length<2){toast('Name must be at least 2 characters','err');return}if(!/^\+?91?[6-9]\d{9}$/.test(phone.replace(/[\s\-()]/g,''))){toast('Enter valid 10-digit Indian phone','err');return}if(pw.length<8||!/[A-Z]/.test(pw)||!/[0-9]/.test(pw)||!/[!@#$%^&*()_+\-=\[\]{};':"\\\|,.<>\/?]/.test(pw)){toast('Password needs 8+ chars, uppercase, number, special','err');return}const j=await api('/api/auth/signup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fullName:name.trim(),contactNumber:phone.trim(),emailId:email.trim(),password:pw})});userToken=j.token;localStorage.setItem('fmc_user_token',j.token);me=j.user;toast(j.message);renderMe()}catch(e){toast(e.message,'err')}}
+async function doLogin(){try{const id=($('ai_id')||{}).value||'';const pw=($('ai_pass')||{}).value||'';if(!id){toast('Enter phone or email','err');return}if(!pw){toast('Enter password','err');return}const j=await api('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({identifier:id.trim(),password:pw})});userToken=j.token;localStorage.setItem('fmc_user_token',j.token);me=j.user;track('login');toast(j.message);renderMe()}catch(e){toast(e.message,'err')}}
+async function doSignup(){try{const name=($('as_name')||{}).value||'';const phone=($('as_contact')||{}).value||'';const email=($('as_email')||{}).value||'';const pw=($('as_pass')||{}).value||'';if(!name.trim()||name.trim().length<2){toast('Name must be at least 2 characters','err');return}if(!/^\+?91?[6-9]\d{9}$/.test(phone.replace(/[\s\-()]/g,''))){toast('Enter valid 10-digit Indian phone','err');return}if(pw.length<8||!/[A-Z]/.test(pw)||!/[0-9]/.test(pw)||!/[!@#$%^&*()_+\-=\[\]{};':"\\\|,.<>\/?]/.test(pw)){toast('Password needs 8+ chars, uppercase, number, special','err');return}const j=await api('/api/auth/signup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fullName:name.trim(),contactNumber:phone.trim(),emailId:email.trim(),password:pw})});userToken=j.token;localStorage.setItem('fmc_user_token',j.token);me=j.user;track('signup');toast(j.message);renderMe()}catch(e){toast(e.message,'err')}}
 function logoutUser(){if(userToken)fetch('/api/auth/logout',{method:'POST',headers:{Authorization:'Bearer '+userToken}}).catch(()=>{});localStorage.removeItem('fmc_user_token');userToken='';me=null;toast('Logged out.');renderMe()}
 async function loadMyRequests(){const box=$('myReqs');if(!box)return;try{const j=await api('/api/found-requests/me',{auth:true});box.innerHTML=j.data.length?j.data.map(r=>`<div class="req-item"><div><div class="rn">${esc(r.finderName||'Anonymous')}</div><div class="rd">${fmtDate(r.createdAt)}${r.details?' . '+esc(String(r.details).slice(0,60)):''}</div></div><span class="req-badge ${r.status}">${r.status.toUpperCase()}</span></div>`).join(''):'<div class="empty"><p>No found requests yet.</p></div>'}catch(e){box.innerHTML=`<p style="color:var(--red);font-size:13px">${esc(e.message)}</p>`}}
 
@@ -810,6 +844,25 @@ function renderActivity(){
 const origRenderHome=renderHome;
 renderHome=function(){origRenderHome();renderActivity()};
 
+/* --- Analytics --- */
+const SID=localStorage.getItem('fmc_sid')||Math.random().toString(36).slice(2);
+localStorage.setItem('fmc_sid',SID);
+function track(type,section,data){fetch('/api/analytics',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type,section,data,sessionId:SID})}).catch(()=>{})}
+function trackSection(name){track('section_view',name)}
+
+/* --- Local cache for instant load --- */
+function saveCache(key,val){try{localStorage.setItem('fmc_cache_'+key,JSON.stringify({ts:Date.now(),data:val}))}catch(e){}}
+function loadCache(key,maxAge){try{const r=JSON.parse(localStorage.getItem('fmc_cache_'+key));if(r&&Date.now()-r.ts<(maxAge||600000))return r.data}catch(e){}return null}
+
+/* --- Background refresh --- */
+let bgRefreshTimer=null;
+function scheduleBgRefresh(){if(bgRefreshTimer)clearTimeout(bgRefreshTimer);bgRefreshTimer=setTimeout(()=>{socket.emit('load');socket.emit('loadMessages');loadAds()},30000)}
+
+/* --- Load ads --- */
+let activeAds=[];
+function loadAds(){api('/api/ads').then(j=>{activeAds=j.data||[];renderAds()}).catch(()=>{})}
+function renderAds(){const box=$('adBanner');if(!box||!activeAds.length){if(box)box.innerHTML='';return}const ad=activeAds[0];if(!ad)return;box.innerHTML='<a href="'+esc(ad.linkUrl||'#')+'" target="_blank" rel="noopener" onclick="track(\'ad_click\',\''+esc(ad._id)+'\');fetch(\'/api/ads/'+ad._id+'/click\',{method:\'POST\'}).catch(()=>{})"><img src="'+esc(ad.imageUrl)+'" alt="'+esc(ad.title||'Advertisement')+'" style="width:100%;border-radius:12px;max-height:120px;object-fit:cover" loading="lazy"></a>';box.style.display='block';api('/api/ads/'+ad._id+'/impression',{method:'POST'}).catch(()=>{})}
+
 /* --- Boot --- */
 $('backdrop').addEventListener('click',closeDetail);
 $('sheetClose').addEventListener('click',closeDetail);
@@ -818,6 +871,18 @@ const urlParams=new URLSearchParams(window.location.search);
 const gToken=urlParams.get('google_token');
 if(gToken){userToken=gToken;localStorage.setItem('fmc_user_token',gToken);window.history.replaceState({},'',window.location.pathname);toast('Signed in with Google!','ok');}
 if(userToken)api('/api/auth/me',{auth:true}).then(j=>{me=j.user;renderMe()}).catch(()=>{});
+
+/* --- Instant load from cache + background refresh --- */
+const cachedData=loadCache('allData',600000);
+if(cachedData){allData=cachedData;renderHome();socket.emit('loadMessages');trackSection('home')}
+const cachedMsgs=loadCache('messages',600000);
+if(cachedMsgs){messages=cachedMsgs;renderMessages()}
+track('pageview','home');
+loadAds();
+scheduleBgRefresh();
+</script>
+</body>
+</html>
 </script>
 </body>
 </html>

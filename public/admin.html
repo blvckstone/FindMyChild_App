@@ -180,6 +180,8 @@ button{font-family:inherit;cursor:pointer}input,select,textarea{font-family:inhe
     <a href="#" data-page="praise"><svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>Praise & Gifts<span class="badge" id="badgePraise">0</span></a>
     <a href="#" data-page="donations"><svg viewBox="0 0 24 24"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>Donations</a>
     <a href="#" data-page="users"><svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>Users</a>
+    <a href="#" data-page="analytics"><svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>Analytics</a>
+    <a href="#" data-page="ads"><svg viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H3V5h18v14z"/></svg>Ads</a>
   </nav>
   <div class="logout"><button id="logoutBtn"><svg viewBox="0 0 24 24"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>Logout</button></div>
 </div>
@@ -281,6 +283,24 @@ button{font-family:inherit;cursor:pointer}input,select,textarea{font-family:inhe
   <div id="userList"></div>
 </div>
 
+<!-- ===== ANALYTICS ===== -->
+<div class="page" id="pg-analytics">
+  <div class="page-head"><h2>Analytics & Live Stats</h2><div class="actions"><button class="btn-sm" onclick="loadAnalytics()">Refresh</button></div></div>
+  <div class="stats" id="analyticsStats"></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px">
+    <div class="card-section" style="margin-bottom:0"><div class="cs-head"><h3>Most Visited Sections (7d)</h3></div><div class="cs-body" id="analyticsSections"></div></div>
+    <div class="card-section" style="margin-bottom:0"><div class="cs-head"><h3>Event Types (7d)</h3></div><div class="cs-body" id="analyticsEvents"></div></div>
+  </div>
+  <div class="card-section"><div class="cs-head"><h3>Recent Activity</h3></div><div class="cs-body" id="analyticsRecent"></div></div>
+</div>
+
+<!-- ===== ADS ===== -->
+<div class="page" id="pg-ads">
+  <div class="page-head"><h2>Advertisements</h2><div class="actions"><button class="btn-sm" onclick="showAddAdModal()">+ New Ad</button></div></div>
+  <div class="stats" style="grid-template-columns:repeat(3,1fr);margin-bottom:18px" id="adsStats"></div>
+  <div id="adsList"></div>
+</div>
+
 </div><!-- /main -->
 </div><!-- /app -->
 
@@ -337,6 +357,8 @@ function navigateTo(page){
   if(page==='praise')renderPraise();
   if(page==='donations')loadDonations();
   if(page==='users')loadUsers();
+  if(page==='analytics')loadAnalytics();
+  if(page==='ads')loadAds();
 }
 document.querySelectorAll('#sideNav a[data-page]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();navigateTo(a.dataset.page)}));
 document.querySelectorAll('#mobNav button[data-page]').forEach(b=>b.addEventListener('click',()=>{if(b.dataset.page==='more'){navigateTo('donations');return}navigateTo(b.dataset.page)}));
@@ -505,6 +527,78 @@ function openEdit(id){
 function closeModal(){$('modalBg').classList.remove('show');$('modalBody').innerHTML=''}
 async function submitEdit(id){try{await api('/api/admin/children/'+id,{method:'PUT',body:collectForm()});toast('Saved!');closeModal();loadDashboard()}catch(e){toast(e.message,'err')}}
 $('modalBg').addEventListener('click',e=>{if(e.target===$('modalBg'))closeModal()});
+
+// === ANALYTICS ===
+async function loadAnalytics(){
+  try{const r=await api('/api/admin/analytics');const d=r.data;
+  $('analyticsStats').innerHTML=`
+    <div class="stat"><div class="icon blue"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg></div><div><div class="num" style="color:var(--accent)">${d.totalVisits||0}</div><div class="lbl">Total Visits</div></div></div>
+    <div class="stat"><div class="icon green"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg></div><div><div class="num" style="color:var(--green)">${d.todayVisits||0}</div><div class="lbl">Today</div></div></div>
+    <div class="stat"><div class="icon orange"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg></div><div><div class="num" style="color:var(--orange)">${d.weekVisits||0}</div><div class="lbl">This Week</div></div></div>
+    <div class="stat"><div class="icon purple"><svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg></div><div><div class="num" style="color:var(--purple)">${d.uniqueUsers||0}</div><div class="lbl">Unique Users (30d)</div></div></div>
+    <div class="stat"><div class="icon red"><svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg></div><div><div class="num" style="color:var(--red)">${d.userCount||0}</div><div class="lbl">Registered Users</div></div></div>
+    <div class="stat"><div class="icon blue"><svg viewBox="0 0 24 24"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg></div><div><div class="num">₹${d.donationTotal||0}</div><div class="lbl">Donations (₹${d.donationCount||0})</div></div></div>`;
+  // Section views
+  const maxCount=d.sectionViews&&d.sectionViews.length?Math.max(...d.sectionViews.map(s=>s.count)):1;
+  $('analyticsSections').innerHTML=d.sectionViews&&d.sectionViews.length?d.sectionViews.map(s=>`<div style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border)"><div style="flex:1;font-size:13px;font-weight:600">${esc(s._id||'unknown')}</div><div style="width:120px;height:8px;background:var(--bg);border-radius:4px;overflow:hidden"><div style="width:${(s.count/maxCount*100)}%;height:100%;background:var(--accent);border-radius:4px"></div></div><div style="font-size:12px;color:var(--text3);min-width:36px;text-align:right">${s.count}</div></div>`).join(''):'<div class="empty">No section data yet.</div>';
+  // Event types
+  $('analyticsEvents').innerHTML=d.pageViews&&d.pageViews.length?d.pageViews.map(e=>`<div style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border)"><div style="flex:1;font-size:13px;font-weight:600">${esc(e._id||'unknown')}</div><div style="font-size:12px;color:var(--text3)">${e.count}</div></div>`).join(''):'<div class="empty">No events yet.</div>';
+  // Recent
+  $('analyticsRecent').innerHTML=d.recentVisits&&d.recentVisits.length?d.recentVisits.slice(0,20).map(v=>`<div style="padding:10px 16px;border-bottom:1px solid var(--border);font-size:12px"><span style="font-weight:600">${esc(v.type)}</span> <span style="color:var(--text3)">${esc(v.section||v.page||'')} — ${new Date(v.createdAt).toLocaleString('en-IN')}</span></div>`).join(''):'<div class="empty">No recent activity.</div>';
+  }catch(e){$('analyticsStats').innerHTML='<div class="empty">Failed to load analytics.</div>'}
+}
+
+// === ADS ===
+async function loadAds(){
+  try{const r=await api('/api/admin/ads');const ads=r.data||[];
+  const totalImpressions=ads.reduce((s,a)=>s+(a.impressions||0),0);
+  const totalClicks=ads.reduce((s,a)=>s+(a.clicks||0),0);
+  const activeAds=ads.filter(a=>a.active).length;
+  $('adsStats').innerHTML=`
+    <div class="stat"><div class="icon blue"><svg viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H3V5h18v14z"/></svg></div><div><div class="num">${ads.length}</div><div class="lbl">Total Ads</div></div></div>
+    <div class="stat"><div class="icon green"><svg viewBox="0 0 24 24"><path d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z"/></svg></div><div><div class="num" style="color:var(--green)">${activeAds}</div><div class="lbl">Active</div></div></div>
+    <div class="stat"><div class="icon orange"><svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg></div><div><div class="num" style="color:var(--orange)">${totalImpressions} / ${totalClicks}</div><div class="lbl">Impressions / Clicks</div></div></div>`;
+  const adTypes=['carousel','fullscreen','banner','small_banner','header','sidebar','popup','interstitial'];
+  $('adsList').innerHTML=ads.length?ads.map(a=>`<div class="card-section" style="margin-bottom:12px"><div class="cs-body"><div class="item">
+    ${a.imageUrl?`<img src="${esc(a.imageUrl)}" alt="" style="width:80px;height:60px;object-fit:cover;border-radius:8px">`:`<div class="ph"><svg viewBox="0 0 24 24" style="width:24px;height:24px;fill:var(--text3)"><path d="M21 3H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H3V5h18v14z"/></svg></div>`}
+    <div class="info"><div class="top"><div class="name">${esc(a.title||'Untitled')}</div><span class="sbadge ${a.active?'approved':'rejected'}">${a.active?'Active':'Inactive'}</span><span class="sbadge pending">${esc(a.type)}</span></div>
+    <div class="sub">${esc(a.advertiserName||'')} ${a.linkUrl?'· '+esc(a.linkUrl.slice(0,40)):''}</div>
+    <div class="meta">${a.impressions||0} impressions · ${a.clicks||0} clicks · Priority: ${a.priority||0}</div></div>
+    <div class="acts"><button class="btn-sm" onclick="toggleAd('${a._id}',${!a.active})">${a.active?'Pause':'Activate'}</button><button class="btn-sm btn-red" onclick="deleteAd('${a._id}')">Delete</button></div>
+  </div></div></div>`).join(''):'<div class="empty">No ads yet. Click "+ New Ad" to create one.</div>';
+  }catch(e){$('adsList').innerHTML='<div class="empty">Failed to load ads.</div>'}
+}
+
+async function toggleAd(id,active){try{await api('/api/admin/ads/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({active})});toast(active?'Ad activated!':'Ad paused!');loadAds()}catch(e){toast(e.message,'err')}}
+async function deleteAd(id){if(!confirm('Delete this ad?'))return;try{await api('/api/admin/ads/'+id,{method:'DELETE'});toast('Ad deleted.');loadAds()}catch(e){toast(e.message,'err')}}
+
+const adTypes=['carousel','fullscreen','banner','small_banner','header','sidebar','popup','interstitial'];
+const adPositions=['home','search','found','report','sidebar'];
+function showAddAdModal(){
+  $('modalTitle').textContent='Create New Advertisement';
+  $('modalBody').innerHTML=`<form id="adForm" enctype="multipart/form-data">
+    <div class="grid2">
+      <div class="field" style="grid-column:1/-1"><label>Title *</label><input id="ad_title" placeholder="Ad campaign name" required></div>
+      <div class="field"><label>Advertiser Name</label><input id="ad_advertiser" placeholder="Company / Client name"></div>
+      <div class="field"><label>Link URL</label><input id="ad_link" type="url" placeholder="https://example.com"></div>
+      <div class="field"><label>Ad Type *</label><select id="ad_type">${adTypes.map(t=>`<option value=\'${t}\'>${t.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}</option>`).join('')}</select></div>
+      <div class="field"><label>Position</label><select id="ad_position">${adPositions.map(p=>`<option value=\'${p}\'>${p.charAt(0).toUpperCase()+p.slice(1)}</option>`).join('')}</select></div>
+      <div class="field"><label>Priority (higher shows first)</label><input id="ad_priority" type="number" value="0" min="0"></div>
+      <div class="field"><label>Start Date</label><input id="ad_start" type="date"></div>
+      <div class="field"><label>End Date</label><input id="ad_end" type="date"></div>
+      <div class="field" style="grid-column:1/-1"><label>Banner Image (recommended: 1200×300 for banner, 1080×1920 for fullscreen, 1080×1080 for carousel)</label><input id="ad_image" type="file" accept="image/*"></div>
+    </div>
+    <div style="margin-top:20px;display:flex;gap:10px"><button type="button" class="btn" onclick="submitAd()" style="flex:1">Create Ad</button><button type="button" class="btn btn-outline" onclick="closeModal()" style="flex:1">Cancel</button></div>
+  </form>`;
+  $('modalBg').classList.add('show');
+}
+async function submitAd(){
+  try{const fd=new FormData();
+  fd.append('title',$('ad_title').value.trim());fd.append('advertiserName',$('ad_advertiser').value.trim());fd.append('linkUrl',$('ad_link').value.trim());fd.append('type',$('ad_type').value);fd.append('position',$('ad_position').value);fd.append('priority',$('ad_priority').value);
+  if($('ad_start').value)fd.append('startDate',$('ad_start').value);if($('ad_end').value)fd.append('endDate',$('ad_end').value);
+  const file=$('ad_image')?.files[0];if(file)fd.append('image',file);
+  await api('/api/admin/ads',{method:'POST',body:fd});toast('Ad created!');closeModal();loadAds()}catch(e){toast(e.message,'err')}
+}
 
 // Init — show app immediately if token exists to avoid login flash
 if(token){$('loginView').style.display='none';$('appView').style.display='block';loadDashboard().catch(()=>{token='';showLogin()})}else showLogin();

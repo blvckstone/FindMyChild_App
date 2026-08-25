@@ -48,6 +48,33 @@ const donationSchema = mongoose.Schema({
     createdAt: { type: Date, default: Date.now }
 });
 
+const analyticsSchema = mongoose.Schema({
+    sessionId: String,
+    type: { type: String, enum: ['pageview', 'section_view', 'search', 'detail_open', 'login', 'signup', 'report'], required: true },
+    page: String,
+    section: String,
+    data: mongoose.Schema.Types.Mixed,
+    userAgent: String,
+    ip: String,
+    createdAt: { type: Date, default: Date.now, index: true }
+});
+
+const adSchema = mongoose.Schema({
+    title: String,
+    imageUrl: String,
+    linkUrl: String,
+    type: { type: String, enum: ['carousel', 'fullscreen', 'banner', 'small_banner', 'header', 'sidebar', 'popup', 'interstitial'], default: 'banner' },
+    position: { type: String, default: 'home' },
+    active: { type: Boolean, default: true },
+    priority: { type: Number, default: 0 },
+    clicks: { type: Number, default: 0 },
+    impressions: { type: Number, default: 0 },
+    advertiserName: String,
+    startDate: Date,
+    endDate: Date,
+    createdAt: { type: Date, default: Date.now }
+});
+
 let modelsPromise = null;
 
 const getModels = async () => {
@@ -60,7 +87,9 @@ const getModels = async () => {
             const Praise = mongoose.models.Praise || mongoose.model('Praise', praiseSchema);
             const Gift = mongoose.models.Gift || mongoose.model('Gift', giftSchema);
             const Donation = mongoose.models.Donation || mongoose.model('Donation', donationSchema);
-            return { Child: db.data, User, FoundRequest, Praise, Gift, Donation };
+            const Analytics = mongoose.models.Analytics || mongoose.model('Analytics', analyticsSchema);
+            const Advertisement = mongoose.models.Advertisement || mongoose.model('Advertisement', adSchema);
+            return { Child: db.data, User, FoundRequest, Praise, Gift, Donation, Analytics, Advertisement };
         })();
     }
     return modelsPromise;
