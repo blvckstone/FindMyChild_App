@@ -93,10 +93,16 @@ button{font-family:inherit;cursor:pointer}input,select,textarea{font-family:inhe
 .item .ph svg{width:24px;height:24px;fill:var(--text3)}
 .item .info{flex:1;min-width:0}
 .item .info{overflow:hidden}
-.item .info .top{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.item .info .name{font-size:14px;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
-.item .info .sub{font-size:12px;color:var(--text2);margin-top:3px;line-height:1.5;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
-.item .info .meta{font-size:11px;color:var(--text3);margin-top:3px;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical}
+.item .info .top{display:flex;align-items:center;gap:6px;flex-wrap:nowrap}
+.item .info .name{font-size:14px;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex-shrink:1}
+.item .info .badges{display:flex;gap:4px;flex-shrink:0;flex-wrap:nowrap}
+.item .info .sub{font-size:12px;color:var(--text2);margin-top:3px;line-height:1.4;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical}
+.item .info .meta{font-size:11px;color:var(--text3);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.item .info .addr{font-size:11px;color:var(--text3);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.item .img-wrap{width:56px;height:56px;border-radius:12px;background:var(--border);flex-shrink:0;overflow:hidden;position:relative;display:flex;align-items:center;justify-content:center}
+.item .img-wrap img{width:100%;height:100%;object-fit:cover}
+.item .img-wrap .ph-icon{position:absolute;color:var(--text3)}
+.item .img-wrap .ph-icon svg{width:28px;height:28px;fill:currentColor}
 .item .acts{display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;align-self:center}
 .sbadge{display:inline-block;font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;text-transform:uppercase;letter-spacing:.3px}
 .sbadge.pending{background:var(--orange-light);color:#b45309}
@@ -307,13 +313,12 @@ async function api(path,opts={}){
   return j;
 }
 
-// SVG icons
-const iChild='<svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>';
+// SVG icon strings (used inside HTML attributes only, NOT in innerHTML template literals)
 const iApprove='<svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>';
 const iReject='<svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>';
 const iEdit='<svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>';
 const iDelete='<svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>';
-function sbadge(s){return`<span class="sbadge ${s}">${s.toUpperCase()}</span>`}
+function sbadge(s){var v=esc(s||'unknown');return '<span class="sbadge '+v+'">'+v.toUpperCase()+'</span>'}
 function miniBtn(cls,icon,label,onclick){return`<button class="btn-sm ${cls}" onclick="${onclick}" style="padding:7px 12px;font-size:11px;display:inline-flex;align-items:center;gap:4px">${icon} ${label}</button>`}
 
 // Navigation
@@ -357,7 +362,7 @@ async function loadDashboard(){
       <div class="stat"><div class="icon purple"><svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg></div><div><div class="num" style="color:var(--purple)">${allUsers.length||'-'}</div><div class="lbl">Users</div></div></div>`;
     $('badgePending').textContent=s.pending;
     const recent=allChildren.slice().sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)).slice(0,5);
-    $('dashRecent').innerHTML=recent.length?recent.map(c=>`<div class="item" style="padding:10px 16px"><div class="ph" style="width:40px;height:40px;border-radius:8px">${c.image?`<img src="${esc(c.image)}" style="width:40px;height:40px;border-radius:8px;object-fit:cover" onerror="this.remove()">`:iChild}</div><div class="info"><div class="name" style="font-size:13px">${esc(c.fullName)||'Unknown'} ${sbadge(c.status)}</div><div class="meta">${fmtDate(c.createdAt)}</div></div></div>`).join(''):'<div class="empty" style="padding:24px">No records yet.</div>';
+    $('dashRecent').innerHTML=recent.length?recent.map(c=>'<div class="item" style="padding:10px 16px"><div class="img-wrap" style="width:40px;height:40px;border-radius:8px">'+(c.image?'<img src="'+esc(c.image)+'" alt="" style="border-radius:8px">':'<div class="ph-icon"><svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg></div>')+'</div><div class="info"><div class="name" style="font-size:13px">'+(esc(c.fullName)||'Unknown')+' '+sbadge(c.status)+'</div><div class="meta">'+fmtDate(c.createdAt)+'</div></div></div>').join(''):'<div class="empty" style="padding:24px">No records yet.</div>';
     const missing=allChildren.filter(c=>!c.found),found=allChildren.filter(c=>c.found);
     $('dashQuick').innerHTML=`
       <div class="item" style="padding:10px 16px"><div class="info"><div class="sub">Missing Children</div><div class="num" style="font-size:20px;color:var(--red)">${missing.length}</div></div></div>
@@ -388,19 +393,26 @@ function renderChildren(){
   $('childList').innerHTML=list.length?list.map(c=>childItem(c,'all')).join(''):'<div class="card-section"><div class="cs-body"><div class="empty">No children match your filters.</div></div></div>';
 }
 
-// Common item HTML
+// Build image placeholder HTML (no SVG in template literals to avoid HTML parsing issues)
+function childImg(c){
+  if(!c.image){
+    return '<div class="img-wrap"><div class="ph-icon"><svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg></div></div>';
+  }
+  return '<div class="img-wrap"><img src="'+esc(c.image)+'" alt="" loading="lazy"></div>';
+}
 function childItem(c,view){
-  const imgWrap=c.image?`<div class="ph" style="position:relative"><img src="${esc(c.image)}" alt="" loading="lazy" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:12px" onerror="this.style.display='none'">${iChild}</div>`:`<div class="ph">${iChild}</div>`;
+  const imgHTML=childImg(c);
   const sub=[c.gender?c.gender:'',c.age?c.age+' yrs':''].filter(Boolean).join(', ');
-  const metaLine=[c.contactNumber,c.missingDate?fmtDate(c.missingDate):''].filter(Boolean).join(' · ');
+  const contactLine=c.contactNumber?esc(c.contactNumber):'';
+  const dateLine=c.missingDate?fmtDate(c.missingDate):'';
   let acts='';
   if(view==='pending'){
-    acts=miniBtn('btn-green',iApprove,'Approve',`setStatus('${c._id}','approved')`)+miniBtn('btn-red',iReject,'Reject',`setStatus('${c._id}','rejected')`)+miniBtn('btn-outline',iEdit,'Edit',`openEdit('${c._id}')`);
+    acts=miniBtn('btn-green',iApprove,'Approve',"setStatus('"+c._id+"','approved')")+miniBtn('btn-red',iReject,'Reject',"setStatus('"+c._id+"','rejected')")+miniBtn('btn-outline',iEdit,'Edit',"openEdit('"+c._id+"')");
   }else{
-    acts=miniBtn('btn-outline',iEdit,'Edit',`openEdit('${c._id}')`)+miniBtn('btn-red',iDelete,'Delete',`delChild('${c._id}')`);
+    acts=miniBtn('btn-outline',iEdit,'Edit',"openEdit('"+c._id+"')")+miniBtn('btn-red',iDelete,'Delete',"delChild('"+c._id+"')");
   }
-  const foundBadge=c.found?'<span class="sbadge found">FOUND</span>':'<span class="sbadge missing">MISSING</span>';
-  return`<div class="card-section" style="margin-bottom:10px"><div class="item">${imgWrap}<div class="info"><div class="top"><span class="name">${esc(c.fullName)||'Unknown'}</span> ${sbadge(c.status)} ${foundBadge}</div><div class="sub">${esc(sub)}</div><div class="meta">${esc(c.address||'')}</div>${metaLine?`<div class="meta">${esc(metaLine)}</div>`:''}</div><div class="acts">${acts}</div></div></div>`;
+  var foundBadge=c.found?'<span class="sbadge found">FOUND</span>':'<span class="sbadge missing">MISSING</span>';
+  return '<div class="card-section" style="margin-bottom:10px"><div class="item">'+imgHTML+'<div class="info" style="min-width:0;flex:1;overflow:hidden"><div class="top"><span class="name">'+(esc(c.fullName)||'Unknown')+'</span><div class="badges">'+sbadge(c.status)+' '+foundBadge+'</div></div>'+(sub?'<div class="sub">'+esc(sub)+'</div>':'')+(c.address?'<div class="addr">'+esc(c.address)+'</div>':'')+(contactLine||dateLine?'<div class="meta">'+contactLine+(contactLine&&dateLine?' · ':'')+dateLine+'</div>':'')+'</div><div class="acts">'+acts+'</div></div></div>';
 }
 
 // Status / Delete

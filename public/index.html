@@ -103,7 +103,7 @@ main{max-width:480px;margin:0 auto;padding-bottom:calc(80px + env(safe-area-inse
 }
 .hcard:active{transform:scale(.97);box-shadow:var(--shadow-lg)}
 .hcard .photo{height:160px;position:relative;background:#e5e5ea;overflow:hidden}
-.hcard .photo img{width:100%;height:100%;object-fit:cover}
+.hcard .photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1}
 .hcard .photo .placeholder{width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#e5e5ea,#d1d1d6)}
 .hcard .photo .placeholder svg{width:48px;height:48px;fill:#aeaeb2}
 .hcard .tag{position:absolute;top:12px;left:12px;padding:4px 10px;border-radius:8px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
@@ -172,7 +172,7 @@ main{max-width:480px;margin:0 auto;padding-bottom:calc(80px + env(safe-area-inse
 .fcard{background:var(--card);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);border:1px solid var(--border)}
 .fcard .fhead{display:flex;gap:14px;padding:16px;align-items:center;cursor:pointer;transition:background .15s}
 .fcard .fhead:active{background:var(--bg)}
-.fcard .fhead img{width:56px;height:56px;object-fit:cover;border-radius:14px;background:#e5e5ea}
+.fcard .fhead img{width:56px;height:56px;object-fit:cover;border-radius:14px;background:#e5e5ea;position:absolute;z-index:1}
 .fcard .fhead .ph{width:56px;height:56px;border-radius:14px;background:#e5e5ea;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .fcard .fhead .ph svg{width:28px;height:28px;fill:#aeaeb2}
 .fcard .fname{font-size:15px;font-weight:700;color:var(--text)}
@@ -365,8 +365,8 @@ main{scroll-padding-top:10px}
 .activity-list{padding:0 20px 16px}
 .activity-item{display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--border)}
 .activity-item:last-child{border-bottom:none}
-.activity-item .aavatar{width:42px;height:42px;border-radius:12px;overflow:hidden;background:var(--border);flex-shrink:0}
-.activity-item .aavatar img{width:100%;height:100%;object-fit:cover}
+.activity-item .aavatar{width:42px;height:42px;border-radius:12px;overflow:hidden;background:var(--border);flex-shrink:0;position:relative}
+.activity-item .aavatar img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1}
 .activity-item .aavatar .ph{width:100%;height:100%;display:flex;align-items:center;justify-content:center}
 .activity-item .aavatar .ph svg{width:20px;height:20px;fill:#aeaeb2}
 .activity-item .atxt{flex:1;min-width:0}
@@ -628,12 +628,13 @@ const msgTypes={alert:'alert',notice:'notice',info:'info'};
 const msgIcons={alert:'<svg viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>',notice:'<svg viewBox="0 0 24 24"><path d="M18 11v2h4v-2h-4zm-2 6.61c.96.71 2.21 1.65 3.2 2.39.4-.53.8-1.07 1.2-1.6-.99-.74-2.24-1.68-3.2-2.4-.4.54-.8 1.08-1.2 1.61zM20.4 5.6c-.4-.53-.8-1.07-1.2-1.6-.99.74-2.24 1.68-3.2 2.4.4.53.8 1.07 1.2 1.6.96-.72 2.21-1.65 3.2-2.4zM4 9c-1.1 0-2 .9-2 2v2c0 1.1.9 2 2 2h1l5 3V6L5 9H4zm11.5 3c0-1.33-.58-2.53-1.5-3.35v6.69c.92-.81 1.5-2.01 1.5-3.34z"/></svg>',info:'<svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>'};
 function renderMessages(){$('msgList').innerHTML=messages.map(m=>`<div class="msg-card"><div class="msg-icon ${msgTypes[m.type]||'notice'}">${msgIcons[m.type]||msgIcons.notice}</div><div><h4>${esc(m.title)}</h4><p>${esc(m.body)}</p></div></div>`).join('')||'<div class="empty"><p>No messages.</p></div>'}
 
-function photoHtml(c){return c.image?`<img src="${esc(c.image)}" alt="${esc(c.fullName||'child')}" loading="lazy" onerror="this.remove()">`:iconChild.replace('width="24"','width="48"').replace('height="24"','height="48"')}
+function photoHtml(c){if(!c.image)return '<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%"><svg viewBox="0 0 24 24" style="width:48px;height:48px;fill:#aeaeb2"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg></div>';return '<img src="'+esc(c.image)+'" alt="'+esc(c.fullName||'child')+'" loading="lazy" onerror="this.style.display=\'none\'">'}
 function cardHtml(c){
   const ageLine=[c.gender,c.age?c.age+' yrs':null].filter(Boolean).join(' . ');
   const tagClass=c.found?'found':'missing';
   const tagText=c.found?'Found':'Missing';
-  return `<div class="hcard" onclick="openDetail('${esc(c._id)}')"><div class="photo">${c.image?`<img src="${esc(c.image)}" alt="" loading="lazy" onerror="this.outerHTML='<div class=\\'placeholder\\'>${iconChild.replace(/"/g,'&quot;')}</div>'">`:`<div class="placeholder">${iconChild}</div>`}<span class="tag ${tagClass}">${tagText}</span></div><div class="meta"><div class="name">${esc(c.fullName)||'Unknown'}</div><div class="sub">${esc(ageLine)||esc(c.address)||''}</div><div class="date">${esc(c.missingDate)||''}</div></div></div>`}
+  const imgTag=c.image?'<img src="'+esc(c.image)+'" alt="" loading="lazy" onerror="this.style.display=\'none\'">':'';
+  return '<div class="hcard" onclick="openDetail(\''+esc(c._id)+'\')"><div class="photo"><div class="placeholder">'+iconChild+'</div>'+imgTag+'<span class="tag '+tagClass+'">'+tagText+'</span></div><div class="meta"><div class="name">'+(esc(c.fullName)||'Unknown')+'</div><div class="sub">'+(esc(ageLine)||esc(c.address)||'')+'</div><div class="date">'+(esc(c.missingDate)||'')+'</div></div></div>'}
 
 /* --- Detail --- */
 function openDetail(id){
@@ -664,7 +665,7 @@ function renderResults(){if(!results.length){$('resultInfo').textContent='No mat
 function renderFound(){
   const found=allData.filter(c=>c.found).sort(byDateDesc);
   if(!found.length){$('foundList').innerHTML='<div class="empty"><p>No children marked as found yet.</p></div>';return}
-  $('foundList').innerHTML=found.map(c=>`<div class="fcard" id="fcard-${esc(c._id)}"><div class="fhead" onclick="toggleFound('${esc(c._id)}')">${c.image?`<img src="${esc(c.image)}" loading="lazy" onerror="this.outerHTML='<div class=\\'ph\\'>${iconChild.replace(/"/g,'&quot;')}</div>'">`:`<div class="ph">${iconChild}</div>`}<div style="flex:1;min-width:0"><div class="fname">${esc(c.fullName)||'Unknown'}</div><div class="finder">Found by ${esc(c.finderName||'Someone')}</div><div class="fdate">${esc(c.missingDate||'')}${c.foundDate?' . Found '+fmtDate(c.foundDate):''}</div></div><span style="color:var(--text3);font-size:18px" id="fcarrow-${esc(c._id)}">&#9662;</span></div><div class="fbody" id="fbody-${esc(c._id)}"><div id="praiseBox-${esc(c._id)}"><div class="empty"><p>Loading...</p></div></div><button class="action-btn gold" onclick="openPraiseForm('${esc(c._id)}','${esc(c.fullName||'')}')">Praise</button><button class="action-btn green" onclick="openGiftForm('${esc(c._id)}','${esc(c.fullName||'')}')">Give a gift</button></div></div>`).join('');
+  $('foundList').innerHTML=found.map(c=>{const imgTag=c.image?'<img src="'+esc(c.image)+'" loading="lazy" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:14px;z-index:1" onerror="this.style.display=\'none\'">':'';return '<div class="fcard" id="fcard-'+esc(c._id)+'"><div class="fhead" onclick="toggleFound(\''+esc(c._id)+'\')" style="position:relative"><div class="ph">'+iconChild+'</div>'+imgTag+'<div style="flex:1;min-width:0"><div class="fname">'+(esc(c.fullName)||'Unknown')+'</div><div class="finder">Found by '+(esc(c.finderName||'Someone'))+'</div><div class="fdate">'+(esc(c.missingDate||''))+(c.foundDate?' . Found '+fmtDate(c.foundDate):'')+'</div></div><span style="color:var(--text3);font-size:18px" id="fcarrow-'+esc(c._id)+'">&#9662;</span></div><div class="fbody" id="fbody-'+esc(c._id)+'"><div id="praiseBox-'+esc(c._id)+'"><div class="empty"><p>Loading...</p></div></div><button class="action-btn gold" onclick="openPraiseForm(\''+esc(c._id)+'\',\''+esc(c.fullName||'')+'\')">Praise</button><button class="action-btn green" onclick="openGiftForm(\''+esc(c._id)+'\',\''+esc(c.fullName||'')+'\')">Give a gift</button></div></div>'}).join('');
 }
 async function toggleFound(id){const card=$('fcard-'+id);if(!card)return;card.classList.toggle('open');$('fcarrow-'+id).textContent=card.classList.contains('open')?'\u25B4':'\u25BE';if(card.classList.contains('open')&&!$('praiseBox-'+id).dataset.loaded){try{const j=await api('/api/praise?childId='+id);const{praises,gifts}=j.data;$('praiseBox-'+id).dataset.loaded='1';let html='<h4>Praises ('+praises.length+')</h4>'+(praises.length?praises.map(p=>`<div class="praise-item"><div class="pn">${esc(p.userName)}</div><div class="pt">${esc(p.text)}</div></div>`).join(''):'<p style="font-size:12px;color:var(--text3)">No praises yet.</p>');html+='<h4>Gifts ('+gifts.length+')</h4>'+(gifts.length?gifts.map(g=>`<div class="gift-item"><div class="gn">${esc(g.giverName)}${g.amount?' . '+money(g.amount):''}</div><div class="gm">${esc(g.message)}</div></div>`).join(''):'<p style="font-size:12px;color:var(--text3)">No gifts yet.</p>');$('praiseBox-'+id).innerHTML=html}catch(e){$('praiseBox-'+id).innerHTML=`<p style="color:var(--red);font-size:13px">${esc(e.message)}</p>`}}}
 function openFoundFor(id){showView('found');setTimeout(()=>{const card=$('fcard-'+id);if(!card)return;if(!card.classList.contains('open'))toggleFound(id);card.scrollIntoView({behavior:'smooth',block:'center'})},250)}
@@ -720,7 +721,7 @@ if(window.visualViewport){window.visualViewport.addEventListener('resize',()=>{c
 function renderActivity(){
   const recent=allData.slice().sort(byDateDesc).slice(0,6);
   if(!recent.length){$('activityList').innerHTML='';return}
-  $('activityList').innerHTML=recent.map(c=>{const tagClass=c.found?'resolved':'new';const tagText=c.found?'Found':'New';return `<div class="activity-item" onclick="openDetail('${esc(c._id)}')" style="cursor:pointer"><div class="aavatar">${c.image?`<img src="${esc(c.image)}" alt="" loading="lazy" onerror="this.remove()">`:`<div class="ph">${iconChild}</div>`}</div><div class="atxt"><div class="aname">${esc(c.fullName)||'Unknown'}</div><div class="adetail">${esc(c.address||c.missingLocation||c.missingDate||'')}</div></div><span class="abadge ${tagClass}">${tagText}</span></div>`}).join('')
+  $('activityList').innerHTML=recent.map(c=>{const tagClass=c.found?'resolved':'new';const tagText=c.found?'Found':'New';const imgTag=c.image?'<img src="'+esc(c.image)+'" alt="" loading="lazy" onerror="this.style.display=\'none\'">':'';return '<div class="activity-item" onclick="openDetail(\''+esc(c._id)+'\')" style="cursor:pointer"><div class="aavatar" style="position:relative"><div class="ph">'+iconChild+'</div>'+imgTag+'</div><div class="atxt"><div class="aname">'+(esc(c.fullName)||'Unknown')+'</div><div class="adetail">'+(esc(c.address||c.missingLocation||c.missingDate||''))+'</div></div><span class="abadge '+tagClass+'">'+tagText+'</span></div>'}).join('')
 }
 const origRenderHome=renderHome;
 renderHome=function(){origRenderHome();renderActivity()};
