@@ -3,9 +3,12 @@ const fmcConnectMongoDB = require('./fmcDB/fmcMongoDB');
 
 const userSchema = mongoose.Schema({
     userFullName: String,
-    userContactNumber: { type: String, unique: true },
+    userContactNumber: { type: String, unique: true, sparse: true },
     password: String,
     emailId: String,
+    googleId: String,
+    photo: String,
+    verified: { type: Boolean, default: false },
     createdAt: String,
 });
 

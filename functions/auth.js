@@ -120,14 +120,31 @@ const findOrCreateGoogleUser = async (profile) => {
         }
     }
     if (!user) {
-        user = await User.create({
-            userFullName: name,
-            emailId: email.toLowerCase(),
-            googleId: googleId,
-            photo: photo,
-            verified: true,
-            createdAt: new Date().toISOString()
-        });
+        try {
+            user = await User.create({
+                userFullName: name,
+                emailId: email.toLowerCase(),
+                googleId: googleId,
+                photo: photo,
+                verified: true,
+                createdAt: new Date().toISOString()
+            });
+        } catch (createErr) {
+            // If duplicate contactNumber issue, try creating with a unique placeholder
+            if (createErr.code === 11000) {
+                user = await User.create({
+                    userFullName: name,
+                    userContactNumber: 'google_' + googleId,
+                    emailId: email.toLowerCase(),
+                    googleId: googleId,
+                    photo: photo,
+                    verified: true,
+                    createdAt: new Date().toISOString()
+                });
+            } else {
+                throw createErr;
+            }
+        }
     }
     const token = crypto.randomBytes(24).toString('hex');
     userTokens.set(token, String(user._id));

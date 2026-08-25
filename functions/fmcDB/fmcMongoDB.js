@@ -37,6 +37,18 @@ const connectMongoDB = async () => {
                 const Child = mongoose.models.Child || mongoose.model('Child', dataSchema);
                 // Existing records were created before the status field existed — treat them as approved.
                 await Child.updateMany({ status: { $exists: false } }, { $set: { status: 'approved' } });
+                // Fix: drop old non-sparse unique index on userContactNumber so multiple nulls are allowed
+                try {
+                    const User = mongoose.models.User;
+                    if (User) {
+                        const indexes = await User.collection.indexes();
+                        const badIdx = indexes.find(i => i.key && i.key.userContactNumber === 1 && !i.sparse);
+                        if (badIdx) {
+                            await User.collection.dropIndex(badIdx.name);
+                            console.log('Dropped old non-sparse userContactNumber index');
+                        }
+                    }
+                } catch (e) { /* index may not exist */ }
                 return { success: true, error: false, message: "Successfully fetched model!", data: Child };
             })
             .catch((error) => {

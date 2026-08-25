@@ -206,10 +206,15 @@ app.get('/api/auth/me', requireAuth, async (req, res) => {
 // ---- Google OAuth ----
 if (googleClientId && googleClientSecret) {
     app.get('/api/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
-    app.get('/api/auth/google/callback',
-        passport.authenticate('google', { failureRedirect: '/?error=google_failed', session: false }),
-        (req, res) => { res.redirect('/?google_token=' + req.user.token); }
-    );
+    app.get('/api/auth/google/callback', (req, res, next) => {
+        passport.authenticate('google', { failureRedirect: '/?error=google_failed', session: false }, (err, user, info) => {
+            if (err || !user) {
+                console.error('Google auth error:', err ? err.message : 'No user returned');
+                return res.redirect('/?error=' + encodeURIComponent(err ? err.message : 'google_failed'));
+            }
+            res.redirect('/?google_token=' + user.token);
+        })(req, res, next);
+    });
 }
 
 // ---- OTP (email verification via Resend) ----
