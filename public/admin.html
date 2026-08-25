@@ -125,7 +125,8 @@ button{font-family:inherit;cursor:pointer}input,select,textarea{font-family:inhe
 .modal-head .close svg{width:22px;height:22px;fill:currentColor}
 .modal-body{padding:24px}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
-@media(max-width:480px){.grid2{grid-template-columns:1fr}}
+.dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px}
+@media(max-width:480px){.grid2{grid-template-columns:1fr}.dash-grid{grid-template-columns:1fr}}
 .modal-foot{padding:16px 24px;border-top:1px solid var(--border);display:flex;gap:10px;position:sticky;bottom:0;background:var(--card)}
 
 /* Toast */
@@ -137,14 +138,35 @@ button{font-family:inherit;cursor:pointer}input,select,textarea{font-family:inhe
 .mob-nav button{flex:1;background:none;border:none;color:var(--text3);display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 0;font-size:9px;font-weight:600}
 .mob-nav button svg{width:20px;height:20px;fill:currentColor}
 .mob-nav button.active{color:var(--accent)}
+@media(min-width:769px){
+  .mob-nav{display:none!important}
+  .modal{max-width:560px;border-radius:var(--radius);margin:auto;max-height:85vh}
+  .modal-bg{align-items:center}
+}
 @media(max-width:768px){
   .sidebar{display:none}
   .main{margin-left:0;padding:16px 14px 80px}
   .mob-nav{display:flex}
   .stats{grid-template-columns:repeat(2,1fr)}
   .page-head h2{font-size:20px}
-  .item{padding:12px 14px}
-  .filter-bar input{min-width:0}
+  .item{padding:12px 14px;gap:10px}
+  .item .info .name{font-size:13px}
+  .filter-bar{gap:6px}
+  .filter-bar input{min-width:0;font-size:12px;padding:9px 12px}
+  .filter-bar select{font-size:12px;padding:9px 10px}
+  .btn-sm{padding:8px 14px;font-size:12px}
+  .stat{padding:16px}
+  .stat .num{font-size:22px}
+  .page-head{margin-bottom:16px}
+}
+@media(max-width:400px){
+  .mob-nav button{font-size:8px;padding:5px 0}
+  .mob-nav button svg{width:18px;height:18px}
+  .stats{gap:8px}
+  .stat{padding:14px 12px;gap:10px}
+  .stat .icon{width:36px;height:36px;border-radius:10px}
+  .stat .icon svg{width:18px;height:18px}
+  .stat .num{font-size:20px}
 }
 </style>
 </head>
@@ -193,8 +215,6 @@ button{font-family:inherit;cursor:pointer}input,select,textarea{font-family:inhe
   <button data-page="children"><svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>Children</button>
   <button data-page="found"><svg viewBox="0 0 24 24"><path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6z"/></svg>Found</button>
   <button data-page="more"><svg viewBox="0 0 24 24"><path d="M6 10c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm12 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm-6 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>More</button>
-  <button data-page="analytics"><svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>Stats</button>
-  <button data-page="ads"><svg viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H3V5h18v14z"/></svg>Ads</button>
 </div>
 
 <div class="main">
@@ -203,7 +223,7 @@ button{font-family:inherit;cursor:pointer}input,select,textarea{font-family:inhe
 <div class="page active" id="pg-dashboard">
   <div class="page-head"><h2>Dashboard</h2></div>
   <div class="stats" id="dashStats"></div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px">
+  <div class="dash-grid">
     <div class="card-section" style="margin-bottom:0">
       <div class="cs-head"><h3>Recent Submissions</h3></div>
       <div class="cs-body" id="dashRecent"></div>
@@ -289,7 +309,7 @@ button{font-family:inherit;cursor:pointer}input,select,textarea{font-family:inhe
 <div class="page" id="pg-analytics">
   <div class="page-head"><h2>Analytics & Live Stats</h2><div class="actions"><button class="btn-sm" onclick="loadAnalytics()">Refresh</button></div></div>
   <div class="stats" id="analyticsStats"></div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px">
+  <div class="dash-grid">
     <div class="card-section" style="margin-bottom:0"><div class="cs-head"><h3>Most Visited Sections (7d)</h3></div><div class="cs-body" id="analyticsSections"></div></div>
     <div class="card-section" style="margin-bottom:0"><div class="cs-head"><h3>Event Types (7d)</h3></div><div class="cs-body" id="analyticsEvents"></div></div>
   </div>
@@ -363,7 +383,13 @@ function navigateTo(page){
   if(page==='ads')loadAds();
 }
 document.querySelectorAll('#sideNav a[data-page]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();navigateTo(a.dataset.page)}));
-document.querySelectorAll('#mobNav button[data-page]').forEach(b=>b.addEventListener('click',()=>{navigateTo(b.dataset.page)}));
+document.querySelectorAll('#mobNav button[data-page]').forEach(b=>b.addEventListener('click',()=>{if(b.dataset.page==='more'){showMoreMenu();return}navigateTo(b.dataset.page)}));
+function showMoreMenu(){
+  const pages=[{id:'analytics',label:'Analytics',icon:'📊'},{id:'ads',label:'Ads',icon:'📺'},{id:'donations',label:'Donations',icon:'💰'},{id:'praise',label:'Praise & Gifts',icon:'⭐'},{id:'users',label:'Users',icon:'👥'},{id:'add',label:'Add New',icon:'➕'}];
+  $('modalTitle').textContent='More';
+  $('modalBody').innerHTML=pages.map(p=>`<div onclick="closeModal();navigateTo('${p.id}')" style="display:flex;align-items:center;gap:14px;padding:16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background=''"><span style="font-size:20px">${p.icon}</span><span style="font-size:15px;font-weight:600;color:var(--text)">${p.label}</span><span style="margin-left:auto;color:var(--text3)">›</span></div>`).join('');
+  $('modalBg').classList.add('show');
+}
 
 // Auth
 function showLogin(){$('loginView').style.display='flex';$('appView').style.display='none'}

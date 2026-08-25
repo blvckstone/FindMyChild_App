@@ -64,6 +64,31 @@ main{max-width:480px;margin:0 auto;padding-bottom:calc(80px + env(safe-area-inse
 .view{display:none}.view.active{display:block;animation:fadeUp .3s ease}
 @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 
+/* === DESKTOP RESPONSIVE === */
+@media(min-width:768px){
+  main{max-width:960px;padding-bottom:32px}
+  .header{padding:20px 32px 24px}
+  .header::after{height:32px}
+  .hero{padding:28px 32px 40px}
+  .hero h2{font-size:36px}
+  .search-bar{margin:0 32px 12px}
+  .stats{grid-template-columns:repeat(3,1fr);gap:16px;padding:20px 32px 12px}
+  .stat{padding:24px 20px}
+  .stat .num{font-size:36px}
+  .section{padding:28px 32px 12px}
+  .section-head h3{font-size:22px}
+  .scard-grid{grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;padding:0 32px}
+  .hrow{padding:0 32px 24px;gap:16px}
+  .hrow .hcard{flex:0 0 240px}
+  .hrow .hcard .photo{height:180px}
+  .tab-pills{padding:24px 32px 8px}
+}
+@media(min-width:1024px){
+  main{max-width:1100px}
+  .scard-grid{grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px}
+  .hero h2{font-size:40px}
+}
+
 /* === TAB PILLS === */
 .tab-pills{display:flex;gap:8px;padding:20px 20px 4px;overflow-x:auto;scrollbar-width:none}
 .tab-pills::-webkit-scrollbar{display:none}
