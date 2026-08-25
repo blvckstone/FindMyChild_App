@@ -813,7 +813,11 @@ renderHome=function(){origRenderHome();renderActivity()};
 /* --- Boot --- */
 $('backdrop').addEventListener('click',closeDetail);
 $('sheetClose').addEventListener('click',closeDetail);
-if(userToken)api('/api/auth/me',{auth:true}).then(j=>{me=j.user}).catch(()=>{});
+/* --- Handle Google OAuth redirect --- */
+const urlParams=new URLSearchParams(window.location.search);
+const gToken=urlParams.get('google_token');
+if(gToken){userToken=gToken;localStorage.setItem('fmc_user_token',gToken);window.history.replaceState({},'',window.location.pathname);toast('Signed in with Google!','ok');}
+if(userToken)api('/api/auth/me',{auth:true}).then(j=>{me=j.user;renderMe()}).catch(()=>{});
 </script>
 </body>
 </html>

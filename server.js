@@ -49,7 +49,7 @@ if (googleClientId && googleClientSecret) {
     passport.use(new GoogleStrategy({
         clientID: googleClientId,
         clientSecret: googleClientSecret,
-        callbackURL: process.env.GOOGLE_CALLBACK_URL || '/api/auth/google/callback',
+        callbackURL: process.env.GOOGLE_CALLBACK_URL || 'https://findmychild.dpdns.org/api/auth/google/callback',
         scope: ['profile', 'email']
     }, async (accessToken, refreshToken, profile, done) => {
         try {
