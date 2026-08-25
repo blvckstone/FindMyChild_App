@@ -91,4 +91,47 @@ const requireAdmin = (req, res, next) => {
     return res.status(401).json({ success: false, message: "Unauthorized. Please log in as admin." });
 };
 
-module.exports = { loginAdmin, signupUser, loginUser, logout, requireAuth, requireAdmin };
+// Phone validation (Indian format)
+const isValidPhone = (phone) => {
+    const cleaned = String(phone).replace(/[\s\-()]/g, '');
+    return /^(\+91|91|0)?[6-9]\d{9}$/.test(cleaned);
+};
+
+const sanitize = (str) => {
+    if (!str) return '';
+    return String(str).trim().replace(/<[^>]*>/g, '').slice(0, 500);
+};
+
+// Google OAuth: find or create user
+const findOrCreateGoogleUser = async (profile) => {
+    const { User } = await getModels();
+    const googleId = profile.id;
+    const email = (profile.emails && profile.emails[0] && profile.emails[0].value) || '';
+    const name = profile.displayName || 'Google User';
+    const photo = (profile.photos && profile.photos[0] && profile.photos[0].value) || '';
+
+    let user = await User.findOne({ googleId: googleId });
+    if (!user && email) {
+        user = await User.findOne({ emailId: email.toLowerCase() });
+        if (user) {
+            user.googleId = googleId;
+            if (photo) user.photo = photo;
+            await user.save();
+        }
+    }
+    if (!user) {
+        user = await User.create({
+            userFullName: name,
+            emailId: email.toLowerCase(),
+            googleId: googleId,
+            photo: photo,
+            verified: true,
+            createdAt: new Date().toISOString()
+        });
+    }
+    const token = crypto.randomBytes(24).toString('hex');
+    userTokens.set(token, String(user._id));
+    return { user: { _id: user._id, userFullName: user.userFullName, emailId: user.emailId, photo: user.photo }, token };
+};
+
+module.exports = { loginAdmin, signupUser, loginUser, findOrCreateGoogleUser, logout, requireAuth, requireAdmin, isValidPhone, sanitize };

@@ -308,6 +308,26 @@ main{max-width:480px;margin:0 auto;padding-bottom:calc(80px + env(safe-area-inse
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 #toast.ok{background:#0a6b3a}#toast.err{background:#c92c2c}
 
+/* === SEARCH FILTERS === */
+.search-filters{display:flex;flex-direction:column;gap:12px;padding:0 0 8px}
+.filter-row{display:flex;gap:10px}
+.filter-row>div{flex:1}
+.age-range{display:flex;align-items:center;gap:8px}
+.age-range input{width:100%;padding:12px 14px;background:var(--card);border:1.5px solid var(--border);border-radius:var(--radius-xs);font-size:14px;color:var(--text)}
+.age-range input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,113,227,.1)}
+.age-range span{color:var(--text3);font-size:13px;font-weight:600;flex-shrink:0}
+.filter-chips{display:flex;gap:8px;flex-wrap:wrap;padding:4px 0 8px}
+.filter-chip{background:var(--card);border:1.5px solid var(--border);color:var(--text2);border-radius:20px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:5px;white-space:nowrap}
+.filter-chip.active{background:var(--dark);color:#fff;border-color:var(--dark)}
+.filter-chip:active{transform:scale(.95)}
+.filter-chip.f-missing.active{background:rgba(255,59,48,.12);color:var(--red);border-color:var(--red)}
+.filter-chip.f-found.active{background:rgba(52,199,89,.12);color:var(--green);border-color:var(--green)}
+.filter-chip.f-recent.active{background:rgba(0,113,227,.1);color:var(--accent);border-color:var(--accent)}
+.sort-row{display:flex;gap:8px;align-items:center}
+.sort-row label{font-size:11px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.6px;flex-shrink:0}
+.sort-select{flex:1;padding:10px 12px;background:var(--card);border:1.5px solid var(--border);border-radius:var(--radius-xs);font-size:13px;color:var(--text);font-weight:600}
+.sort-select:focus{outline:none;border-color:var(--accent)}
+
 /* === MISC === */
 .demo-chip{display:none;margin:12px 20px 0;padding:10px 16px;background:#fff8e6;color:#b25000;border-radius:var(--radius-xs);font-size:12px;font-weight:600}
 .demo-chip.show{display:flex;align-items:center;gap:8px}
@@ -487,9 +507,16 @@ main{scroll-padding-top:10px}
     <div class="page-top"><button class="back-btn" onclick="showView('home')"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button><h2>Search</h2></div>
     <div class="search-head"><p>Find a child by name, address, age, or any detail.</p></div>
     <div class="form-group">
-      <div class="field"><label>Search anything</label><input id="q" type="text" placeholder="Name, address, location..."></div>
-      <div class="field"><div class="row2"><div><label>Age</label><input id="age" type="number" min="0" max="25" placeholder="Any"></div><div><label>Gender</label><select id="gender"><option value="">Any</option><option value="male">Male</option><option value="female">Female</option></select></div></div></div>
-      <button class="btn" id="searchBtn"><svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>Search</button>
+      <div class="search-filters">
+        <div class="field" style="margin-bottom:0"><label>Search anything</label><input id="q" type="text" placeholder="Name, address, location..."></div>
+        <div class="filter-row">
+          <div class="field" style="margin-bottom:0"><label>Gender</label><select id="gender" style="width:100%;padding:12px 14px;background:var(--card);border:1.5px solid var(--border);border-radius:var(--radius-xs);font-size:14px;color:var(--text)"><option value="">Any</option><option value="Male">Male</option><option value="Female">Female</option></select></div>
+          <div class="field" style="margin-bottom:0"><label>Age range</label><div class="age-range"><input id="ageMin" type="number" min="0" max="18" placeholder="Min"><span>to</span><input id="ageMax" type="number" min="0" max="18" placeholder="Max"></div></div>
+        </div>
+        <div class="field" style="margin-bottom:0"><label>Quick filters</label><div class="filter-chips"><div class="filter-chip active" data-filter="all" onclick="setFilter(this,'all')">All</div><div class="filter-chip f-missing" data-filter="missing" onclick="setFilter(this,'missing')">Missing</div><div class="filter-chip f-found" data-filter="found" onclick="setFilter(this,'found')">Found</div><div class="filter-chip f-recent" data-filter="recent" onclick="setFilter(this,'recent')">Recent</div><div class="filter-chip" data-filter="week" onclick="setFilter(this,'week')">This week</div></div></div>
+        <div class="sort-row"><label>Sort</label><select id="sortBy" class="sort-select"><option value="recent">Most recent</option><option value="oldest">Oldest first</option><option value="name">Name A-Z</option><option value="age">Age</option></select></div>
+      </div>
+      <button class="btn" id="searchBtn"><svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:#fff"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>Search</button>
       <div class="result-info" id="resultInfo"></div>
     </div>
     <div class="hrow" id="searchResults" style="padding-left:20px;padding-right:20px"></div>
@@ -658,8 +685,9 @@ function openDetail(id){
 function closeDetail(){$('backdrop').classList.remove('show');$('sheet').classList.remove('show');document.body.style.overflow=''}
 
 /* --- Search --- */
-function doSearch(){const q=$('q').value.trim(),age=$('age').value.trim(),gender=$('gender').value;if(!q&&!age&&!gender){$('resultInfo').textContent='Type something to search.';$('searchResults').innerHTML='';return}$('resultInfo').textContent='Searching...';socket.emit('searchChildren',{query:q,age,gender})}
-function renderResults(){if(!results.length){$('resultInfo').textContent='No matching child found.';$('searchResults').innerHTML='<div class="empty"><p>No results found.</p></div>';return}$('resultInfo').textContent=results.length+' match(es) found.';$('searchResults').innerHTML=results.map(cardHtml).join('')}
+function setFilter(el,filter){document.querySelectorAll('#view-search .filter-chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');activeFilter=filter;doSearch()}
+function doSearch(){const q=($('q')||{}).value||'';const gender=($('gender')||{}).value||'';const ageMin=($('ageMin')||{}).value||'';const ageMax=($('ageMax')||{}).value||'';const sortBy=($('sortBy')||{}).value||'recent';const query=q.trim();if(!query&&!gender&&!ageMin&&!ageMax&&activeFilter==='all'){$('resultInfo').textContent='Type something or select a filter.';$('searchResults').innerHTML='';return}$('resultInfo').textContent='Searching...';socket.emit('searchChildren',{query,gender,ageMin,ageMax,filter:activeFilter,sortBy})}
+function renderResults(){let filtered=results.slice();const sortBy=($('sortBy')||{}).value||'recent';const ageMin=parseInt(($('ageMin')||{}).value)||0;const ageMax=parseInt(($('ageMax')||{}).value)||99;if(ageMin||ageMax<99)filtered=filtered.filter(c=>c.age>=ageMin&&c.age<=ageMax);if(activeFilter==='missing')filtered=filtered.filter(c=>!c.found);if(activeFilter==='found')filtered=filtered.filter(c=>c.found);if(activeFilter==='recent')filtered=filtered.sort(byDateDesc).slice(0,10);if(activeFilter==='week'){const w=Date.now()-7*86400000;filtered=filtered.filter(c=>new Date(c.createdAt).getTime()>w)}if(sortBy==='oldest')filtered.sort((a,b)=>new Date(a.createdAt)-new Date(b.createdAt));else if(sortBy==='name')filtered.sort((a,b)=>(a.fullName||'').localeCompare(b.fullName||''));else if(sortBy==='age')filtered.sort((a,b)=>(a.age||0)-(b.age||0));else filtered.sort(byDateDesc);if(!filtered.length){$('resultInfo').textContent='No matching child found.';$('searchResults').innerHTML='<div class="empty"><p>No results found.</p></div>';return}$('resultInfo').textContent=filtered.length+' match(es) found';$('searchResults').innerHTML=filtered.map(cardHtml).join('')}
 
 /* --- Found --- */
 function renderFound(){

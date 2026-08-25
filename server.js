@@ -5,7 +5,10 @@ const fs = require('fs');
 const cors = require('cors');
 const fileUpload = require('express-fileupload');
 const { Server } = require('socket.io');
-require('dotenv').config(); // For .env files availability like this process.env.SECRET_KEY
+const passport = require('passport');
+const GoogleStrategy = require('passport-google-oauth20').Strategy;
+const rateLimit = require('express-rate-limit');
+require('dotenv').config();
 
 const app = express();
 const server = http.createServer(app);
@@ -17,10 +20,19 @@ app.use(express.json());
 app.use(fileUpload());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Session for Passport
+app.use(require('express-session')({ secret: process.env.JWT_SECRET || 'session_secret', resave: false, saveUninitialized: false }));
+app.use(passport.initialize());
+app.use(passport.session());
+
+// Rate limiting
+const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 10, message: { success: false, message: 'Too many attempts. Try again in 15 minutes.' } });
+
 //-----------------------------------------------Functions Module--------------------------------------------------------------->
 const fmcConnectMongoDB = require('./functions/fmcDB/fmcMongoDB');
 const getModels = require('./functions/dbModels');
-const { loginAdmin, loginUser, signupUser, logout, requireAuth, requireAdmin } = require('./functions/auth');
+const { loginAdmin, loginUser, signupUser, findOrCreateGoogleUser, logout, requireAuth, requireAdmin, isValidPhone, sanitize } = require('./functions/auth');
+const { sendOTP, verifyOTP, sendWelcomeEmail } = require('./functions/email');
 // const userConnectMongoDB = require('./functions/userDB/userMongoDB');
 const getAllData = require('./functions/getAllData/getAllData.js');
 const getByDateData = require('./functions/getByDateData/getByDateData.js');
@@ -29,6 +41,28 @@ const getByRangeData = require('./functions/getByRangeData/getByRangeData.js');
 const getByAddressData = require('./functions/getByAddressData/getByAddressData.js');
 const getBySearchData = require('./functions/getBySearchData/getBySearchData.js');
 const getMessages = require('./functions/getMessages/getMessages.js');
+
+//-----------------------------------------------Google OAuth (optional)---------------------------------------------------------->
+const googleClientId = process.env.GOOGLE_CLIENT_ID;
+const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
+if (googleClientId && googleClientSecret) {
+    passport.use(new GoogleStrategy({
+        clientID: googleClientId,
+        clientSecret: googleClientSecret,
+        callbackURL: process.env.GOOGLE_CALLBACK_URL || '/api/auth/google/callback',
+        scope: ['profile', 'email']
+    }, async (accessToken, refreshToken, profile, done) => {
+        try {
+            const result = await findOrCreateGoogleUser(profile);
+            return done(null, result);
+        } catch (error) { return done(error, null); }
+    }));
+    console.log('Google OAuth configured');
+} else {
+    console.warn('Google OAuth disabled — env vars not set');
+}
+passport.serializeUser((user, done) => done(null, user));
+passport.deserializeUser((obj, done) => done(null, obj));
 
 //-----------------------------------------------Socket.io---------------------------------------------------------------------->
 const io = new Server(server, { cors: { origin: "*" } });
@@ -132,7 +166,7 @@ app.post('/api/children', async (req, res) => {
 });
 
 // ---- User auth: signup / login / logout / me ----
-app.post('/api/auth/signup', async (req, res) => {
+app.post('/api/auth/signup', authLimiter, async (req, res) => {
     try {
         const r = await signupUser(req.body);
         if (r.error) return res.status(400).json({ success: false, message: r.error });
@@ -142,7 +176,7 @@ app.post('/api/auth/signup', async (req, res) => {
     }
 });
 
-app.post('/api/auth/login', async (req, res) => {
+app.post('/api/auth/login', authLimiter, async (req, res) => {
     try {
         const r = await loginUser(req.body.identifier, req.body.password);
         if (r.error) return res.status(401).json({ success: false, message: r.error });
@@ -166,6 +200,46 @@ app.get('/api/auth/me', requireAuth, async (req, res) => {
         res.json({ success: true, user });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// ---- Google OAuth ----
+if (googleClientId && googleClientSecret) {
+    app.get('/api/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+    app.get('/api/auth/google/callback',
+        passport.authenticate('google', { failureRedirect: '/?error=google_failed', session: false }),
+        (req, res) => { res.redirect('/?google_token=' + req.user.token); }
+    );
+}
+
+// ---- OTP (email verification via Resend) ----
+app.post('/api/auth/send-otp', async (req, res) => {
+    try {
+        const { email } = req.body;
+        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            return res.status(400).json({ success: false, message: "Valid email required." });
+        }
+        const r = await sendOTP(email.trim().toLowerCase());
+        res.json(r.success ? { success: true, message: "OTP sent to your email." } : { success: false, message: r.error });
+    } catch (error) {
+        res.status(500).json({ success: false, message: "Failed to send OTP." });
+    }
+});
+
+app.post('/api/auth/verify-otp', async (req, res) => {
+    try {
+        const { email, code } = req.body;
+        if (!email || !code) return res.status(400).json({ success: false, message: "Email and code required." });
+        const r = verifyOTP(email.trim().toLowerCase(), code);
+        if (r.valid) {
+            const { User } = await getModels();
+            await User.updateOne({ email: email.toLowerCase() }, { $set: { verified: true } });
+            res.json({ success: true, message: "Email verified!" });
+        } else {
+            res.status(400).json({ success: false, message: r.error });
+        }
+    } catch (error) {
+        res.status(500).json({ success: false, message: "Verification failed." });
     }
 });
 
