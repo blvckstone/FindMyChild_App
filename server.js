@@ -307,48 +307,7 @@ app.get('/api/praise', async (req, res) => {
     }
 });
 
-app.post('/api/praise', async (req, res) => {
-    try {
-        const { Praise, Child } = await getModels();
-        const child = await Child.findById(req.body.childId);
-        if (!child) return res.status(404).json({ success: false, message: "Child not found." });
-        if (!child.found) return res.status(400).json({ success: false, message: "This child is not marked as found yet." });
-        const text = req.body.text ? String(req.body.text).trim() : '';
-        if (!text) return res.status(400).json({ success: false, message: "Write something to praise the hero." });
-        const praise = await Praise.create({
-            childId: child._id,
-            userName: String(req.body.userName || 'Anonymous').trim().slice(0, 60),
-            text: text.slice(0, 500),
-            status: 'pending'
-        });
-        io.emit('dataChanged'); clearDataCache();
-        res.status(201).json({ success: true, message: "Thank you! Your praise will appear after admin approval.", data: praise });
-    } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
-    }
-});
-
-app.post('/api/gifts', async (req, res) => {
-    try {
-        const { Gift, Child } = await getModels();
-        const child = await Child.findById(req.body.childId);
-        if (!child) return res.status(404).json({ success: false, message: "Child not found." });
-        if (!child.found) return res.status(400).json({ success: false, message: "This child is not marked as found yet." });
-        const message = req.body.message ? String(req.body.message).trim() : '';
-        if (!message) return res.status(400).json({ success: false, message: "Add a short message with your gift." });
-        const gift = await Gift.create({
-            childId: child._id,
-            giverName: String(req.body.giverName || 'Anonymous').trim().slice(0, 60),
-            message: message.slice(0, 500),
-            amount: req.body.amount && !isNaN(Number(req.body.amount)) ? Number(req.body.amount) : undefined,
-            status: 'pending'
-        });
-        io.emit('dataChanged'); clearDataCache();
-        res.status(201).json({ success: true, message: "Gift sent! It will appear after admin approval.", data: gift });
-    } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
-    }
-});
+// NOTE: /api/praise and /api/gifts POST routes are defined later with requireAuth middleware
 
 // ---- Public: donations ----
 app.post('/api/donations', async (req, res) => {
@@ -853,6 +812,117 @@ app.delete('/api/admin/ads/:id', requireAdmin, async (req, res) => {
     }
 });
 //------------------------------------------------------------------------------------------------------------------------------>
+
+// ---- Admin: user management ----
+app.get('/api/admin/users', requireAdmin, async (req, res) => {
+    try {
+        const { User } = await getModels();
+        const users = await User.find().sort({ createdAt: -1 }).select('-password').lean();
+        res.json({ success: true, data: users });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+app.put('/api/admin/users/:id', requireAdmin, async (req, res) => {
+    try {
+        const { User } = await getModels();
+        const b = req.body;
+        const update = {};
+        if (b.userFullName !== undefined) update.userFullName = String(b.userFullName).trim();
+        if (b.userContactNumber !== undefined) update.userContactNumber = String(b.userContactNumber).trim();
+        if (b.emailId !== undefined) update.emailId = String(b.emailId).trim();
+        if (b.blocked !== undefined) update.blocked = b.blocked === true || b.blocked === 'true';
+        const user = await User.findByIdAndUpdate(req.params.id, update, { new: true }).select('-password');
+        if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
+        res.json({ success: true, message: 'User updated.', data: user });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+app.delete('/api/admin/users/:id', requireAdmin, async (req, res) => {
+    try {
+        const { User } = await getModels();
+        const user = await User.findByIdAndDelete(req.params.id);
+        if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
+        res.json({ success: true, message: 'User deleted.' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+app.get('/api/admin/users/:id/activity', requireAdmin, async (req, res) => {
+    try {
+        const { Analytics, Praise, Gift, FoundRequest } = await getModels();
+        const userId = req.params.id;
+        const [praises, gifts, foundReqs, analytics] = await Promise.all([
+            Praise.find({ userId }).sort({ createdAt: -1 }).limit(20).lean(),
+            Gift.find({ userId }).sort({ createdAt: -1 }).limit(20).lean(),
+            FoundRequest.find({ userId }).sort({ createdAt: -1 }).limit(20).populate('childId', 'fullName').lean(),
+            Analytics.find({ userId }).sort({ createdAt: -1 }).limit(20).lean()
+        ]);
+        res.json({ success: true, data: { praises, gifts, foundReqs, analytics } });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// Ad click tracking
+app.get('/api/ads/click/:id', async (req, res) => {
+    try {
+        const { Advertisement } = await getModels();
+        const ad = await Advertisement.findByIdAndUpdate(req.params.id, { $inc: { clicks: 1 } });
+        if (ad && ad.linkUrl) return res.redirect(ad.linkUrl);
+        res.redirect('/');
+    } catch (e) { res.redirect('/'); }
+});
+
+// ---- Public: require login for praise & gifts ----
+app.post('/api/praise', requireAuth, async (req, res) => {
+    try {
+        const { Praise, Child } = await getModels();
+        const child = await Child.findById(req.body.childId);
+        if (!child) return res.status(404).json({ success: false, message: "Child not found." });
+        if (!child.found) return res.status(400).json({ success: false, message: "This child is not marked as found yet." });
+        const text = req.body.text ? String(req.body.text).trim() : '';
+        if (!text) return res.status(400).json({ success: false, message: "Write something to praise the hero." });
+        const praise = await Praise.create({
+            childId: child._id,
+            userId: req.userId,
+            userName: String(req.body.userName || 'Anonymous').trim().slice(0, 60),
+            text: text.slice(0, 500),
+            status: 'pending'
+        });
+        io.emit('dataChanged'); clearDataCache();
+        res.status(201).json({ success: true, message: "Thank you! Your praise will appear after admin approval.", data: praise });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+app.post('/api/gifts', requireAuth, async (req, res) => {
+    try {
+        const { Gift, Child } = await getModels();
+        const child = await Child.findById(req.body.childId);
+        if (!child) return res.status(404).json({ success: false, message: "Child not found." });
+        if (!child.found) return res.status(400).json({ success: false, message: "This child is not marked as found yet." });
+        const message = req.body.message ? String(req.body.message).trim() : '';
+        if (!message) return res.status(400).json({ success: false, message: "Add a short message with your gift." });
+        const gift = await Gift.create({
+            childId: child._id,
+            userId: req.userId,
+            giverName: String(req.body.giverName || 'Anonymous').trim().slice(0, 60),
+            message: message.slice(0, 500),
+            amount: Number(req.body.amount) || 0,
+            status: 'pending'
+        });
+        io.emit('dataChanged'); clearDataCache();
+        res.status(201).json({ success: true, message: "Thank you for your generous gift!", data: gift });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
 
 io.on("connection", function (socket) {
     console.log("New socket user found", socket.id);

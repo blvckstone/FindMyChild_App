@@ -140,8 +140,35 @@ button{font-family:inherit;cursor:pointer}input,select,textarea{font-family:inhe
 .mob-nav button.active{color:var(--accent)}
 @media(min-width:769px){
   .mob-nav{display:none!important}
-  .modal{max-width:560px;border-radius:var(--radius);margin:auto;max-height:85vh}
+  .modal{max-width:600px;border-radius:var(--radius);margin:auto;max-height:85vh}
   .modal-bg{align-items:center}
+}
+@media(max-width:768px){
+  .sidebar{display:none}
+  .main{margin-left:0;padding:16px 14px 80px}
+  .mob-nav{display:flex}
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .page-head h2{font-size:20px}
+  .item{padding:12px 14px;gap:10px}
+  .item .info .name{font-size:13px}
+  .filter-bar{gap:6px}
+  .filter-bar input{min-width:0;font-size:12px;padding:9px 12px}
+  .filter-bar select{font-size:12px;padding:9px 10px}
+  .btn-sm{padding:8px 14px;font-size:12px}
+  .stat{padding:16px}
+  .stat .num{font-size:22px}
+  .page-head{margin-bottom:16px}
+  .grid2{grid-template-columns:1fr 1fr;gap:0 10px}
+}
+@media(max-width:400px){
+  .mob-nav button{font-size:8px;padding:5px 0}
+  .mob-nav button svg{width:18px;height:18px}
+  .stats{gap:8px}
+  .stat{padding:14px 12px;gap:10px}
+  .stat .icon{width:36px;height:36px;border-radius:10px}
+  .stat .icon svg{width:18px;height:18px}
+  .stat .num{font-size:20px}
+  .grid2{grid-template-columns:1fr}
 }
 @media(max-width:768px){
   .sidebar{display:none}
@@ -457,12 +484,45 @@ function childItem(c,view){
   const dateLine=c.missingDate?fmtDate(c.missingDate):'';
   let acts='';
   if(view==='pending'){
-    acts=miniBtn('btn-green',iApprove,'Approve',"setStatus('"+c._id+"','approved')")+miniBtn('btn-red',iReject,'Reject',"setStatus('"+c._id+"','rejected')")+miniBtn('btn-outline',iEdit,'Edit',"openEdit('"+c._id+"')");
+    acts=miniBtn('btn-green',iApprove,'Approve',"event.stopPropagation();setStatus('"+c._id+"','approved')")+miniBtn('btn-red',iReject,'Reject',"event.stopPropagation();setStatus('"+c._id+"','rejected')")+miniBtn('btn-outline',iEdit,'Edit',"event.stopPropagation();openEdit('"+c._id+"')");
   }else{
-    acts=miniBtn('btn-outline',iEdit,'Edit',"openEdit('"+c._id+"')")+miniBtn('btn-red',iDelete,'Delete',"delChild('"+c._id+"')");
+    acts=miniBtn('btn-outline',iEdit,'Edit',"event.stopPropagation();openEdit('"+c._id+"')")+miniBtn('btn-red',iDelete,'Delete',"event.stopPropagation();delChild('"+c._id+"')");
   }
   var foundBadge=c.found?'<span class="sbadge found">FOUND</span>':'<span class="sbadge missing">MISSING</span>';
-  return '<div class="card-section" style="margin-bottom:10px"><div class="item">'+imgHTML+'<div class="info" style="min-width:0;flex:1;overflow:hidden"><div class="top"><span class="name">'+(esc(c.fullName)||'Unknown')+'</span><div class="badges">'+sbadge(c.status)+' '+foundBadge+'</div></div>'+(sub?'<div class="sub">'+esc(sub)+'</div>':'')+(c.address?'<div class="addr">'+esc(c.address)+'</div>':'')+(contactLine||dateLine?'<div class="meta">'+contactLine+(contactLine&&dateLine?' · ':'')+dateLine+'</div>':'')+'</div><div class="acts">'+acts+'</div></div></div>';
+  return '<div class="card-section" style="margin-bottom:10px;cursor:pointer" onclick="openChildDetail(\''+c._id+'\')"><div class="item">'+imgHTML+'<div class="info" style="min-width:0;flex:1;overflow:hidden"><div class="top"><span class="name">'+(esc(c.fullName)||'Unknown')+'</span><div class="badges">'+sbadge(c.status)+' '+foundBadge+'</div></div>'+(sub?'<div class="sub">'+esc(sub)+'</div>':'')+(c.address?'<div class="addr">'+esc(c.address)+'</div>':'')+(contactLine||dateLine?'<div class="meta">'+contactLine+(contactLine&&dateLine?' · ':'')+dateLine+'</div>':'')+'</div><div class="acts">'+acts+'</div></div></div>';
+}
+
+// Child detail modal
+function openChildDetail(id){
+  const c=allChildren.find(x=>x._id===id);if(!c)return;
+  const sub=[c.gender?'Gender: '+c.gender:'',c.age?'Age: '+c.age+' yrs':'',c.state?'State: '+c.state:''].filter(Boolean);
+  let html=`<div style="padding:4px 0">
+    <div style="display:flex;gap:16px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border)">
+      <div style="width:80px;height:80px;border-radius:16px;background:var(--border);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center">
+        ${c.image?'<img src="'+esc(c.image)+'" style="width:100%;height:100%;object-fit:cover">':'<svg viewBox="0 0 24 24" style="width:36px;height:36px;fill:var(--text3)"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>'}
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:18px;font-weight:800;color:var(--text);margin-bottom:4px">${esc(c.fullName)||'Unknown'}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px">${sbadge(c.status)} <span class="sbadge ${c.found?'found':'missing'}">${c.found?'FOUND':'MISSING'}</span></div>
+        ${sub.length?'<div style="font-size:12px;color:var(--text2);line-height:1.6">'+sub.join(' · ')+'</div>':''}
+      </div>
+    </div>
+    ${c.address?'<div style="margin-bottom:12px"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Address</div><div style="font-size:13px;color:var(--text)">'+esc(c.address)+'</div></div>':''}
+    ${c.contactNumber?'<div style="margin-bottom:12px"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Contact</div><div style="font-size:13px;color:var(--text)"><a href="tel:'+esc(c.contactNumber)+'" style="color:var(--accent)">'+esc(c.contactNumber)+'</a></div></div>':''}
+    ${c.missingDate?'<div style="margin-bottom:12px"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Missing Date</div><div style="font-size:13px;color:var(--text)">'+fmtDate(c.missingDate)+(c.missingTime?' at '+c.missingTime:'')+'</div></div>':''}
+    ${c.missingLocation?'<div style="margin-bottom:12px"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Last Seen Location</div><div style="font-size:13px;color:var(--text)">'+esc(c.missingLocation)+'</div></div>':''}
+    ${c.info?'<div style="margin-bottom:12px"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Additional Details</div><div style="background:var(--bg);border-radius:var(--radius-xs);padding:12px;font-size:13px;color:var(--text);line-height:1.6">'+esc(c.info)+'</div></div>':''}
+    <div style="font-size:11px;color:var(--text3);margin-top:12px">Submitted: ${fmtDate(c.createdAt)} · ID: ${esc(c._id)}</div>
+    <div style="display:flex;gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
+      ${miniBtn('btn-outline',iEdit,'Edit','openEdit(\''+c._id+'\');closeModal()')}
+      ${c.status==='pending'?miniBtn('btn-green',iApprove,'Approve','setStatus(\''+c._id+'\',\'approved\');closeModal()'):''}
+      ${c.status==='pending'?miniBtn('btn-red',iReject,'Reject','setStatus(\''+c._id+'\',\'rejected\');closeModal()'):''}
+      ${miniBtn('btn-red',iDelete,'Delete','delChild(\''+c._id+'\');closeModal()')}
+    </div>
+  </div>`;
+  $('modalTitle').textContent=c.fullName||'Child Detail';
+  $('modalBody').innerHTML=html;
+  $('modalBg').classList.add('show');
 }
 
 // Status / Delete
@@ -475,7 +535,43 @@ async function loadFoundReqs(){try{const j=await api('/api/admin/found-requests'
 function filterFound(btn,f){currentFoundFilter=f;document.querySelectorAll('[data-frfilter]').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderFoundList()}
 function renderFoundList(){
   const list=currentFoundFilter?foundFilterData.filter(x=>x.status===currentFoundFilter):foundFilterData;
-  $('foundList').innerHTML=list.length?list.map(fr=>`<div class="card-section" style="margin-bottom:10px"><div class="item"><div class="info"><div class="top"><span class="name">${esc(fr.childId&&fr.childId.fullName||'Unknown')}</span> ${sbadge(fr.status)}</div><div class="sub"><strong>Finder:</strong> ${esc(fr.finderName||'Anonymous')}${fr.contactNumber?' · '+esc(fr.contactNumber):''}</div>${fr.details?'<div class="sub">'+esc(fr.details)+'</div>':''}<div class="meta">${fmtDate(fr.createdAt)}</div></div><div class="acts">${fr.status==='pending'?miniBtn('btn-green',iApprove,'Approve',`setFoundStatus('${fr._id}','approved')`)+miniBtn('btn-red',iReject,'Reject',`setFoundStatus('${fr._id}','rejected')`):''}</div></div></div>`).join(''):'<div class="card-section"><div class="cs-body"><div class="empty">No found requests.</div></div></div>';
+  $('foundList').innerHTML=list.length?list.map(fr=>`<div class="card-section" style="margin-bottom:10px;cursor:pointer" onclick="openFoundDetail('${fr._id}')"><div class="item"><div class="info"><div class="top"><span class="name">${esc(fr.childId&&fr.childId.fullName||'Unknown')}</span> ${sbadge(fr.status)}</div><div class="sub"><strong>Finder:</strong> ${esc(fr.finderName||'Anonymous')}${fr.contactNumber?' · '+esc(fr.contactNumber):''}</div>${fr.details?'<div class="sub">'+esc(fr.details).slice(0,80)+(fr.details.length>80?'...':'')+'</div>':''}<div class="meta">${fmtDate(fr.createdAt)}</div></div><div class="acts">${fr.status==='pending'?miniBtn('btn-green',iApprove,'Approve',`event.stopPropagation();setFoundStatus('${fr._id}','approved')`)+miniBtn('btn-red',iReject,'Reject',`event.stopPropagation();setFoundStatus('${fr._id}','rejected')`):''}</div></div></div>`).join(''):'<div class="card-section"><div class="cs-body"><div class="empty">No found requests.</div></div></div>';
+}
+function openFoundDetail(id){
+  const fr=foundFilterData.find(x=>x._id===id);if(!fr)return;
+  const childName=fr.childId&&fr.childId.fullName?fr.childId.fullName:'Unknown';
+  const childImage=fr.childId&&fr.childId.image?fr.childId.image:'';
+  const childId=fr.childId&&fr.childId._id?fr.childId._id:(typeof fr.childId==='string'?fr.childId:'');
+  let html=`<div style="padding:4px 0">
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border)">
+      <div style="width:56px;height:56px;border-radius:14px;background:var(--border);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center">
+        ${childImage?'<img src="'+esc(childImage)+'" style="width:100%;height:100%;object-fit:cover">':'<svg viewBox="0 0 24 24" style="width:24px;height:24px;fill:var(--text3)"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>'}
+      </div>
+      <div style="flex:1">
+        <div style="font-size:16px;font-weight:800;color:var(--text)">${esc(childName)}</div>
+        <div style="font-size:12px;color:var(--text3)">${fmtDate(fr.createdAt)}</div>
+      </div>
+      <div>${sbadge(fr.status)}</div>
+    </div>
+    <div style="margin-bottom:14px">
+      <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Finder</div>
+      <div style="font-size:14px;font-weight:600;color:var(--text)">${esc(fr.finderName||'Anonymous')}</div>
+      ${fr.contactNumber?'<div style="font-size:13px;color:var(--text2);margin-top:2px"><a href="tel:'+esc(fr.contactNumber)+'" style="color:var(--accent)">'+esc(fr.contactNumber)+'</a></div>':''}
+    </div>
+    <div style="margin-bottom:14px">
+      <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Claim Type</div>
+      <div style="font-size:13px;color:var(--text)">${esc(fr.claimType||'I found this child')}</div>
+    </div>
+    ${fr.details?'<div style="margin-bottom:14px"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Details</div><div style="background:var(--bg);border-radius:var(--radius-xs);padding:14px;font-size:13px;color:var(--text);line-height:1.6;border-left:3px solid var(--accent)">'+esc(fr.details)+'</div></div>':''}
+    <div style="font-size:11px;color:var(--text3);margin-top:12px">Request ID: ${esc(fr._id)}</div>
+    <div style="display:flex;gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
+      ${fr.status==='pending'?miniBtn('btn-green',iApprove,'Approve','setFoundStatus(\''+fr._id+'\',\'approved\');closeModal()'):''}
+      ${fr.status==='pending'?miniBtn('btn-red',iReject,'Reject','setFoundStatus(\''+fr._id+'\',\'rejected\');closeModal()'):''}
+    </div>
+  </div>`;
+  $('modalTitle').textContent='Found Request — '+esc(childName);
+  $('modalBody').innerHTML=html;
+  $('modalBg').classList.add('show');
 }
 async function setFoundStatus(id,status){try{await api('/api/admin/found-requests/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({status})});toast(status==='approved'?'Marked as found!':'Rejected.');loadDashboard();loadFoundReqs()}catch(e){toast(e.message,'err')}}
 
@@ -494,7 +590,8 @@ async function renderPraise(){
       const label=isPraise?'<span class="sbadge praise">PRAISE</span>':'<span class="sbadge gift">GIFT'+(x.amount?' '+money(x.amount):'')+'</span>';
       const text=isPraise?x.text:x.message;
       const from=isPraise?x.userName:x.giverName;
-      return`<div class="card-section" style="margin-bottom:10px"><div class="item"><div class="info"><div class="top"><span class="name">${esc(from)}</span> ${sbadge(x.status)} ${label}</div><div class="sub">Child: ${esc(x.childId&&x.childId.fullName||'Unknown')}</div><div class="sub">"${esc(text||'')}"</div><div class="meta">${fmtDate(x.createdAt)}</div></div><div class="acts">${miniBtn('btn-green',iApprove,'Approve',`setPraiseStatus('${x._id}','${x.kind}','approved')`)}${miniBtn('btn-red',iReject,'Reject',`setPraiseStatus('${x._id}','${x.kind}','rejected')`)}${miniBtn('btn-red',iDelete,'Delete',`delPraise('${x._id}','${x.kind}')`)}</div></div></div>`;
+      const childName=esc(x.childId&&x.childId.fullName||'Unknown');
+      return`<div class="card-section" style="margin-bottom:10px;cursor:pointer" onclick="openPraiseDetail('${x._id}','${x.kind}')"><div class="item"><div class="info"><div class="top"><span class="name">${esc(from)}</span> ${sbadge(x.status)} ${label}</div><div class="sub">Child: ${childName}</div><div class="sub">\u201c${esc(text||'').slice(0,80)}${(text||'').length>80?'...':''}\u201d</div><div class="meta">${fmtDate(x.createdAt)}</div></div><div class="acts">${miniBtn('btn-green',iApprove,'Approve',`event.stopPropagation();setPraiseStatus('${x._id}','${x.kind}','approved')`)}${miniBtn('btn-red',iReject,'Reject',`event.stopPropagation();setPraiseStatus('${x._id}','${x.kind}','rejected')`)}${miniBtn('btn-red',iDelete,'Del',`event.stopPropagation();delPraise('${x._id}','${x.kind}')`)}</div></div></div>`;
     }).join(''):'<div class="card-section"><div class="cs-body"><div class="empty">No praise or gifts.</div></div></div>';
   }catch(e){toast(e.message,'err')}
 }
@@ -503,13 +600,100 @@ const praiseResource=k=>k==='praise'?'praise':'gifts';
 async function setPraiseStatus(id,kind,status){try{await api('/api/admin/'+praiseResource(kind)+'/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({status})});toast('Updated.');renderPraise()}catch(e){toast(e.message,'err')}}
 async function delPraise(id,kind){if(!confirm('Delete?'))return;try{await api('/api/admin/'+praiseResource(kind)+'/'+id,{method:'DELETE'});toast('Deleted.');renderPraise()}catch(e){toast(e.message,'err')}}
 
+// Praise/Gift detail modal
+function openPraiseDetail(id,kind){
+  const items=kind==='praise'?allPraise:allGifts;
+  const x=items.find(i=>i._id===id);if(!x)return;
+  const isPraise=kind==='praise';
+  const from=isPraise?x.userName:x.giverName;
+  const text=isPraise?x.text:x.message;
+  const childName=x.childId&&x.childId.fullName?x.childId.fullName:'Unknown';
+  const childId=x.childId&&x.childId._id?x.childId._id:(typeof x.childId==='string'?x.childId:'');
+  let html=`<div style="padding:4px 0">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border)">
+      <div style="width:48px;height:48px;border-radius:14px;background:${isPraise?'var(--purple-light)':'var(--orange-light)'};display:flex;align-items:center;justify-content:center;font-size:22px">${isPraise?'⭐':'🎁'}</div>
+      <div><div style="font-size:16px;font-weight:800;color:var(--text)">${esc(from)}</div><div style="font-size:12px;color:var(--text3)">${fmtDate(x.createdAt)} · ${fmtTime(x.createdAt)}</div></div>
+      <div style="margin-left:auto">${sbadge(x.status)} <span class="sbadge ${isPraise?'praise':'gift'}" style="font-size:11px">${isPraise?'PRAISE':'GIFT'}</span></div>
+    </div>
+    <div style="margin-bottom:14px">
+      <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Sent to</div>
+      <div style="font-size:14px;font-weight:600;color:var(--accent);cursor:pointer;text-decoration:underline" onclick="closeModal()">${esc(childName)}</div>
+      ${childId?'<div style="font-size:11px;color:var(--text3);margin-top:2px">ID: '+esc(childId)+'</div>':''}
+    </div>
+    ${!isPraise&&x.amount?'<div style="margin-bottom:14px"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Amount</div><div style="font-size:20px;font-weight:800;color:var(--green)">'+money(x.amount)+'</div></div>':''}
+    <div style="margin-bottom:14px">
+      <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">${isPraise?'Message':'Gift Message'}</div>
+      <div style="background:var(--bg);border-radius:var(--radius-xs);padding:14px;font-size:14px;color:var(--text);line-height:1.6;border-left:3px solid ${isPraise?'var(--purple)':'var(--orange)'}">“${esc(text||'No message')}”</div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
+      ${x.status!=='approved'?miniBtn('btn-green',iApprove,'Approve','setPraiseStatus(\''+id+'\',\''+kind+'\',\'approved\');closeModal()'):''}
+      ${x.status!=='rejected'?miniBtn('btn-red',iReject,'Reject','setPraiseStatus(\''+id+'\',\''+kind+'\',\'rejected\');closeModal()'):''}
+      ${miniBtn('btn-red',iDelete,'Delete','delPraise(\''+id+'\',\''+kind+'\');closeModal()')}
+    </div>
+  </div>`;
+  $('modalTitle').textContent=isPraise?'Praise Detail':'Gift Detail';
+  $('modalBody').innerHTML=html;
+  $('modalBg').classList.add('show');
+}
+
 // Donations
 async function loadDonations(){try{const j=await api('/api/admin/donations');allDonations=j.data;$('donTotal').textContent=money(j.total);$('donCount').textContent=j.data.length;$('donList').innerHTML=j.data.length?j.data.map(d=>`<div class="card-section" style="margin-bottom:10px"><div class="item"><div class="info"><div class="top"><span class="name">${esc(d.donorName)}</span> <span class="sbadge approved">${money(d.amount)}</span></div><div class="sub">${d.emailId?esc(d.emailId):''}</div>${d.message?'<div class="sub">"'+esc(d.message)+'"</div>':''}<div class="meta">${fmtDate(d.createdAt)}</div></div><div class="acts">${miniBtn('btn-red',iDelete,'Delete',`delDonation('${d._id}')`)}</div></div></div>`).join(''):'<div class="empty">No donations yet.</div>'}catch(e){toast(e.message,'err')}}
 async function delDonation(id){if(!confirm('Delete?'))return;try{await api('/api/admin/donations/'+id,{method:'DELETE'});toast('Deleted.');loadDonations()}catch(e){toast(e.message,'err')}}
 
 // Users
-async function loadUsers(){try{const r=await fetch('/api/auth/me',{headers:{Authorization:'Bearer '+token}});/* fallback: just show children count */allUsers=[];}catch(e){}try{/* No admin user list API, show from stats */}catch(e){}}
-$('userList').innerHTML='<div class="card-section"><div class="cs-body"><div class="empty">User management coming soon. Users who sign up are visible in the database.</div></div></div>';
+async function loadUsers(){
+  try{const r=await api('/api/admin/users');allUsers=r.data||[]}catch(e){allUsers=[]}
+  renderUsersList();
+}
+function renderUsersList(){
+  const q=($('userSearch')?.value||'').toLowerCase();
+  let list=allUsers;
+  if(q)list=list.filter(u=>(u.userFullName||'').toLowerCase().includes(q)||(u.emailId||'').toLowerCase().includes(q)||(u.userContactNumber||'').includes(q));
+  if(!list.length){$('userList').innerHTML='<div class="card-section"><div class="cs-body"><div class="empty">No users found.</div></div></div>';return;}
+  $('userList').innerHTML=list.map(u=>{
+    const name=esc(u.userFullName||'Unknown');
+    const contact=u.userContactNumber?esc(u.userContactNumber):'';
+    const email=u.emailId?esc(u.emailId):'';
+    const photo=u.photo?'<img src="'+esc(u.photo)+'" style="width:100%;height:100%;object-fit:cover;border-radius:12px">':'';
+    const blocked=u.blocked?'<span class="sbadge rejected">BLOCKED</span>':'';
+    const google=u.googleId?'<span class="sbadge praise" style="font-size:9px">GOOGLE</span>':'';
+    const date=u.createdAt?fmtDate(u.createdAt):'';
+    return`<div class="card-section" style="margin-bottom:10px;cursor:pointer" onclick="openUserDetail('${u._id}')"><div class="item"><div class="img-wrap" style="width:48px;height:48px;border-radius:12px;background:var(--border);overflow:hidden;display:flex;align-items:center;justify-content:center;flex-shrink:0">${photo||'<svg viewBox="0 0 24 24" style="width:22px;height:22px;fill:var(--text3)"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>'}</div><div class="info" style="min-width:0;flex:1;overflow:hidden"><div class="top"><span class="name">${name}</span><div class="badges">${blocked} ${google}</div></div>${contact?'<div class="sub">📞 '+contact+'</div>':''}${email?'<div class="sub">✉️ '+email+'</div>':''}<div class="meta">Joined ${date}</div></div><div class="acts"><button class="btn-sm btn-outline" onclick="event.stopPropagation();toggleBlockUser('${u._id}',${!u.blocked})" style="padding:7px 12px;font-size:11px">${u.blocked?'Unblock':'Block'}</button><button class="btn-sm btn-red" onclick="event.stopPropagation();deleteUser('${u._id}')" style="padding:7px 12px;font-size:11px">Del</button></div></div></div>`;
+  }).join('');
+}
+async function toggleBlockUser(id,blocked){try{await api('/api/admin/users/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({blocked})});toast(blocked?'User blocked!':'User unblocked!');loadUsers()}catch(e){toast(e.message,'err')}}
+async function deleteUser(id){if(!confirm('Delete this user permanently?'))return;try{await api('/api/admin/users/'+id,{method:'DELETE'});toast('User deleted.');loadUsers();loadDashboard()}catch(e){toast(e.message,'err')}}
+async function openUserDetail(id){
+  const u=allUsers.find(x=>x._id===id);if(!u)return;
+  let html=`<div style="padding:4px 0">
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border)">
+      <div style="width:56px;height:56px;border-radius:14px;background:var(--border);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center">
+        ${u.photo?'<img src="'+esc(u.photo)+'" style="width:100%;height:100%;object-fit:cover">':'<svg viewBox="0 0 24 24" style="width:24px;height:24px;fill:var(--text3)"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>'}
+      </div>
+      <div style="flex:1"><div style="font-size:16px;font-weight:800;color:var(--text)">${esc(u.userFullName||'Unknown')}</div><div style="display:flex;gap:6px;margin-top:4px">${u.blocked?'<span class="sbadge rejected">BLOCKED</span>':'<span class="sbadge approved">ACTIVE</span>'} ${u.googleId?'<span class="sbadge praise" style="font-size:9px">GOOGLE</span>':''}</div></div>
+    </div>
+    ${u.userContactNumber?'<div style="margin-bottom:12px"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Phone</div><div style="font-size:13px"><a href="tel:'+esc(u.userContactNumber)+'" style="color:var(--accent)">'+esc(u.userContactNumber)+'</a></div></div>':''}
+    ${u.emailId?'<div style="margin-bottom:12px"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Email</div><div style="font-size:13px;color:var(--text)">'+esc(u.emailId)+'</div></div>':''}
+    <div style="margin-bottom:12px"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Joined</div><div style="font-size:13px;color:var(--text)">${fmtDate(u.createdAt)}</div></div>
+    <div style="margin-bottom:12px"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">User ID</div><div style="font-size:11px;color:var(--text3);word-break:break-all">${esc(u._id)}</div></div>
+    <div style="display:flex;gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
+      ${miniBtn(u.blocked?'btn-green':'btn-orange',iApprove,u.blocked?'Unblock':'Block','toggleBlockUser(\''+u._id+'\','+(!u.blocked)+');closeModal()')}
+      ${miniBtn('btn-red',iDelete,'Delete','deleteUser(\''+u._id+'\');closeModal()')}
+    </div>
+    <div id="userActivity" style="margin-top:16px"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Activity</div><div style="font-size:12px;color:var(--text3)">Loading...</div></div>
+  </div>`;
+  $('modalTitle').textContent=u.userFullName||'User Detail';
+  $('modalBody').innerHTML=html;
+  $('modalBg').classList.add('show');
+  try{const r=await api('/api/admin/users/'+id+'/activity');const d=r.data;
+    let actHtml='';
+    if(d.praises&&d.praises.length)actHtml+=d.praises.map(p=>'<div style="padding:6px 0;font-size:12px;border-bottom:1px solid var(--border)">⭐ Praise for '+(p.childId&&p.childId.fullName||'Unknown')+' — '+sbadge(p.status)+' '+fmtDate(p.createdAt)+'</div>').join('');
+    if(d.gifts&&d.gifts.length)actHtml+=d.gifts.map(g=>'<div style="padding:6px 0;font-size:12px;border-bottom:1px solid var(--border)">🎁 Gift for '+(g.childId&&g.childId.fullName||'Unknown')+' — '+sbadge(g.status)+' '+fmtDate(g.createdAt)+'</div>').join('');
+    if(d.foundReqs&&d.foundReqs.length)actHtml+=d.foundReqs.map(f=>'<div style="padding:6px 0;font-size:12px;border-bottom:1px solid var(--border)">🔍 Found request — '+(f.childId&&f.childId.fullName||'Unknown')+' '+sbadge(f.status)+' '+fmtDate(f.createdAt)+'</div>').join('');
+    if(!actHtml)actHtml='<div style="font-size:12px;color:var(--text3)">No activity yet.</div>';
+    $('userActivity').innerHTML='<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Activity</div>'+actHtml;
+  }catch(e){$('userActivity').innerHTML='<div style="font-size:12px;color:var(--text3)">Could not load activity.</div>'}
+}
 
 // Form fields
 function formFields(c){
@@ -577,36 +761,147 @@ async function loadAnalytics(){
 }
 
 // === ADS ===
+let allAds=[];
+const adTypeStyles={
+  banner:{color:'var(--accent)',bg:'var(--accent-light)',icon:'🖼️',desc:'Leaderboard',size:'1200×300',aspect:'3:1'},
+  small_banner:{color:'var(--green)',bg:'var(--green-light)',icon:'📏',desc:'Small Banner',size:'1200×200',aspect:'6:1'},
+  header:{color:'var(--purple)',bg:'var(--purple-light)',icon:'📌',desc:'Header Bar',size:'1200×150',aspect:'8:1'},
+  fullscreen:{color:'var(--red)',bg:'var(--red-light)',icon:'📱',desc:'Full Screen',size:'1080×1920',aspect:'9:16'},
+  carousel:{color:'var(--orange)',bg:'var(--orange-light)',icon:'🔄',desc:'Carousel/Square',size:'1080×1080',aspect:'1:1'},
+  sidebar:{color:'#0891b2',bg:'#ecfeff',icon:'📋',desc:'Sidebar',size:'300×600',aspect:'1:2'},
+  popup:{color:'#d946ef',bg:'#fdf4ff',icon:'💬',desc:'Popup Modal',size:'Custom',aspect:'Auto'},
+  interstitial:{color:'#ea580c',bg:'#fff7ed',icon:'⚡',desc:'Interstitial',size:'1080×1920',aspect:'9:16'}
+};
+function adTypeBadge(type){
+  const s=adTypeStyles[type]||adTypeStyles.banner;
+  return `<span style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;background:${s.bg};color:${s.color}">${s.icon} ${type.replace(/_/g,' ')}</span>`;
+}
 async function loadAds(){
-  try{const r=await api('/api/admin/ads');const ads=r.data||[];
-  const totalImpressions=ads.reduce((s,a)=>s+(a.impressions||0),0);
-  const totalClicks=ads.reduce((s,a)=>s+(a.clicks||0),0);
-  const activeAds=ads.filter(a=>a.active).length;
+  try{const r=await api('/api/admin/ads');allAds=r.data||[];
+  const totalImpressions=allAds.reduce((s,a)=>s+(a.impressions||0),0);
+  const totalClicks=allAds.reduce((s,a)=>s+(a.clicks||0),0);
+  const activeAds=allAds.filter(a=>a.active).length;
+  const expiredAds=allAds.filter(a=>a.endDate&&new Date(a.endDate)<new Date()).length;
   $('adsStats').innerHTML=`
-    <div class="stat"><div class="icon blue"><svg viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H3V5h18v14z"/></svg></div><div><div class="num">${ads.length}</div><div class="lbl">Total Ads</div></div></div>
+    <div class="stat"><div class="icon blue"><svg viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H3V5h18v14z"/></svg></div><div><div class="num">${allAds.length}</div><div class="lbl">Total Ads</div></div></div>
     <div class="stat"><div class="icon green"><svg viewBox="0 0 24 24"><path d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z"/></svg></div><div><div class="num" style="color:var(--green)">${activeAds}</div><div class="lbl">Active</div></div></div>
-    <div class="stat"><div class="icon orange"><svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg></div><div><div class="num" style="color:var(--orange)">${totalImpressions} / ${totalClicks}</div><div class="lbl">Impressions / Clicks</div></div></div>`;
-  const adTypes=['carousel','fullscreen','banner','small_banner','header','sidebar','popup','interstitial'];
-  $('adsList').innerHTML=ads.length?ads.map(a=>{
-    const imgUrl=a.imageUrl||'';
-    const thumb=imgUrl?`<div style="width:64px;height:48px;border-radius:8px;overflow:hidden;flex-shrink:0;background:var(--bg)"><img src="${esc(imgUrl)}" alt="" style="width:100%;height:100%;object-fit:cover"></div>`:'<div class="ph" style="width:64px;height:48px;border-radius:8px;flex-shrink:0"><svg viewBox="0 0 24 24" style="width:20px;height:20px;fill:var(--text3)"><path d="M21 3H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H3V5h18v14z"/></svg></div>';
-    return `<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px;margin-bottom:10px;display:flex;gap:14px;align-items:center">
-    ${thumb}
-    <div style="flex:1;min-width:0;overflow:hidden">
-      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px">
-        <span style="font-size:14px;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(a.title||'Untitled')}</span>
-        <span class="sbadge ${a.active?'approved':'rejected'}" style="font-size:10px">${a.active?'Active':'Off'}</span>
-        <span class="sbadge pending" style="font-size:10px">${esc(a.type.replace(/_/g,' '))}</span>
-      </div>
-      <div style="font-size:12px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(a.advertiserName||'—')} ${a.linkUrl?'· '+esc(a.linkUrl.slice(0,30)):''}</div>
-      <div style="font-size:11px;color:var(--text3);margin-top:2px">${a.impressions||0} imp · ${a.clicks||0} clk · P${a.priority||0}</div>
-    </div>
-    <div style="display:flex;gap:6px;flex-shrink:0">
-      <button class="btn-sm${a.active?' btn-outline':''}" onclick="toggleAd('${a._id}',${!a.active})" style="padding:7px 12px;font-size:11px">${a.active?'Pause':'On'}</button>
-      <button class="btn-sm btn-red" onclick="deleteAd('${a._id}')" style="padding:7px 12px;font-size:11px">Del</button>
-    </div>
-  </div>`}).join(''):'<div class="empty">No ads yet. Click "+ New Ad" to create one.</div>';
+    <div class="stat"><div class="icon orange"><svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg></div><div><div class="num" style="color:var(--orange)">${totalImpressions} / ${totalClicks}</div><div class="lbl">Impressions / Clicks</div></div></div>
+    <div class="stat"><div class="icon red"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg></div><div><div class="num" style="color:var(--red)">${expiredAds}</div><div class="lbl">Expired</div></div></div>`;
+  renderAdsList();
   }catch(e){$('adsList').innerHTML='<div class="empty">Failed to load ads.</div>'}
+}
+function renderAdsList(){
+  if(!allAds.length){$('adsList').innerHTML='<div style="text-align:center;padding:48px 20px"><div style="font-size:48px;margin-bottom:12px">📺</div><div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px">No Ads Yet</div><div style="font-size:13px;color:var(--text3);margin-bottom:16px">Create your first advertisement campaign</div><button class="btn-sm" onclick="showAddAdModal()" style="padding:10px 24px">+ Create Ad</button></div>';return;}
+  // Group by status
+  const active=allAds.filter(a=>a.active);
+  const paused=allAds.filter(a=>!a.active&&(!a.endDate||new Date(a.endDate)>=new Date()));
+  const expired=allAds.filter(a=>a.endDate&&new Date(a.endDate)<new Date());
+  let html='';
+  function renderAdGroup(label,ads,color){
+    if(!ads.length)return;
+    html+=`<div style="margin-bottom:20px"><div style="font-size:12px;font-weight:700;color:${color};text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;padding-left:4px">${label} (${ads.length})</div>`;
+    ads.forEach(a=>{html+=renderAdCard(a)});
+    html+='</div>';
+  }
+  renderAdGroup('Active Campaigns',active,'var(--green)');
+  renderAdGroup('Paused',paused,'var(--orange)');
+  renderAdGroup('Expired',expired,'var(--red)');
+  $('adsList').innerHTML=html;
+}
+function renderAdCard(a){
+  const s=adTypeStyles[a.type]||adTypeStyles.banner;
+  const imgUrl=a.imageUrl||'';
+  const isExpired=a.endDate&&new Date(a.endDate)<new Date();
+  const daysLeft=a.endDate?Math.ceil((new Date(a.endDate)-new Date())/(1000*60*60*24)):null;
+  // Type-specific preview
+  let preview='';
+  const previewStyle=`width:100%;border-radius:8px;overflow:hidden;background:${s.bg};border:1px solid var(--border)`;
+  if(a.type==='banner'||a.type==='header'||a.type==='small_banner'){
+    preview=`<div style="${previewStyle};aspect-ratio:3/1;display:flex;align-items:center;justify-content:center">
+      ${imgUrl?'<img src="'+esc(imgUrl)+'" style="width:100%;height:100%;object-fit:cover">':'<div style="text-align:center;padding:10px"><div style="font-size:24px">'+s.icon+'</div><div style="font-size:10px;color:var(--text3)">'+s.desc+'</div></div>'}
+    </div>`;
+  }else if(a.type==='carousel'){
+    preview=`<div style="${previewStyle};aspect-ratio:1/1;max-width:160px;display:flex;align-items:center;justify-content:center">
+      ${imgUrl?'<img src="'+esc(imgUrl)+'" style="width:100%;height:100%;object-fit:cover">':'<div style="text-align:center"><div style="font-size:28px">'+s.icon+'</div></div>'}
+    </div>`;
+  }else if(a.type==='fullscreen'||a.type==='interstitial'){
+    preview=`<div style="${previewStyle};aspect-ratio:9/16;max-width:80px;display:flex;align-items:center;justify-content:center">
+      ${imgUrl?'<img src="'+esc(imgUrl)+'" style="width:100%;height:100%;object-fit:cover">':'<div style="text-align:center"><div style="font-size:24px">'+s.icon+'</div><div style="font-size:8px;color:var(--text3)">Full Screen</div></div>'}
+    </div>`;
+  }else if(a.type==='sidebar'){
+    preview=`<div style="${previewStyle};aspect-ratio:1/2;max-width:60px;display:flex;align-items:center;justify-content:center">
+      ${imgUrl?'<img src="'+esc(imgUrl)+'" style="width:100%;height:100%;object-fit:cover">':'<div style="text-align:center"><div style="font-size:20px">'+s.icon+'</div></div>'}
+    </div>`;
+  }else{
+    preview=`<div style="${previewStyle};aspect-ratio:1/1;max-width:80px;display:flex;align-items:center;justify-content:center">
+      ${imgUrl?'<img src="'+esc(imgUrl)+'" style="width:100%;height:100%;object-fit:cover">':'<div style="text-align:center"><div style="font-size:24px">'+s.icon+'</div></div>'}
+    </div>`;
+  }
+  return `<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px;cursor:pointer;border-left:4px solid ${s.color}" onclick="openAdDetail('${a._id}')">
+    <div style="display:flex;gap:14px;align-items:flex-start">
+      <div style="flex:0 0 auto">${preview}</div>
+      <div style="flex:1;min-width:0;overflow:hidden">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px">
+          <span style="font-size:14px;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(a.title||'Untitled')}</span>
+          <span style="display:inline-block;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;background:${a.active?(isExpired?'var(--red-light)':'var(--green-light)'):'var(--bg)'};color:${a.active?(isExpired?'#dc2626':'#047857'):'var(--text3)'}">${isExpired?'EXPIRED':a.active?'ACTIVE':'PAUSED'}</span>
+        </div>
+        <div style="margin-bottom:6px">${adTypeBadge(a.type)} <span style="font-size:11px;color:var(--text3);margin-left:4px">${s.size} · ${s.desc}</span></div>
+        ${a.advertiserName?'<div style="font-size:12px;color:var(--text2);margin-bottom:2px">🏢 '+esc(a.advertiserName)+'</div>':''}
+        ${a.linkUrl?'<div style="font-size:11px;color:var(--accent);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">🔗 '+esc(a.linkUrl)+'</div>':''}
+        <div style="display:flex;gap:12px;font-size:11px;color:var(--text3);margin-top:4px">
+          <span>👁️ ${a.impressions||0}</span>
+          <span>👆 ${a.clicks||0}</span>
+          <span>📍 ${esc(a.position||'home')}</span>
+          <span>⚡ P${a.priority||0}</span>
+          ${daysLeft!==null?(daysLeft<=0?'<span style="color:var(--red)">Expired</span>':'<span>'+daysLeft+'d left</span>'):''}
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0" onclick="event.stopPropagation()">
+        <button class="btn-sm${a.active?' btn-outline':''}" onclick="toggleAd('${a._id}',${!a.active})" style="padding:6px 10px;font-size:10px">${a.active?'Pause':'On'}</button>
+        <button class="btn-sm btn-outline" onclick="editAd('${a._id}')" style="padding:6px 10px;font-size:10px">Edit</button>
+        ${isExpired?'<button class="btn-sm" onclick="relaunchAd(\''+a._id+'\')" style="padding:6px 10px;font-size:10px;background:var(--green);color:#fff">Relaunch</button>':''}
+        <button class="btn-sm btn-red" onclick="deleteAd('${a._id}')" style="padding:6px 10px;font-size:10px">Del</button>
+      </div>
+    </div>
+  </div>`;
+}
+function openAdDetail(id){
+  const a=allAds.find(x=>x._id===id);if(!a)return;
+  const s=adTypeStyles[a.type]||adTypeStyles.banner;
+  const isExpired=a.endDate&&new Date(a.endDate)<new Date();
+  let html=`<div style="padding:4px 0">
+    <div style="display:flex;gap:12px;align-items:center;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border)">
+      <div style="font-size:32px">${s.icon}</div>
+      <div style="flex:1"><div style="font-size:16px;font-weight:800;color:var(--text)">${esc(a.title||'Untitled')}</div>
+        <div style="margin-top:4px">${adTypeBadge(a.type)} <span style="font-size:11px;color:var(--text3);margin-left:4px">${s.desc}</span></div>
+      </div>
+      <span style="display:inline-block;font-size:11px;font-weight:700;padding:4px 10px;border-radius:6px;background:${a.active?(isExpired?'var(--red-light)':'var(--green-light)'):'var(--bg)'};color:${a.active?(isExpired?'#dc2626':'#047857'):'var(--text3)'}">${isExpired?'EXPIRED':a.active?'ACTIVE':'PAUSED'}</span>
+    </div>
+    ${a.imageUrl?'<div style="margin-bottom:16px;border-radius:12px;overflow:hidden;border:1px solid var(--border);background:var(--bg)"><img src="'+esc(a.imageUrl)+'" style="width:100%;max-height:200px;object-fit:contain"></div>':''}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+      <div><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;margin-bottom:4px">Advertiser</div><div style="font-size:13px;color:var(--text)">${esc(a.advertiserName||'—')}</div></div>
+      <div><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;margin-bottom:4px">Position</div><div style="font-size:13px;color:var(--text)">${esc(a.position||'home')}</div></div>
+      <div><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;margin-bottom:4px">Priority</div><div style="font-size:13px;color:var(--text)">Level ${a.priority||0}</div></div>
+      <div><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;margin-bottom:4px">Banner Size</div><div style="font-size:13px;color:var(--text)">${s.size}</div></div>
+      <div><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;margin-bottom:4px">Start</div><div style="font-size:13px;color:var(--text)">${a.startDate?fmtDate(a.startDate):'—'}</div></div>
+      <div><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;margin-bottom:4px">End</div><div style="font-size:13px;color:var(--text)">${a.endDate?fmtDate(a.endDate):'No end'}</div></div>
+    </div>
+    ${a.linkUrl?'<div style="margin-bottom:14px"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;margin-bottom:4px">Link URL</div><a href="'+esc(a.linkUrl)+'" target="_blank" style="font-size:13px;color:var(--accent);word-break:break-all">'+esc(a.linkUrl)+'</a></div>':''}
+    <div style="display:flex;gap:16px;margin-bottom:16px;padding:12px;background:var(--bg);border-radius:var(--radius-xs)">
+      <div style="text-align:center;flex:1"><div style="font-size:20px;font-weight:800;color:var(--text)">${a.impressions||0}</div><div style="font-size:10px;color:var(--text3)">Impressions</div></div>
+      <div style="text-align:center;flex:1"><div style="font-size:20px;font-weight:800;color:var(--text)">${a.clicks||0}</div><div style="font-size:10px;color:var(--text3)">Clicks</div></div>
+      <div style="text-align:center;flex:1"><div style="font-size:20px;font-weight:800;color:var(--text)">${a.impressions?((a.clicks||0)/a.impressions*100).toFixed(1):'0'}%</div><div style="font-size:10px;color:var(--text3)">CTR</div></div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn-sm" onclick="editAd('${a._id}');closeModal()" style="flex:1;min-width:80px">Edit</button>
+      <button class="btn-sm ${a.active?'btn-outline':'btn-green'}" onclick="toggleAd('${a._id}',${!a.active});closeModal()" style="flex:1;min-width:80px">${a.active?'Pause':'Activate'}</button>
+      ${isExpired?'<button class="btn-sm btn-green" onclick="relaunchAd(\''+a._id+'\');closeModal()" style="flex:1;min-width:80px">Relaunch</button>':''}
+      <button class="btn-sm btn-red" onclick="deleteAd('${a._id}');closeModal()" style="flex:1;min-width:80px">Delete</button>
+    </div>
+  </div>`;
+  $('modalTitle').textContent='Ad Detail';
+  $('modalBody').innerHTML=html;
+  $('modalBg').classList.add('show');
 }
 
 async function toggleAd(id,active){try{await api('/api/admin/ads/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({active})});toast(active?'Ad activated!':'Ad paused!');loadAds()}catch(e){toast(e.message,'err')}}
@@ -614,37 +909,64 @@ async function deleteAd(id){if(!confirm('Delete this ad?'))return;try{await api(
 
 const adTypes=['carousel','fullscreen','banner','small_banner','header','sidebar','popup','interstitial'];
 const adPositions=['home','search','found','report','sidebar'];
-function showAddAdModal(){
-  $('modalTitle').textContent='Create Advertisement';
+let editingAdId=null;
+function showAddAdModal(a){
+  editingAdId=null;
+  const isEdit=!!a;
+  $('modalTitle').textContent=isEdit?'Edit Advertisement':'Create Advertisement';
+  const typeHints={banner:'1200×300',small_banner:'1200×200',header:'1200×150',fullscreen:'1080×1920',carousel:'1080×1080',sidebar:'300×600',popup:'Custom size',interstitial:'1080×1920'};
+  let hintHtml='<div style="margin-bottom:12px"><div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:6px">Recommended Sizes by Type:</div>';
+  Object.entries(typeHints).forEach(([t,s])=>{hintHtml+=`<div style="display:inline-flex;align-items:center;gap:4px;margin:2px 6px 2px 0;font-size:10px;color:var(--text2)"><span style="font-weight:700">${t.replace(/_/g,' ')}:</span> ${s}</div>`});
+  hintHtml+='</div>';
   $('modalBody').innerHTML=`<form id="adForm" enctype="multipart/form-data">
-    <div class="field"><label>Title *</label><input id="ad_title" placeholder="Ad campaign name" required></div>
+    <div class="field"><label>Title *</label><input id="ad_title" value="${isEdit?esc(a.title):''}" placeholder="Ad campaign name" required></div>
     <div class="grid2">
-      <div class="field"><label>Advertiser</label><input id="ad_advertiser" placeholder="Client name"></div>
-      <div class="field"><label>Link URL</label><input id="ad_link" type="url" placeholder="https://example.com"></div>
+      <div class="field"><label>Advertiser</label><input id="ad_advertiser" value="${isEdit?esc(a.advertiserName):''}" placeholder="Client name"></div>
+      <div class="field"><label>Link URL</label><input id="ad_link" type="url" value="${isEdit?esc(a.linkUrl):''}" placeholder="https://example.com"></div>
     </div>
     <div class="grid2">
-      <div class="field"><label>Ad Type</label><select id="ad_type">${adTypes.map(t=>`<option value=\'${t}\'>${t.replace(/_/g,' ')}</option>`).join('')}</select></div>
-      <div class="field"><label>Position</label><select id="ad_position">${adPositions.map(p=>`<option value=\'${p}\'>${p.charAt(0).toUpperCase()+p.slice(1)}</option>`).join('')}</select></div>
+      <div class="field"><label>Ad Type</label><select id="ad_type">${adTypes.map(t=>`<option value="${t}"${isEdit&&a.type===t?' selected':''}>${t.replace(/_/g,' ')}</option>`).join('')}</select></div>
+      <div class="field"><label>Position</label><select id="ad_position">${adPositions.map(p=>`<option value="${p}"${isEdit&&a.position===p?' selected':''}>${p.charAt(0).toUpperCase()+p.slice(1)}</option>`).join('')}</select></div>
     </div>
     <div class="grid2">
-      <div class="field"><label>Priority</label><input id="ad_priority" type="number" value="0" min="0" placeholder="0"></div>
-      <div class="field"><label>Image</label><input id="ad_image" type="file" accept="image/*"></div>
+      <div class="field"><label>Priority</label><input id="ad_priority" type="number" value="${isEdit?(a.priority||0):0}" min="0"></div>
+      <div class="field"><label>Image${isEdit?' (leave empty to keep current)':''}</label><input id="ad_image" type="file" accept="image/*"></div>
     </div>
-    <div style="font-size:11px;color:var(--text3);margin-bottom:16px">Banner: 1200×300 · Fullscreen: 1080×1920 · Carousel: 1080×1080 · Header: 1200×150</div>
+    ${hintHtml}
     <div class="grid2">
-      <div class="field"><label>Start Date</label><input id="ad_start" type="date"></div>
-      <div class="field"><label>End Date</label><input id="ad_end" type="date"></div>
+      <div class="field"><label>Start Date</label><input id="ad_start" type="date" value="${isEdit&&a.startDate?a.startDate.substring(0,10):''}"></div>
+      <div class="field"><label>End Date</label><input id="ad_end" type="date" value="${isEdit&&a.endDate?a.endDate.substring(0,10):''}"></div>
     </div>
-    <div style="margin-top:16px;display:flex;gap:10px"><button type="button" class="btn" onclick="submitAd()" style="flex:1">Create</button><button type="button" class="btn btn-outline" onclick="closeModal()" style="flex:1">Cancel</button></div>
+    ${isEdit&&a.imageUrl?'<div style="margin-bottom:12px"><div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:4px">Current Image</div><img src="'+esc(a.imageUrl)+'" style="max-width:200px;max-height:100px;border-radius:8px;border:1px solid var(--border)"></div>':''}
+    <div style="margin-top:16px;display:flex;gap:10px"><button type="button" class="btn" onclick="submitAd()" style="flex:1">${isEdit?'Save Changes':'Create'}</button><button type="button" class="btn btn-outline" onclick="closeModal()" style="flex:1">Cancel</button></div>
   </form>`;
   $('modalBg').classList.add('show');
+}
+function editAd(id){
+  const a=allAds.find(x=>x._id===id);if(!a)return;
+  editingAdId=id;
+  showAddAdModal(a);
+}
+function relaunchAd(id){
+  const a=allAds.find(x=>x._id===id);if(!a)return;
+  editingAdId=id;
+  // Pre-fill with new dates (30 days from now)
+  const start=new Date().toISOString().split('T')[0];
+  const end=new Date(Date.now()+30*24*60*60*1000).toISOString().split('T')[0];
+  a.startDate=start;a.endDate=end;
+  showAddAdModal(a);
 }
 async function submitAd(){
   try{const fd=new FormData();
   fd.append('title',$('ad_title').value.trim());fd.append('advertiserName',$('ad_advertiser').value.trim());fd.append('linkUrl',$('ad_link').value.trim());fd.append('type',$('ad_type').value);fd.append('position',$('ad_position').value);fd.append('priority',$('ad_priority').value);
   if($('ad_start').value)fd.append('startDate',$('ad_start').value);if($('ad_end').value)fd.append('endDate',$('ad_end').value);
   const file=$('ad_image')?.files[0];if(file)fd.append('image',file);
-  await api('/api/admin/ads',{method:'POST',body:fd});toast('Ad created!');closeModal();loadAds()}catch(e){toast(e.message,'err')}
+  if(editingAdId){
+    await api('/api/admin/ads/'+editingAdId,{method:'PUT',body:fd});toast('Ad updated!');
+  }else{
+    await api('/api/admin/ads',{method:'POST',body:fd});toast('Ad created!');
+  }
+  closeModal();loadAds();editingAdId=null}catch(e){toast(e.message,'err')}
 }
 
 // Init — show app immediately if token exists to avoid login flash

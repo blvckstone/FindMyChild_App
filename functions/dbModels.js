@@ -9,6 +9,7 @@ const userSchema = mongoose.Schema({
     googleId: String,
     photo: String,
     verified: { type: Boolean, default: false },
+    blocked: { type: Boolean, default: false },
     createdAt: String,
 });
 
@@ -25,6 +26,7 @@ const foundRequestSchema = mongoose.Schema({
 
 const praiseSchema = mongoose.Schema({
     childId: { type: mongoose.Schema.Types.ObjectId, ref: 'Child' },
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     userName: String,
     text: String,
     status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
@@ -33,6 +35,7 @@ const praiseSchema = mongoose.Schema({
 
 const giftSchema = mongoose.Schema({
     childId: { type: mongoose.Schema.Types.ObjectId, ref: 'Child' },
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     giverName: String,
     message: String,
     amount: Number,
