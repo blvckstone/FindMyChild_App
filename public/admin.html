@@ -299,7 +299,7 @@ button{font-family:inherit;cursor:pointer}input,select,textarea{font-family:inhe
 <!-- ===== ADS ===== -->
 <div class="page" id="pg-ads">
   <div class="page-head"><h2>Advertisements</h2><div class="actions"><button class="btn-sm" onclick="showAddAdModal()">+ New Ad</button></div></div>
-  <div class="stats" style="grid-template-columns:repeat(3,1fr);margin-bottom:18px" id="adsStats"></div>
+  <div class="stats" style="margin-bottom:18px" id="adsStats"></div>
   <div id="adsList"></div>
 </div>
 
@@ -561,13 +561,25 @@ async function loadAds(){
     <div class="stat"><div class="icon green"><svg viewBox="0 0 24 24"><path d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z"/></svg></div><div><div class="num" style="color:var(--green)">${activeAds}</div><div class="lbl">Active</div></div></div>
     <div class="stat"><div class="icon orange"><svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg></div><div><div class="num" style="color:var(--orange)">${totalImpressions} / ${totalClicks}</div><div class="lbl">Impressions / Clicks</div></div></div>`;
   const adTypes=['carousel','fullscreen','banner','small_banner','header','sidebar','popup','interstitial'];
-  $('adsList').innerHTML=ads.length?ads.map(a=>`<div class="card-section" style="margin-bottom:12px"><div class="cs-body"><div class="item">
-    ${a.imageUrl?`<img src="${esc(a.imageUrl)}" alt="" style="width:80px;height:60px;object-fit:cover;border-radius:8px">`:`<div class="ph"><svg viewBox="0 0 24 24" style="width:24px;height:24px;fill:var(--text3)"><path d="M21 3H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H3V5h18v14z"/></svg></div>`}
-    <div class="info"><div class="top"><div class="name">${esc(a.title||'Untitled')}</div><span class="sbadge ${a.active?'approved':'rejected'}">${a.active?'Active':'Inactive'}</span><span class="sbadge pending">${esc(a.type)}</span></div>
-    <div class="sub">${esc(a.advertiserName||'')} ${a.linkUrl?'· '+esc(a.linkUrl.slice(0,40)):''}</div>
-    <div class="meta">${a.impressions||0} impressions · ${a.clicks||0} clicks · Priority: ${a.priority||0}</div></div>
-    <div class="acts"><button class="btn-sm" onclick="toggleAd('${a._id}',${!a.active})">${a.active?'Pause':'Activate'}</button><button class="btn-sm btn-red" onclick="deleteAd('${a._id}')">Delete</button></div>
-  </div></div></div>`).join(''):'<div class="empty">No ads yet. Click "+ New Ad" to create one.</div>';
+  $('adsList').innerHTML=ads.length?ads.map(a=>{
+    const imgUrl=a.imageUrl||'';
+    const thumb=imgUrl?`<div style="width:64px;height:48px;border-radius:8px;overflow:hidden;flex-shrink:0;background:var(--bg)"><img src="${esc(imgUrl)}" alt="" style="width:100%;height:100%;object-fit:cover"></div>`:'<div class="ph" style="width:64px;height:48px;border-radius:8px;flex-shrink:0"><svg viewBox="0 0 24 24" style="width:20px;height:20px;fill:var(--text3)"><path d="M21 3H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H3V5h18v14z"/></svg></div>';
+    return `<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px;margin-bottom:10px;display:flex;gap:14px;align-items:center">
+    ${thumb}
+    <div style="flex:1;min-width:0;overflow:hidden">
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px">
+        <span style="font-size:14px;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(a.title||'Untitled')}</span>
+        <span class="sbadge ${a.active?'approved':'rejected'}" style="font-size:10px">${a.active?'Active':'Off'}</span>
+        <span class="sbadge pending" style="font-size:10px">${esc(a.type.replace(/_/g,' '))}</span>
+      </div>
+      <div style="font-size:12px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(a.advertiserName||'—')} ${a.linkUrl?'· '+esc(a.linkUrl.slice(0,30)):''}</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:2px">${a.impressions||0} imp · ${a.clicks||0} clk · P${a.priority||0}</div>
+    </div>
+    <div style="display:flex;gap:6px;flex-shrink:0">
+      <button class="btn-sm${a.active?' btn-outline':''}" onclick="toggleAd('${a._id}',${!a.active})" style="padding:7px 12px;font-size:11px">${a.active?'Pause':'On'}</button>
+      <button class="btn-sm btn-red" onclick="deleteAd('${a._id}')" style="padding:7px 12px;font-size:11px">Del</button>
+    </div>
+  </div>`}).join(''):'<div class="empty">No ads yet. Click "+ New Ad" to create one.</div>';
   }catch(e){$('adsList').innerHTML='<div class="empty">Failed to load ads.</div>'}
 }
 
@@ -577,20 +589,27 @@ async function deleteAd(id){if(!confirm('Delete this ad?'))return;try{await api(
 const adTypes=['carousel','fullscreen','banner','small_banner','header','sidebar','popup','interstitial'];
 const adPositions=['home','search','found','report','sidebar'];
 function showAddAdModal(){
-  $('modalTitle').textContent='Create New Advertisement';
+  $('modalTitle').textContent='Create Advertisement';
   $('modalBody').innerHTML=`<form id="adForm" enctype="multipart/form-data">
+    <div class="field"><label>Title *</label><input id="ad_title" placeholder="Ad campaign name" required></div>
     <div class="grid2">
-      <div class="field" style="grid-column:1/-1"><label>Title *</label><input id="ad_title" placeholder="Ad campaign name" required></div>
-      <div class="field"><label>Advertiser Name</label><input id="ad_advertiser" placeholder="Company / Client name"></div>
+      <div class="field"><label>Advertiser</label><input id="ad_advertiser" placeholder="Client name"></div>
       <div class="field"><label>Link URL</label><input id="ad_link" type="url" placeholder="https://example.com"></div>
-      <div class="field"><label>Ad Type *</label><select id="ad_type">${adTypes.map(t=>`<option value=\'${t}\'>${t.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}</option>`).join('')}</select></div>
+    </div>
+    <div class="grid2">
+      <div class="field"><label>Ad Type</label><select id="ad_type">${adTypes.map(t=>`<option value=\'${t}\'>${t.replace(/_/g,' ')}</option>`).join('')}</select></div>
       <div class="field"><label>Position</label><select id="ad_position">${adPositions.map(p=>`<option value=\'${p}\'>${p.charAt(0).toUpperCase()+p.slice(1)}</option>`).join('')}</select></div>
-      <div class="field"><label>Priority (higher shows first)</label><input id="ad_priority" type="number" value="0" min="0"></div>
+    </div>
+    <div class="grid2">
+      <div class="field"><label>Priority</label><input id="ad_priority" type="number" value="0" min="0" placeholder="0"></div>
+      <div class="field"><label>Image</label><input id="ad_image" type="file" accept="image/*"></div>
+    </div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:16px">Banner: 1200×300 · Fullscreen: 1080×1920 · Carousel: 1080×1080 · Header: 1200×150</div>
+    <div class="grid2">
       <div class="field"><label>Start Date</label><input id="ad_start" type="date"></div>
       <div class="field"><label>End Date</label><input id="ad_end" type="date"></div>
-      <div class="field" style="grid-column:1/-1"><label>Banner Image (recommended: 1200×300 for banner, 1080×1920 for fullscreen, 1080×1080 for carousel)</label><input id="ad_image" type="file" accept="image/*"></div>
     </div>
-    <div style="margin-top:20px;display:flex;gap:10px"><button type="button" class="btn" onclick="submitAd()" style="flex:1">Create Ad</button><button type="button" class="btn btn-outline" onclick="closeModal()" style="flex:1">Cancel</button></div>
+    <div style="margin-top:16px;display:flex;gap:10px"><button type="button" class="btn" onclick="submitAd()" style="flex:1">Create</button><button type="button" class="btn btn-outline" onclick="closeModal()" style="flex:1">Cancel</button></div>
   </form>`;
   $('modalBg').classList.add('show');
 }
