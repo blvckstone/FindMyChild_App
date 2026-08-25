@@ -697,15 +697,29 @@ function renderHome(){
   const rf=found.slice().sort(byDateDesc).slice(0,10);
   $('recentMissingCount').textContent=rm.length+(missing.length>rm.length?'+':'');
   $('recentFoundCount').textContent=rf.length+(found.length>rf.length?'+':'');
-  $('recentMissing').innerHTML=rm.length?rm.map(cardHtml).join(''):'<div class="empty"><p>No missing records.</p></div>';
-  $('recentFound').innerHTML=rf.length?rf.map(cardHtml).join(''):'<div class="empty"><p>No found records.</p></div>';
+  $('recentMissing').innerHTML=rm.length?rm.map(hcardHtml).join(''):'<div class="empty"><p>No missing records.</p></div>';
+  $('recentFound').innerHTML=rf.length?rf.map(hcardHtml).join(''):'<div class="empty"><p>No found records.</p></div>';
 }
 const msgTypes={alert:'alert',notice:'notice',info:'info'};
 const msgIcons={alert:'<svg viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>',notice:'<svg viewBox="0 0 24 24"><path d="M18 11v2h4v-2h-4zm-2 6.61c.96.71 2.21 1.65 3.2 2.39.4-.53.8-1.07 1.2-1.6-.99-.74-2.24-1.68-3.2-2.4-.4.54-.8 1.08-1.2 1.61zM20.4 5.6c-.4-.53-.8-1.07-1.2-1.6-.99.74-2.24 1.68-3.2 2.4.4.53.8 1.07 1.2 1.6.96-.72 2.21-1.65 3.2-2.4zM4 9c-1.1 0-2 .9-2 2v2c0 1.1.9 2 2 2h1l5 3V6L5 9H4zm11.5 3c0-1.33-.58-2.53-1.5-3.35v6.69c.92-.81 1.5-2.01 1.5-3.34z"/></svg>',info:'<svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>'};
 function renderMessages(){$('msgList').innerHTML=messages.map(m=>`<div class="msg-card"><div class="msg-icon ${msgTypes[m.type]||'notice'}">${msgIcons[m.type]||msgIcons.notice}</div><div><h4>${esc(m.title)}</h4><p>${esc(m.body)}</p></div></div>`).join('')||'<div class="empty"><p>No messages.</p></div>'}
 
 function photoHtml(c){if(!c.image)return '<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%"><svg viewBox="0 0 24 24" style="width:48px;height:48px;fill:#aeaeb2"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg></div>';return '<img src="'+esc(c.image)+'" alt="'+esc(c.fullName||'child')+'" loading="lazy" onerror="this.style.display=\'none\'">'}
-function cardHtml(c){
+/* --- Home page horizontal card --- */
+function hcardHtml(c){
+  const tagClass=c.found?'found':'missing';
+  const tagText=c.found?'Found':'Missing';
+  const imgTag=c.image?'<img src="'+esc(c.image)+'" alt="" loading="lazy" onerror="this.style.display=\'none\'">':'';
+  const ageLine=[c.gender,c.age?c.age+' yrs':null].filter(Boolean).join(' · ');
+  return '<div class="hcard" onclick="openDetail(\''+esc(c._id)+'\')">'+
+    '<div class="photo"><div class="placeholder">'+iconChild+'</div>'+imgTag+
+    '<span class="tag '+tagClass+'">'+tagText+'</span></div>'+
+    '<div class="meta"><div class="name">'+(esc(c.fullName)||'Unknown')+'</div>'+
+    '<div class="sub">'+(esc(ageLine)||esc(c.address)||'')+'</div>'+
+    '<div class="date">'+(esc(c.missingDate)||'')+'</div></div></div>'}
+
+/* --- Search page scalable card --- */
+function searchCardHtml(c){
   const tagClass=c.found?'found':'missing';
   const tagText=c.found?'FOUND':'MISSING';
   const imgTag=c.image?'<img src="'+esc(c.image)+'" alt="" loading="lazy" onerror="this.style.display=\'none\'">':'';
@@ -751,7 +765,7 @@ function closeDetail(){$('backdrop').classList.remove('show');$('sheet').classLi
 /* --- Search --- */
 function setFilter(el,filter){document.querySelectorAll('#view-search .filter-chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');activeFilter=filter;doSearch()}
 function doSearch(){const q=($('q')||{}).value||'';const gender=($('gender')||{}).value||'';const ageMin=($('ageMin')||{}).value||'';const ageMax=($('ageMax')||{}).value||'';const sortBy=($('sortBy')||{}).value||'recent';const query=q.trim();if(!query&&!gender&&!ageMin&&!ageMax&&activeFilter==='all'){$('resultInfo').textContent='Type something or select a filter.';$('searchResults').innerHTML='';return}$('resultInfo').textContent='Searching...';track('search',{query,filter:activeFilter});socket.emit('searchChildren',{query,gender,ageMin,ageMax,filter:activeFilter,sortBy})}
-function renderResults(){let filtered=results.slice();const sortBy=($('sortBy')||{}).value||'recent';const ageMin=parseInt(($('ageMin')||{}).value)||0;const ageMax=parseInt(($('ageMax')||{}).value)||99;if(ageMin||ageMax<99)filtered=filtered.filter(c=>c.age>=ageMin&&c.age<=ageMax);if(activeFilter==='missing')filtered=filtered.filter(c=>!c.found);if(activeFilter==='found')filtered=filtered.filter(c=>c.found);if(activeFilter==='recent')filtered=filtered.sort(byDateDesc).slice(0,10);if(activeFilter==='week'){const w=Date.now()-7*86400000;filtered=filtered.filter(c=>new Date(c.createdAt).getTime()>w)}if(sortBy==='oldest')filtered.sort((a,b)=>new Date(a.createdAt)-new Date(b.createdAt));else if(sortBy==='name')filtered.sort((a,b)=>(a.fullName||'').localeCompare(b.fullName||''));else if(sortBy==='age')filtered.sort((a,b)=>(a.age||0)-(b.age||0));else filtered.sort(byDateDesc);if(!filtered.length){$('resultInfo').textContent='No matching child found.';$('searchResults').innerHTML='<div class="empty"><p>No results found.</p></div>';return}$('resultInfo').textContent=filtered.length+' match(es) found';$('searchResults').innerHTML='<div class="scard-grid">'+filtered.map(cardHtml).join('')+'</div>'}
+function renderResults(){let filtered=results.slice();const sortBy=($('sortBy')||{}).value||'recent';const ageMin=parseInt(($('ageMin')||{}).value)||0;const ageMax=parseInt(($('ageMax')||{}).value)||99;if(ageMin||ageMax<99)filtered=filtered.filter(c=>c.age>=ageMin&&c.age<=ageMax);if(activeFilter==='missing')filtered=filtered.filter(c=>!c.found);if(activeFilter==='found')filtered=filtered.filter(c=>c.found);if(activeFilter==='recent')filtered=filtered.sort(byDateDesc).slice(0,10);if(activeFilter==='week'){const w=Date.now()-7*86400000;filtered=filtered.filter(c=>new Date(c.createdAt).getTime()>w)}if(sortBy==='oldest')filtered.sort((a,b)=>new Date(a.createdAt)-new Date(b.createdAt));else if(sortBy==='name')filtered.sort((a,b)=>(a.fullName||'').localeCompare(b.fullName||''));else if(sortBy==='age')filtered.sort((a,b)=>(a.age||0)-(b.age||0));else filtered.sort(byDateDesc);if(!filtered.length){$('resultInfo').textContent='No matching child found.';$('searchResults').innerHTML='<div class="empty"><p>No results found.</p></div>';return}$('resultInfo').textContent=filtered.length+' match(es) found';$('searchResults').innerHTML='<div class="scard-grid">'+filtered.map(searchCardHtml).join('')+'</div>'}
 
 /* --- Found --- */
 let foundFilterMode='all';
