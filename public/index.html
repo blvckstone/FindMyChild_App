@@ -417,6 +417,29 @@ body.keyboard-open .tab-pills-wrap{top:0}
 main{scroll-padding-top:10px}
 .field input:focus,.field textarea:focus,.field select:focus{scroll-margin-top:80px}
 
+/* === AD STYLES === */
+.ad-banner{margin:0 20px 12px;border-radius:14px;overflow:hidden;position:relative;cursor:pointer;transition:transform .15s;border:1px solid var(--border);box-shadow:var(--shadow)}
+.ad-banner:active{transform:scale(.98)}
+.ad-banner img{width:100%;height:auto;display:block;object-fit:cover}
+.ad-banner .ad-overlay{position:absolute;bottom:0;left:0;right:0;padding:10px 14px;background:linear-gradient(transparent,rgba(0,0,0,.7));color:#fff}
+.ad-banner .ad-overlay .ad-title{font-size:12px;font-weight:700}
+.ad-banner .ad-overlay .ad-by{font-size:10px;opacity:.7}
+.ad-header{margin:0 20px 6px;border-radius:10px;overflow:hidden;position:relative;cursor:pointer}
+.ad-header img{width:100%;height:80px;object-fit:cover;display:block;border-radius:10px}
+.ad-carousel-wrap{overflow:hidden;border-radius:14px;position:relative;border:1px solid var(--border);box-shadow:var(--shadow)}
+.ad-carousel-track{display:flex;transition:transform .4s ease}
+.ad-carousel-slide{min-width:100%;position:relative}
+.ad-carousel-slide img{width:100%;aspect-ratio:1;object-fit:cover;display:block}
+.ad-carousel-dots{display:flex;justify-content:center;gap:6px;padding:8px 0;background:var(--card)}
+.ad-carousel-dot{width:6px;height:6px;border-radius:50%;background:var(--border2);cursor:pointer;transition:background .2s}
+.ad-carousel-dot.active{background:var(--accent)}
+.ad-sidebar-wrap{position:fixed;right:16px;top:50%;transform:translateY(-50%);width:140px;z-index:5;border-radius:12px;overflow:hidden;border:1px solid var(--border);box-shadow:var(--shadow);display:none}
+.ad-sidebar-wrap img{width:100%;display:block;border-radius:12px}
+.ad-sidebar-wrap .ad-label{position:absolute;bottom:0;left:0;right:0;padding:4px 8px;background:rgba(0,0,0,.6);color:#fff;font-size:9px;text-align:center}
+@media(min-width:1024px){.ad-sidebar-wrap{display:block}}
+@media(max-width:1023px){.ad-sidebar-wrap{display:none !important}}
+@media(min-width:768px){.ad-banner{margin:0 32px 16px}.ad-header{margin:0 32px 10px}}
+
 /* === DEVELOPER CREDIT FOOTER === */
 .dev-footer{padding:32px 20px 24px;text-align:center;border-top:1px solid var(--border);margin-top:24px;margin-bottom:calc(70px + env(safe-area-inset-bottom))}
 .dev-footer .df-line{font-size:12px;color:var(--text3);line-height:1.7;font-weight:500}
@@ -510,8 +533,12 @@ main{scroll-padding-top:10px}
       <div class="stat blue"><div class="icon-wrap"><svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg></div><div class="num" id="statTotal">-</div><div class="lbl">Total</div></div>
     </div>
 
+    <!-- Header Ad -->
+    <div id="adHeader" style="padding:0 20px;margin-bottom:4px;display:none"></div>
     <!-- Ad Banner -->
     <div id="adBanner" style="padding:0 20px;margin-bottom:8px;display:none"></div>
+    <!-- Carousel Ad -->
+    <div id="adCarousel" style="padding:0 20px;margin-bottom:12px;display:none"></div>
 
     <!-- Quick Actions -->
     <div class="section">
@@ -669,6 +696,13 @@ main{scroll-padding-top:10px}
 
 <!-- MODAL -->
 <div class="modal-bg" id="modalBg"><div class="modal"><h3 id="modalTitle"></h3><div id="modalBody"></div></div></div>
+<!-- Fullscreen/Interstitial Ad Overlay -->
+<div id="adOverlay" style="display:none;position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.85);align-items:center;justify-content:center;flex-direction:column">
+  <div id="adOverlayContent" style="position:relative;max-width:420px;width:90%"></div>
+  <button onclick="closeAdOverlay()" style="position:fixed;top:16px;right:16px;background:rgba(255,255,255,.95);border:none;border-radius:50%;width:40px;height:40px;font-size:20px;cursor:pointer;z-index:101;box-shadow:0 2px 12px rgba(0,0,0,.3)">✕</button>
+</div>
+<!-- Sidebar Ad (Desktop only) -->
+<div id="adSidebar" style="display:none;position:fixed;right:20px;top:50%;transform:translateY(-50%);width:160px;z-index:5"></div>
 <div id="toast"></div>
 
 <script src="/socket.io/socket.io.js"></script>
@@ -809,7 +843,9 @@ async function toggleFound(id){const card=$('fcard-'+id);if(!card)return;card.cl
 function openFoundFor(id){showView('found');setTimeout(()=>{const card=$('fcard-'+id);if(!card)return;if(!card.classList.contains('open'))toggleFound(id);card.scrollIntoView({behavior:'smooth',block:'center'})},250)}
 
 /* --- Report --- */
-$('reportBtn').addEventListener('click',async()=>{const name=$('r_name').value.trim(),contact=$('r_contact').value.trim(),msg=$('reportMsg');if(!name){msg.textContent='Enter the child\'s full name.';return}if(!contact){msg.textContent='Enter a contact number.';return}const fd=new FormData();fd.append('fullName',name);fd.append('gender',$('r_gender').value);fd.append('age',$('r_age').value);fd.append('address',$('r_address').value.trim());fd.append('state',$('r_state').value.trim());fd.append('contactNumber',contact);fd.append('missingDate',$('r_date').value);fd.append('missingTime',$('r_time').value);fd.append('missingLocation',$('r_location').value.trim());fd.append('info',$('r_info').value.trim());const file=$('r_photo').files[0];if(file)fd.append('image',file);const btn=$('reportBtn');btn.disabled=true;btn.textContent='Submitting...';msg.textContent='';try{const r=await fetch('/api/children',{method:'POST',body:fd});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.message||'Failed');msg.textContent=j.message;$('r_name').value='';$('r_gender').value='';$('r_age').value='';$('r_address').value='';$('r_state').value='';$('r_contact').value='';$('r_date').value='';$('r_time').value='';$('r_location').value='';$('r_info').value='';$('r_photo').value=''}catch(e){msg.textContent=e.message}finally{btn.disabled=false;btn.textContent='Submit for review'}});
+$('reportBtn').addEventListener('click',async()=>{
+  if(!userToken){openModal('Login Required',`<div style=\"text-align:center;padding:20px 0\"><div style=\"font-size:40px;margin-bottom:12px\">🔒</div><div style=\"font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px\">Login to submit a report</div><div style=\"font-size:13px;color:var(--text3);margin-bottom:20px\">You need an account to report a missing child</div><div class=\"actions\"><button class=\"btn\" style=\"margin:0\" onclick=\"closeModal();showView('me')\">Login / Sign Up</button><button class=\"btn-ghost\" onclick=\"closeModal()\">Cancel</button></div></div>`);return}
+  const name=$('r_name').value.trim(),contact=$('r_contact').value.trim(),msg=$('reportMsg');if(!name){msg.textContent='Enter the child\'s full name.';return}if(!contact){msg.textContent='Enter a contact number.';return}const fd=new FormData();fd.append('fullName',name);fd.append('gender',$('r_gender').value);fd.append('age',$('r_age').value);fd.append('address',$('r_address').value.trim());fd.append('state',$('r_state').value.trim());fd.append('contactNumber',contact);fd.append('missingDate',$('r_date').value);fd.append('missingTime',$('r_time').value);fd.append('missingLocation',$('r_location').value.trim());fd.append('info',$('r_info').value.trim());const file=$('r_photo').files[0];if(file)fd.append('image',file);const btn=$('reportBtn');btn.disabled=true;btn.textContent='Submitting...';msg.textContent='';try{const r=await fetch('/api/children',{method:'POST',headers:{'Authorization':'Bearer '+userToken},body:fd});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.message||'Failed');msg.textContent=j.message;$('r_name').value='';$('r_gender').value='';$('r_age').value='';$('r_address').value='';$('r_state').value='';$('r_contact').value='';$('r_date').value='';$('r_time').value='';$('r_location').value='';$('r_info').value='';$('r_photo').value=''}catch(e){msg.textContent=e.message}finally{btn.disabled=false;btn.textContent='Submit for review'}});
 
 /* --- Navigation --- */
 function showView(name){['home','search','found','report','me','donate'].forEach(v=>$('view-'+v).classList.toggle('active',v===name));['navHome','navSearch','navFound','navReport','navMe'].forEach(n=>$(n).classList.toggle('active',n==='nav'+name.charAt(0).toUpperCase()+name.slice(1)));if(name==='me')renderMe();if(name==='donate')loadDonations();if(name==='found')renderFound();trackSection(name);window.scrollTo(0,0)}
@@ -904,9 +940,82 @@ let bgRefreshTimer=null;
 function scheduleBgRefresh(){if(bgRefreshTimer)clearTimeout(bgRefreshTimer);bgRefreshTimer=setTimeout(()=>{socket.emit('load');socket.emit('loadMessages');loadAds()},30000)}
 
 /* --- Load ads --- */
-let activeAds=[];
+let activeAds=[],carouselIdx=0,carouselTimer=null;
 function loadAds(){api('/api/ads').then(j=>{activeAds=j.data||[];renderAds()}).catch(()=>{})}
-function renderAds(){const box=$('adBanner');if(!box||!activeAds.length){if(box)box.innerHTML='';return}const ad=activeAds[0];if(!ad)return;box.innerHTML='<a href="'+esc(ad.linkUrl||'#')+'" target="_blank" rel="noopener" onclick="track(\'ad_click\',\''+esc(ad._id)+'\');fetch(\'/api/ads/'+ad._id+'/click\',{method:\'POST\'}).catch(()=>{})"><img src="'+esc(ad.imageUrl)+'" alt="'+esc(ad.title||'Advertisement')+'" style="width:100%;border-radius:12px;max-height:120px;object-fit:cover" loading="lazy"></a>';box.style.display='block';api('/api/ads/'+ad._id+'/impression',{method:'POST'}).catch(()=>{})}
+function trackAd(ad){
+  if(ad&&ad._id){
+    track('ad_click',ad._id);
+    fetch('/api/ads/'+ad._id+'/impression',{method:'POST'}).catch(()=>{});
+  }
+}
+function adClick(ad){
+  if(ad&&ad._id){fetch('/api/ads/'+ad._id+'/click',{method:'POST'}).catch(()=>{});}
+  if(ad&&ad.linkUrl)window.open(ad.linkUrl,'_blank');
+}
+function closeAdOverlay(){const o=$('adOverlay');if(o)o.style.display='none';}
+function renderAds(){
+  ['adBanner','adHeader','adCarousel'].forEach(function(id){var b=$(id);if(b){b.innerHTML='';b.style.display='none'}});
+  var sb=$('adSidebar');if(sb){sb.innerHTML='';}
+  closeAdOverlay();
+  if(!activeAds.length)return;
+  var now=new Date();
+  var ads=activeAds.filter(function(a){return a.active&&(!a.startDate||new Date(a.startDate)<=now)&&(!a.endDate||new Date(a.endDate)>=now)});
+  if(!ads.length)return;
+  var bannerAds=ads.filter(function(a){return a.position==='home'&&['banner','small_banner'].indexOf(a.type)!==-1});
+  var headerAds=ads.filter(function(a){return a.position==='home'&&a.type==='header'});
+  var carouselAds=ads.filter(function(a){return a.position==='home'&&a.type==='carousel'});
+  var fsAds=ads.filter(function(a){return a.position==='home'&&['fullscreen','interstitial'].indexOf(a.type)!==-1});
+  var sidebarAds=ads.filter(function(a){return a.position==='sidebar'||a.type==='sidebar'});
+  if(headerAds.length){
+    var a=headerAds[0];trackAd(a);
+    var box=$('adHeader');
+    box.innerHTML='<a onclick="adClick(activeAds.find(function(x){return x._id==\''+a._id+'\'}))" style="display:block;cursor:pointer;text-decoration:none"><img src="'+esc(a.imageUrl)+'" alt="'+esc(a.title||'')+'" style="width:100%;height:80px;object-fit:cover;border-radius:10px"></a>';
+    box.style.display='block';
+  }
+  if(bannerAds.length){
+    var a=bannerAds[0];trackAd(a);
+    var box=$('adBanner');
+    var height=a.type==='small_banner'?'80px':'120px';
+    box.innerHTML='<a onclick="adClick(activeAds.find(function(x){return x._id==\''+a._id+'\'}))" style="display:block;cursor:pointer;text-decoration:none"><div class="ad-banner"><img src="'+esc(a.imageUrl)+'" alt="'+esc(a.title||'')+'" style="height:'+height+'"><div class="ad-overlay"><div class="ad-title">'+esc(a.title||'')+'</div>'+(a.advertiserName?'<div class="ad-by">'+esc(a.advertiserName)+'</div>':'')+'</div></div></a>';
+    box.style.display='block';
+  }
+  if(carouselAds.length){
+    var box=$('adCarousel');
+    var slides=carouselAds.slice(0,5);
+    var slidesHtml=slides.map(function(a,i){trackAd(a);return '<div class="ad-carousel-slide"><a onclick="adClick(activeAds.find(function(x){return x._id==\''+a._id+'\'}))" style="display:block;text-decoration:none"><img src="'+esc(a.imageUrl)+'" alt="'+esc(a.title||'')+'"></a></div>';}).join('');
+    var dotsHtml=slides.map(function(_,i){return '<div class="ad-carousel-dot'+(i===0?' active':'')+'" onclick="moveCarousel('+i+')"></div>';}).join('');
+    box.innerHTML='<div class="ad-carousel-wrap"><div class="ad-carousel-track" id="carouselTrack" style="transform:translateX(0)">'+slidesHtml+'</div><div class="ad-carousel-dots">'+dotsHtml+'</div></div>';
+    box.style.display='block';
+    carouselIdx=0;
+    if(carouselTimer)clearInterval(carouselTimer);
+    carouselTimer=setInterval(function(){moveCarousel((carouselIdx+1)%slides.length)},4000);
+  }
+  if(fsAds.length&&!sessionStorage.getItem('ad_shown_'+fsAds[0]._id)){
+    var a=fsAds[0];
+    sessionStorage.setItem('ad_shown_'+a._id,'1');
+    setTimeout(function(){showAdOverlay(a);trackAd(a);},2000);
+  }
+  if(sidebarAds.length){
+    var a=sidebarAds[0];trackAd(a);
+    var sb=$('adSidebar');
+    sb.innerHTML='<a onclick="adClick(activeAds.find(function(x){return x._id==\''+a._id+'\'}))" style="display:block;text-decoration:none"><img src="'+esc(a.imageUrl)+'" alt="'+esc(a.title||'')+'" style="width:100%;border-radius:12px;display:block"><div style="text-align:center;padding:4px;font-size:10px;color:var(--text3)">'+esc(a.title||'')+'</div></a>';
+    sb.style.display='block';
+  }
+  ads.slice(0,3).forEach(function(a){trackAd(a);});
+}
+function moveCarousel(idx){
+  carouselIdx=idx;
+  var track=document.getElementById('carouselTrack');
+  if(track)track.style.transform='translateX(-'+(idx*100)+'%)';
+  document.querySelectorAll('.ad-carousel-dot').forEach(function(d,i){d.classList.toggle('active',i===idx)});
+}
+function showAdOverlay(a){
+  var box=$('adOverlayContent');
+  if(!box)return;
+  var link=a.linkUrl||'#';
+  box.innerHTML='<a onclick="adClick(activeAds.find(function(x){return x._id==\''+a._id+'\'}));closeAdOverlay()" style="display:block;text-decoration:none;border-radius:16px;overflow:hidden;background:var(--card);box-shadow:0 8px 40px rgba(0,0,0,.4)"><img src="'+esc(a.imageUrl)+'" style="width:100%;max-height:500px;object-fit:cover;display:block"><div style="padding:16px;text-align:center"><div style="font-size:18px;font-weight:800;color:var(--text);margin-bottom:6px">'+esc(a.title||'Advertisement')+'</div>'+(a.advertiserName?'<div style="font-size:13px;color:var(--text2)">By '+esc(a.advertiserName)+'</div>':'')+'<div style="margin-top:12px;padding:10px;background:var(--accent);color:#fff;border-radius:10px;font-size:14px;font-weight:700">Visit Now</div></div></a>';
+  $('adOverlay').style.display='flex';
+}
 
 /* --- Boot --- */
 $('backdrop').addEventListener('click',closeDetail);

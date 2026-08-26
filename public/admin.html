@@ -347,6 +347,15 @@ button{font-family:inherit;cursor:pointer}input,select,textarea{font-family:inhe
 <div class="page" id="pg-ads">
   <div class="page-head"><h2>Advertisements</h2><div class="actions"><button class="btn-sm" onclick="showAddAdModal()">+ New Ad</button></div></div>
   <div class="stats" style="margin-bottom:18px" id="adsStats"></div>
+  <div class="filter-bar" style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
+    <input id="adsSearch" placeholder="Search ads..." oninput="renderAdsFiltered()" style="flex:1;min-width:120px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px">
+    <select id="adsFilterType" onchange="renderAdsFiltered()" style="padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px">
+      <option value="">All Types</option><option value="banner">Banner</option><option value="small_banner">Small Banner</option><option value="header">Header</option><option value="carousel">Carousel</option><option value="fullscreen">Fullscreen</option><option value="sidebar">Sidebar</option><option value="popup">Popup</option><option value="interstitial">Interstitial</option>
+    </select>
+    <select id="adsFilterStatus" onchange="renderAdsFiltered()" style="padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px">
+      <option value="">All Status</option><option value="active">Active</option><option value="paused">Paused</option><option value="expired">Expired</option>
+    </select>
+  </div>
   <div id="adsList"></div>
 </div>
 
@@ -790,12 +799,26 @@ async function loadAds(){
   renderAdsList();
   }catch(e){$('adsList').innerHTML='<div class="empty">Failed to load ads.</div>'}
 }
+function renderAdsFiltered(){renderAdsList()}
 function renderAdsList(){
-  if(!allAds.length){$('adsList').innerHTML='<div style="text-align:center;padding:48px 20px"><div style="font-size:48px;margin-bottom:12px">📺</div><div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px">No Ads Yet</div><div style="font-size:13px;color:var(--text3);margin-bottom:16px">Create your first advertisement campaign</div><button class="btn-sm" onclick="showAddAdModal()" style="padding:10px 24px">+ Create Ad</button></div>';return;}
+  var adsSrc=allAds;
+  var st=(?.value:"");
+  var ss=(?.value:"");
+  var sq=((?.value:"")).toLowerCase();
+  if(st)adsSrc=adsSrc.filter(function(a){return a.type===st});
+  if(sq)adsSrc=adsSrc.filter(function(a){return (a.title||"").toLowerCase().indexOf(sq)!==-1||(a.advertiserName||"").toLowerCase().indexOf(sq)!==-1});
+  if(ss)adsSrc=adsSrc.filter(function(a){
+    var isExpired=a.endDate&&new Date(a.endDate)<new Date();
+    if(ss==="active")return a.active&&!isExpired;
+    if(ss==="paused")return !a.active&&!isExpired;
+    if(ss==="expired")return isExpired;
+    return true;
+  });
+  if(!adsSrc.length){$('adsList').innerHTML='<div style="text-align:center;padding:48px 20px"><div style="font-size:48px;margin-bottom:12px">📺</div><div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px">No Ads Yet</div><div style="font-size:13px;color:var(--text3);margin-bottom:16px">Create your first advertisement campaign</div><button class="btn-sm" onclick="showAddAdModal()" style="padding:10px 24px">+ Create Ad</button></div>';return;}
   // Group by status
-  const active=allAds.filter(a=>a.active);
-  const paused=allAds.filter(a=>!a.active&&(!a.endDate||new Date(a.endDate)>=new Date()));
-  const expired=allAds.filter(a=>a.endDate&&new Date(a.endDate)<new Date());
+  var active=adsSrc.filter(a=>a.active);
+  var paused=adsSrc.filter(a=>!a.active&&(!a.endDate||new Date(a.endDate)>=new Date()));
+  var expired=adsSrc.filter(a=>a.endDate&&new Date(a.endDate)<new Date());
   let html='';
   function renderAdGroup(label,ads,color){
     if(!ads.length)return;

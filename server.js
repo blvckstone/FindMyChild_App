@@ -139,8 +139,8 @@ const pickChildFields = (body) => {
     return data;
 };
 
-// ---- Public: submit a missing child report (goes to the pending queue) ----
-app.post('/api/children', async (req, res) => {
+// ---- Submit a missing child report (goes to the pending queue) — login required ----
+app.post('/api/children', requireAuth, async (req, res) => {
     try {
         const data = pickChildFields(req.body);
         if (!data.fullName || !String(data.fullName).trim()) {
@@ -158,7 +158,8 @@ app.post('/api/children', async (req, res) => {
 
         data.status = 'pending';
         data.found = false;
-        data.uploadedBy = data.uploadedBy || 'Public';
+        data.uploadedBy = data.uploadedBy || 'User';
+        data.userId = req.userId;
 
         const db = await fmcConnectMongoDB();
         if (!db.success) return res.status(500).json({ success: false, message: "Database unavailable." });
@@ -648,8 +649,10 @@ app.get('/api/ads', async (req, res) => {
         const now = new Date();
         const ads = await Advertisement.find({
             active: true,
-            $or: [{ startDate: { $exists: false } }, { startDate: { $lte: now } }],
-            $or: [{ endDate: { $exists: false } }, { endDate: { $gte: now } }]
+            $and: [
+                { $or: [{ startDate: { $exists: false } }, { startDate: { $lte: now } }] },
+                { $or: [{ endDate: { $exists: false } }, { endDate: { $gte: now } }] }
+            ]
         }).sort({ priority: -1 }).limit(20).lean();
         const result = { success: true, data: ads };
         setCache('ads', result);

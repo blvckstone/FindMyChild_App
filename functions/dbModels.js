@@ -73,6 +73,7 @@ const adSchema = mongoose.Schema({
     clicks: { type: Number, default: 0 },
     impressions: { type: Number, default: 0 },
     advertiserName: String,
+    description: String,
     startDate: Date,
     endDate: Date,
     createdAt: { type: Date, default: Date.now }
