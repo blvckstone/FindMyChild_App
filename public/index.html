@@ -418,27 +418,71 @@ main{scroll-padding-top:10px}
 .field input:focus,.field textarea:focus,.field select:focus{scroll-margin-top:80px}
 
 /* === AD STYLES === */
-.ad-banner{margin:0 20px 12px;border-radius:14px;overflow:hidden;position:relative;cursor:pointer;transition:transform .15s;border:1px solid var(--border);box-shadow:var(--shadow)}
+/* Banner Ad - Wide card matching stats row width */
+.ad-banner{margin:16px 20px 12px;border-radius:var(--radius);overflow:hidden;position:relative;cursor:pointer;transition:transform .15s;border:1px solid var(--border);box-shadow:var(--shadow)}
 .ad-banner:active{transform:scale(.98)}
-.ad-banner img{width:100%;height:auto;display:block;object-fit:cover}
-.ad-banner .ad-overlay{position:absolute;bottom:0;left:0;right:0;padding:10px 14px;background:linear-gradient(transparent,rgba(0,0,0,.7));color:#fff}
-.ad-banner .ad-overlay .ad-title{font-size:12px;font-weight:700}
-.ad-banner .ad-overlay .ad-by{font-size:10px;opacity:.7}
-.ad-header{margin:0 20px 6px;border-radius:10px;overflow:hidden;position:relative;cursor:pointer}
-.ad-header img{width:100%;height:80px;object-fit:cover;display:block;border-radius:10px}
-.ad-carousel-wrap{overflow:hidden;border-radius:14px;position:relative;border:1px solid var(--border);box-shadow:var(--shadow)}
+.ad-banner .ad-img{width:100%;height:180px;overflow:hidden;position:relative}
+.ad-banner .ad-img img{width:100%;height:100%;object-fit:cover;display:block}
+.ad-banner .ad-info{padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--card)}
+.ad-banner .ad-info .ad-text{flex:1;min-width:0}
+.ad-banner .ad-info .ad-title{font-size:14px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ad-banner .ad-info .ad-by{font-size:12px;color:var(--text3);margin-top:2px}
+.ad-banner .ad-info .ad-cta{padding:8px 16px;background:var(--accent);color:#fff;border-radius:10px;font-size:12px;font-weight:700;white-space:nowrap;flex-shrink:0}
+
+/* Small Banner - Compact strip */
+.ad-small-banner{margin:10px 20px;border-radius:var(--radius-xs);overflow:hidden;position:relative;cursor:pointer;transition:transform .15s;border:1px solid var(--border);box-shadow:var(--shadow);display:flex;align-items:center;gap:10px;background:var(--card)}
+.ad-small-banner:active{transform:scale(.98)}
+.ad-small-banner .ad-thumb{width:80px;height:60px;flex-shrink:0;overflow:hidden;border-radius:var(--radius-xs) 0 0 var(--radius-xs)}
+.ad-small-banner .ad-thumb img{width:100%;height:100%;object-fit:cover}
+.ad-small-banner .ad-text{flex:1;min-width:0;padding-right:12px}
+.ad-small-banner .ad-title{font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ad-small-banner .ad-by{font-size:11px;color:var(--text3);margin-top:2px}
+
+/* Header Ad - Thin horizontal strip */
+.ad-header-wrap{margin:0 20px 8px;border-radius:var(--radius-xs);overflow:hidden;position:relative;cursor:pointer;transition:transform .15s;border:1px solid var(--border);box-shadow:var(--shadow)}
+.ad-header-wrap:active{transform:scale(.98)}
+.ad-header-wrap .ad-himg{width:100%;height:60px;overflow:hidden;position:relative}
+.ad-header-wrap .ad-himg img{width:100%;height:100%;object-fit:cover;display:block}
+.ad-header-wrap .ad-hbar{position:absolute;bottom:0;left:0;right:0;padding:4px 12px;background:linear-gradient(transparent,rgba(0,0,0,.7));display:flex;align-items:center;justify-content:space-between}
+.ad-header-wrap .ad-hbar .ad-title{font-size:10px;font-weight:700;color:#fff}
+.ad-header-wrap .ad-hbar .ad-by{font-size:9px;color:rgba(255,255,255,.6)}
+
+/* Carousel Ad - Horizontal scrolling slides */
+.ad-carousel-wrap{overflow:hidden;border-radius:var(--radius);position:relative;border:1px solid var(--border);box-shadow:var(--shadow);background:var(--card)}
 .ad-carousel-track{display:flex;transition:transform .4s ease}
-.ad-carousel-slide{min-width:100%;position:relative}
-.ad-carousel-slide img{width:100%;aspect-ratio:1;object-fit:cover;display:block}
-.ad-carousel-dots{display:flex;justify-content:center;gap:6px;padding:8px 0;background:var(--card)}
-.ad-carousel-dot{width:6px;height:6px;border-radius:50%;background:var(--border2);cursor:pointer;transition:background .2s}
+.ad-carousel-slide{min-width:100%;position:relative;overflow:hidden}
+.ad-carousel-slide img{width:100%;height:220px;object-fit:cover;display:block}
+.ad-carousel-slide .ad-slide-info{position:absolute;bottom:0;left:0;right:0;padding:10px 14px;background:linear-gradient(transparent,rgba(0,0,0,.75));display:flex;align-items:flex-end;justify-content:space-between}
+.ad-carousel-slide .ad-slide-info .ad-title{font-size:13px;font-weight:700;color:#fff}
+.ad-carousel-slide .ad-slide-info .ad-by{font-size:10px;color:rgba(255,255,255,.6)}
+.ad-carousel-dots{display:flex;justify-content:center;gap:6px;padding:10px 0}
+.ad-carousel-dot{width:7px;height:7px;border-radius:50%;background:var(--border2);cursor:pointer;transition:background .2s}
 .ad-carousel-dot.active{background:var(--accent)}
-.ad-sidebar-wrap{position:fixed;right:16px;top:50%;transform:translateY(-50%);width:140px;z-index:5;border-radius:12px;overflow:hidden;border:1px solid var(--border);box-shadow:var(--shadow);display:none}
-.ad-sidebar-wrap img{width:100%;display:block;border-radius:12px}
-.ad-sidebar-wrap .ad-label{position:absolute;bottom:0;left:0;right:0;padding:4px 8px;background:rgba(0,0,0,.6);color:#fff;font-size:9px;text-align:center}
-@media(min-width:1024px){.ad-sidebar-wrap{display:block}}
+.ad-carousel-counter{position:absolute;top:10px;right:10px;background:rgba(0,0,0,.6);color:#fff;font-size:10px;font-weight:700;padding:3px 8px;border-radius:10px;z-index:2}
+
+/* Sidebar Ad (Desktop only) */
+.ad-sidebar-wrap{position:fixed;right:16px;top:50%;transform:translateY(-50%);width:140px;z-index:5;border-radius:var(--radius-sm);overflow:hidden;border:1px solid var(--border);box-shadow:var(--shadow);display:none;background:var(--card)}
+.ad-sidebar-wrap img{width:100%;display:block;border-radius:var(--radius-sm) var(--radius-sm) 0 0}
+.ad-sidebar-wrap .ad-label{padding:6px 8px;text-align:center}
+.ad-sidebar-wrap .ad-label .ad-title{font-size:10px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ad-sidebar-wrap .ad-label .ad-by{font-size:9px;color:var(--text3);margin-top:2px}
+
+/* Desktop responsive for ads */
+@media(min-width:768px){
+  .ad-banner{margin:20px 32px 16px}
+  .ad-banner .ad-img{height:220px}
+  .ad-banner .ad-info{padding:16px 20px}
+  .ad-small-banner{margin:12px 32px}
+  .ad-header-wrap{margin:0 32px 10px}
+  .ad-carousel-slide img{height:280px}
+  #adCarousel{margin-left:32px;margin-right:32px}
+}
+@media(min-width:1024px){
+  .ad-banner .ad-img{height:260px}
+  .ad-carousel-slide img{height:320px}
+  .ad-sidebar-wrap{display:block}
+}
 @media(max-width:1023px){.ad-sidebar-wrap{display:none !important}}
-@media(min-width:768px){.ad-banner{margin:0 32px 16px}.ad-header{margin:0 32px 10px}}
 
 /* === DEVELOPER CREDIT FOOTER === */
 .dev-footer{padding:32px 20px 24px;text-align:center;border-top:1px solid var(--border);margin-top:24px;margin-bottom:calc(70px + env(safe-area-inset-bottom))}
@@ -534,11 +578,11 @@ main{scroll-padding-top:10px}
     </div>
 
     <!-- Header Ad -->
-    <div id="adHeader" style="padding:0 20px;margin-bottom:4px;display:none"></div>
+    <div id="adHeader" style="margin-bottom:10px;display:none"></div>
     <!-- Ad Banner -->
-    <div id="adBanner" style="padding:0 20px;margin-bottom:8px;display:none"></div>
+    <div id="adBanner" style="margin-bottom:10px;display:none"></div>
     <!-- Carousel Ad -->
-    <div id="adCarousel" style="padding:0 20px;margin-bottom:12px;display:none"></div>
+    <div id="adCarousel" style="margin-bottom:14px;display:none"></div>
 
     <!-- Quick Actions -->
     <div class="section">
@@ -955,59 +999,53 @@ function adClick(ad){
 function closeAdOverlay(){const o=$('adOverlay');if(o)o.style.display='none';}
 function renderAds(){
   ['adBanner','adHeader','adCarousel'].forEach(function(id){var b=$(id);if(b){b.innerHTML='';b.style.display='none'}});
-  var sb=$('adSidebar');if(sb){sb.innerHTML='';}
+  var sb=$('adSidebar');if(sb){sb.innerHTML='';sb.style.display='none';}
   closeAdOverlay();
   if(!activeAds.length)return;
   var now=new Date();
-  var ads=activeAds.filter(function(a){return a.active&&(!a.startDate||new Date(a.startDate)<=now)&&(!a.endDate||new Date(a.endDate)>=now)});
-  if(!ads.length)return;
-  var bannerAds=ads.filter(function(a){return a.position==='home'&&['banner','small_banner'].indexOf(a.type)!==-1});
-  var headerAds=ads.filter(function(a){return a.position==='home'&&a.type==='header'});
-  var carouselAds=ads.filter(function(a){return a.position==='home'&&a.type==='carousel'});
-  var fsAds=ads.filter(function(a){return a.position==='home'&&['fullscreen','interstitial'].indexOf(a.type)!==-1});
-  var sidebarAds=ads.filter(function(a){return a.position==='sidebar'||a.type==='sidebar'});
-  if(headerAds.length){
-    var a=headerAds[0];trackAd(a);
-    var box=$('adHeader');
-    box.innerHTML='<a onclick="adClick(activeAds.find(function(x){return x._id==\''+a._id+'\'}))" style="display:block;cursor:pointer;text-decoration:none"><img src="'+esc(a.imageUrl)+'" alt="'+esc(a.title||'')+'" style="width:100%;height:80px;object-fit:cover;border-radius:10px"></a>';
-    box.style.display='block';
-  }
-  if(bannerAds.length){
-    var a=bannerAds[0];trackAd(a);
-    var box=$('adBanner');
-    var height=a.type==='small_banner'?'80px':'120px';
-    box.innerHTML='<a onclick="adClick(activeAds.find(function(x){return x._id==\''+a._id+'\'}))" style="display:block;cursor:pointer;text-decoration:none"><div class="ad-banner"><img src="'+esc(a.imageUrl)+'" alt="'+esc(a.title||'')+'" style="height:'+height+'"><div class="ad-overlay"><div class="ad-title">'+esc(a.title||'')+'</div>'+(a.advertiserName?'<div class="ad-by">'+esc(a.advertiserName)+'</div>':'')+'</div></div></a>';
-    box.style.display='block';
-  }
-  if(carouselAds.length){
-    var box=$('adCarousel');
-    var slides=carouselAds.slice(0,5);
-    var slidesHtml=slides.map(function(a,i){trackAd(a);return '<div class="ad-carousel-slide"><a onclick="adClick(activeAds.find(function(x){return x._id==\''+a._id+'\'}))" style="display:block;text-decoration:none"><img src="'+esc(a.imageUrl)+'" alt="'+esc(a.title||'')+'"></a></div>';}).join('');
-    var dotsHtml=slides.map(function(_,i){return '<div class="ad-carousel-dot'+(i===0?' active':'')+'" onclick="moveCarousel('+i+')"></div>';}).join('');
-    box.innerHTML='<div class="ad-carousel-wrap"><div class="ad-carousel-track" id="carouselTrack" style="transform:translateX(0)">'+slidesHtml+'</div><div class="ad-carousel-dots">'+dotsHtml+'</div></div>';
-    box.style.display='block';
-    carouselIdx=0;
+  var active=activeAds.filter(function(a){return a.active&&(!a.startDate||new Date(a.startDate)<=now)&&(!a.endDate||new Date(a.endDate)>=now)});
+  if(!active.length)return;
+  function aid(a){return a._id.replace(/'/g,"\\'")}
+  function clickFn(a){return 'onclick="adClick(activeAds.find(function(x){return x._id==\''+aid(a)+'\'}))"'}
+  /* Header: thin strip at top */
+  var ha=active.filter(function(a){return a.type==='header'&&a.position==='home'});
+  if(ha.length){var a=ha[0];trackAd(a);var b=$('adHeader');
+    b.innerHTML='<div class="ad-header-wrap"'+clickFn(a)+'><div class="ad-himg"><img src="'+esc(a.imageUrl)+'" alt="'+esc(a.title||'')+'" loading="lazy"></div><div class="ad-hbar"><span class="ad-title">'+esc(a.title||'')+'</span>'+(a.advertiserName?'<span class="ad-by">'+esc(a.advertiserName)+'</span>':'')+'</div></div>';b.style.display='block';}
+  /* Banner: wide card with image on top, info row below */
+  var ba=active.filter(function(a){return a.type==='banner'&&a.position==='home'});
+  if(ba.length){var a=ba[0];trackAd(a);var b=$('adBanner');
+    b.innerHTML='<div class="ad-banner"'+clickFn(a)+'><div class="ad-img"><img src="'+esc(a.imageUrl)+'" alt="'+esc(a.title||'')+'" loading="lazy"></div><div class="ad-info"><div class="ad-text"><div class="ad-title">'+esc(a.title||'')+'</div>'+(a.advertiserName?'<div class="ad-by">'+esc(a.advertiserName)+'</div>':'')+'</div><div class="ad-cta">Learn More</div></div></div>';b.style.display='block';}
+  /* Small Banner: compact side-by-side card */
+  var sba=active.filter(function(a){return a.type==='small_banner'&&a.position==='home'});
+  if(sba.length&&!ba.length){var a=sba[0];trackAd(a);var b=$('adBanner');
+    b.innerHTML='<div class="ad-small-banner"'+clickFn(a)+'><div class="ad-thumb"><img src="'+esc(a.imageUrl)+'" alt="'+esc(a.title||'')+'" loading="lazy"></div><div class="ad-text"><div class="ad-title">'+esc(a.title||'')+'</div>'+(a.advertiserName?'<div class="ad-by">'+esc(a.advertiserName)+'</div>':'')+'</div></div>';b.style.display='block';}
+  /* Carousel: auto-sliding with dots and counter */
+  var ca=active.filter(function(a){return a.type==='carousel'&&a.position==='home'});
+  if(ca.length){var slides=ca.slice(0,5);var b=$('adCarousel');
+    var sHtml=slides.map(function(a,i){trackAd(a);return '<div class="ad-carousel-slide"><a'+clickFn(a)+' style="display:block;text-decoration:none"><img src="'+esc(a.imageUrl)+'" alt="'+esc(a.title||'')+'" loading="lazy"><div class="ad-slide-info"><span class="ad-title">'+esc(a.title||'')+'</span>'+(a.advertiserName?'<span class="ad-by">'+esc(a.advertiserName)+'</span>':'')+'</div></a></div>';}).join('');
+    var dHtml=slides.map(function(_,i){return '<div class="ad-carousel-dot'+(i===0?' active':'')+'" onclick="moveCarousel('+i+')"></div>';}).join('');
+    b.innerHTML='<div class="ad-carousel-wrap"><div class="ad-carousel-counter">1/'+slides.length+'</div><div class="ad-carousel-track" id="carouselTrack" style="transform:translateX(0)">'+sHtml+'</div><div class="ad-carousel-dots">'+dHtml+'</div></div>';
+    b.style.display='block';carouselIdx=0;
     if(carouselTimer)clearInterval(carouselTimer);
     carouselTimer=setInterval(function(){moveCarousel((carouselIdx+1)%slides.length)},4000);
   }
-  if(fsAds.length&&!sessionStorage.getItem('ad_shown_'+fsAds[0]._id)){
-    var a=fsAds[0];
-    sessionStorage.setItem('ad_shown_'+a._id,'1');
-    setTimeout(function(){showAdOverlay(a);trackAd(a);},2000);
-  }
-  if(sidebarAds.length){
-    var a=sidebarAds[0];trackAd(a);
-    var sb=$('adSidebar');
-    sb.innerHTML='<a onclick="adClick(activeAds.find(function(x){return x._id==\''+a._id+'\'}))" style="display:block;text-decoration:none"><img src="'+esc(a.imageUrl)+'" alt="'+esc(a.title||'')+'" style="width:100%;border-radius:12px;display:block"><div style="text-align:center;padding:4px;font-size:10px;color:var(--text3)">'+esc(a.title||'')+'</div></a>';
-    sb.style.display='block';
-  }
-  ads.slice(0,3).forEach(function(a){trackAd(a);});
+  /* Fullscreen / Interstitial: popup overlay */
+  var fa=active.filter(function(a){return ['fullscreen','interstitial'].indexOf(a.type)!==-1&&a.position==='home'});
+  if(fa.length&&!sessionStorage.getItem('ad_shown_'+fa[0]._id)){var a=fa[0];sessionStorage.setItem('ad_shown_'+a._id,'1');setTimeout(function(){showAdOverlay(a);trackAd(a);},2000);}
+  /* Sidebar: fixed right (desktop only) */
+  var sa=active.filter(function(a){return a.type==='sidebar'||a.position==='sidebar'});
+  if(sa.length){var a=sa[0];trackAd(a);var sb=$('adSidebar');
+    sb.innerHTML='<a '+clickFn(a)+' style="display:block;text-decoration:none"><img src="'+esc(a.imageUrl)+'" alt="'+esc(a.title||'')+'" loading="lazy"><div class="ad-label"><div class="ad-title">'+esc(a.title||'')+'</div>'+(a.advertiserName?'<div class="ad-by">'+esc(a.advertiserName)+'</div>':'')+'</div></a>';
+    sb.style.display='block';}
+  active.slice(0,3).forEach(function(a){trackAd(a);});
 }
 function moveCarousel(idx){
   carouselIdx=idx;
   var track=document.getElementById('carouselTrack');
   if(track)track.style.transform='translateX(-'+(idx*100)+'%)';
   document.querySelectorAll('.ad-carousel-dot').forEach(function(d,i){d.classList.toggle('active',i===idx)});
+  var ctr=document.querySelector('.ad-carousel-counter');
+  if(ctr){var tot=ctr.textContent.split('/')[1]||'1';ctr.textContent=(idx+1)+'/'+tot;}
 }
 function showAdOverlay(a){
   var box=$('adOverlayContent');
