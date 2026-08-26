@@ -398,7 +398,8 @@ async function api(path,opts={}){
   const h=opts.headers||{};
   if(token)h.Authorization='Bearer '+token;
   const r=await fetch(path,{...opts,headers:h});
-  if(r.status===401){localStorage.removeItem('fmc_admin_token');token='';showLogin();toast('Session expired.','err');throw new Error('unauthorized')}
+  console.log('[API]',r.status,path);
+  if(r.status===401){console.error('[API] 401 Unauthorized for',path);localStorage.removeItem('fmc_admin_token');token='';showLogin();toast('Session expired.','err');throw new Error('unauthorized')}
   const j=await r.json().catch(()=>({}));
   if(!r.ok)throw new Error(j.message||'Request failed');
   return j;
@@ -1054,7 +1055,7 @@ const adminUrlParams=new URLSearchParams(window.location.search);
 const adminTokenParam=adminUrlParams.get("admin_token");
 if(adminTokenParam){token=adminTokenParam;localStorage.setItem("fmc_admin_token",adminTokenParam);window.history.replaceState({},window.location.pathname);}
 
-if(token){$('loginView').style.display='none';$('appView').style.display='block';loadDashboard().catch(()=>{token='';showLogin()})}else showLogin();
+if(token){console.log('[ADMIN] Token found, showing app...');$('loginView').style.display='none';$('appView').style.display='block';loadDashboard().catch(e=>{console.error('[ADMIN] Dashboard load failed:',e);token='';showLogin()})}else{console.log('[ADMIN] No token, showing login');showLogin()}
 </script>
 </body>
 </html>
