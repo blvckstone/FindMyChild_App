@@ -802,9 +802,9 @@ async function loadAds(){
 function renderAdsFiltered(){renderAdsList()}
 function renderAdsList(){
   var adsSrc=allAds;
-  var st=(?.value:"");
-  var ss=(?.value:"");
-  var sq=((?.value:"")).toLowerCase();
+  var st=(($('adsFilterType')).value||"");
+  var ss=(($('adsFilterStatus')).value||"");
+  var sq=(($('adsSearch')).value||"").toLowerCase();
   if(st)adsSrc=adsSrc.filter(function(a){return a.type===st});
   if(sq)adsSrc=adsSrc.filter(function(a){return (a.title||"").toLowerCase().indexOf(sq)!==-1||(a.advertiserName||"").toLowerCase().indexOf(sq)!==-1});
   if(ss)adsSrc=adsSrc.filter(function(a){
