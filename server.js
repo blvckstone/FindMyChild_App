@@ -14,6 +14,7 @@ const app = express();
 const server = http.createServer(app);
 
 //-----------------------------------------------Middleware-------------------------------------------------------------------->
+app.set('trust proxy', 1); // Trust Northflank proxy - fixes http/https protocol detection
 app.use(cors());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
