@@ -64,6 +64,7 @@ if (googleClientId && googleClientSecret) {
         try {
             // Detect admin vs user by checking the callback URL path
             const isAdmin = req.originalUrl && req.originalUrl.startsWith('/api/admin/auth/google/callback');
+            console.log('[GOOGLE-STRATEGY] Callback URL:', req.originalUrl, '| isAdmin:', isAdmin);
             if (isAdmin) {
                 const result = await loginAdminGoogle(profile);
                 return done(null, result);
@@ -225,9 +226,10 @@ app.get('/api/auth/me', requireAuth, async (req, res) => {
 if (googleClientId && googleClientSecret) {
     app.get('/api/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
     app.get('/api/auth/google/callback', (req, res, next) => {
+        console.log('[USER-GOOGLE-CB] Callback hit, originalUrl:', req.originalUrl);
         passport.authenticate('google', { failureRedirect: '/?error=google_failed', session: false }, (err, user, info) => {
             if (err || !user) {
-                console.error('Google auth error:', err ? err.message : 'No user returned');
+                console.error('[USER-GOOGLE-CB] Error:', err ? err.message : 'No user');
                 return res.redirect('/?error=' + encodeURIComponent(err ? err.message : 'google_failed'));
             }
             res.redirect('/?google_token=' + user.token);
@@ -367,21 +369,24 @@ app.post('/api/admin/login', (req, res) => {
 if (googleClientId && googleClientSecret) {
     // Admin Google login — uses SEPARATE callback URL for clean admin flow
     app.get('/api/admin/auth/google', (req, res, next) => {
+        console.log('[ADMIN-GOOGLE] Initiating admin login, protocol:', req.protocol, 'host:', req.get('host'));
         passport.authenticate('google', {
             scope: ['profile', 'email'],
             callbackURL: '/api/admin/auth/google/callback'
         })(req, res, next);
     });
     app.get('/api/admin/auth/google/callback', (req, res, next) => {
+        console.log('[ADMIN-GOOGLE-CB] Callback hit, protocol:', req.protocol, 'host:', req.get('host'), 'originalUrl:', req.originalUrl);
         passport.authenticate('google', {
             failureRedirect: '/admin?error=google_failed',
             session: false,
             callbackURL: '/api/admin/auth/google/callback'
         }, (err, result, info) => {
             if (err || !result) {
-                console.error('Admin Google auth error:', err ? err.message : 'Email not whitelisted');
+                console.error('[ADMIN-GOOGLE-CB] Auth error:', err ? err.message : 'No result (not whitelisted?)');
                 return res.redirect('/admin?error=' + encodeURIComponent(err ? err.message : 'not_whitelisted'));
             }
+            console.log('[ADMIN-GOOGLE-CB] Success! Redirecting to admin panel');
             res.redirect('/admin?admin_token=' + result.token + '&admin_name=' + encodeURIComponent(result.admin.name || '') + '&admin_role=' + (result.admin.role || 'admin'));
         })(req, res, next);
     });
