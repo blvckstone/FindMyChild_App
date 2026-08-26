@@ -170,9 +170,12 @@ main{max-width:100%;margin:0 auto;padding-bottom:calc(80px + env(safe-area-inset
 .hrow::-webkit-scrollbar{display:none}
 /* === SCALABLE CARD GRID === */
 .scard-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;padding:0 20px}
-.scard{background:var(--card);border-radius:20px;overflow:hidden;cursor:pointer;border:none;transition:transform .2s ease,box-shadow .2s ease;box-shadow:0 2px 12px rgba(0,0,0,.06);position:relative}
-.scard:hover{transform:translateY(-4px);box-shadow:0 8px 24px rgba(0,0,0,.1)}
-.scard:active{transform:scale(.97)}
+.scard{background:var(--card);border-radius:20px;overflow:hidden;cursor:pointer;position:relative;
+  border:1px solid rgba(255,255,255,.8);
+  box-shadow:0 4px 16px rgba(0,0,0,.12),0 1px 4px rgba(0,0,0,.08),inset 0 1px 0 rgba(255,255,255,.6);
+  transition:all .3s cubic-bezier(.4,0,.2,1);transform:perspective(1000px) translateY(0)}
+.scard:hover{transform:perspective(1000px) translateY(-8px) rotateX(2deg);box-shadow:0 16px 40px rgba(0,0,0,.18),0 4px 12px rgba(0,0,0,.12),inset 0 1px 0 rgba(255,255,255,.8)}
+.scard:active{transform:perspective(1000px) translateY(-2px) scale(.98)}
 .scard-img{height:200px;position:relative;background:linear-gradient(135deg,#f5f5f7,#e8e8ed);overflow:hidden;border-radius:20px 20px 0 0}
 .scard-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1}
 .scard-img .ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#f5f5f7,#e8e8ed)}
@@ -191,20 +194,27 @@ main{max-width:100%;margin:0 auto;padding-bottom:calc(80px + env(safe-area-inset
 /* === HORIZONTAL CARDS (home page) === */
 .hcard{
   flex:0 0 180px;scroll-snap-align:start;background:var(--card);border-radius:20px;
-  overflow:hidden;cursor:pointer;box-shadow:0 2px 12px rgba(0,0,0,.06);border:none;
-  transition:transform .2s ease,box-shadow .2s ease;
+  overflow:hidden;cursor:pointer;
+  box-shadow:0 4px 16px rgba(0,0,0,.12),0 1px 4px rgba(0,0,0,.08),inset 0 1px 0 rgba(255,255,255,.6);
+  border:1px solid rgba(255,255,255,.8);
+  transition:all .3s cubic-bezier(.4,0,.2,1);
+  transform:perspective(1000px) translateY(0);
 }
-.hcard:hover{transform:translateY(-4px);box-shadow:0 8px 24px rgba(0,0,0,.12)}
-.hcard:active{transform:scale(.97)}
+.hcard:hover{
+  transform:perspective(1000px) translateY(-8px) rotateX(2deg);
+  box-shadow:0 16px 40px rgba(0,0,0,.18),0 4px 12px rgba(0,0,0,.12),inset 0 1px 0 rgba(255,255,255,.8);
+}
+.hcard:active{transform:perspective(1000px) translateY(-2px) scale(.98)}
 .hcard .photo{height:180px;position:relative;background:linear-gradient(135deg,#f5f5f7,#e8e8ed);overflow:hidden;border-radius:20px 20px 0 0}
 .hcard .photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1}
+.hcard .photo::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,transparent 60%,rgba(0,0,0,.08) 100%);z-index:2}
 .hcard .photo .placeholder{width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#f5f5f7,#e8e8ed)}
 .hcard .photo .placeholder svg{width:56px;height:56px;fill:#aeaeb2;opacity:.5}
-.hcard .tag{position:absolute;top:12px;left:12px;padding:5px 12px;border-radius:10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
-.hcard .tag.missing{background:rgba(255,59,48,.85);color:#fff}
-.hcard .tag.found{background:rgba(52,199,89,.85);color:#fff}
-.hcard .meta{padding:14px 16px 16px}
-.hcard .name{font-size:15px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3}
+.hcard .tag{position:absolute;top:12px;left:12px;padding:5px 12px;border-radius:10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.hcard .tag.missing{background:rgba(255,59,48,.9);color:#fff}
+.hcard .tag.found{background:rgba(52,199,89,.9);color:#fff}
+.hcard .meta{padding:14px 16px 16px;background:linear-gradient(180deg,#fafafa 0%,var(--card) 100%)}
+.hcard .name{font-size:15px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3;text-shadow:0 1px 2px rgba(255,255,255,.8)}
 .hcard .sub{font-size:12px;color:var(--text2);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .hcard .date{font-size:11px;color:var(--text3);margin-top:6px;font-weight:500}
 
