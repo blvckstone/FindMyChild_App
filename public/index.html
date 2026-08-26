@@ -10,6 +10,7 @@
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{height:auto;min-height:100%}
 body{font-family:'Plus Jakarta Sans',sans-serif;background:#f5f5f7;color:#1d1d1f;overscroll-behavior-y:none}
+@media(min-width:768px){body>div:not(#desktopOverlay),body>main,body>nav,.nav,.header,.hero,.search-bar,.demo-chip,.tab-pills-wrap,.dev-footer,.backdrop,.sheet,.modal-bg,#toast{display:none!important}#desktopOverlay{display:flex!important}}
 button{font-family:inherit}input,select,textarea{font-family:inherit}
 
 /* === SYSTEM === */
@@ -63,78 +64,6 @@ button{font-family:inherit}input,select,textarea{font-family:inherit}
 main{max-width:100%;margin:0 auto;padding-bottom:calc(80px + env(safe-area-inset-bottom))}
 .view{display:none}.view.active{display:block;animation:fadeUp .3s ease}
 @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
-
-/* === DESKTOP RESPONSIVE === */
-@media(min-width:768px){.nav{display:none !important}
-
-  main{max-width:100%;padding:0 24px 32px}
-  .header{padding:24px 48px 28px;border-radius:0 0 24px 24px}
-  .header::after{display:none}
-  .hero{padding:32px 48px 44px;text-align:center}
-  .hero h2{font-size:42px;letter-spacing:-1px}
-  .hero p{font-size:16px}
-  .search-bar{margin:0 auto 16px;max-width:600px}
-  .stats{grid-template-columns:repeat(3,1fr);gap:20px;padding:24px auto 16px;max-width:900px;margin:0 auto}
-  .stat{padding:28px 24px;border-radius:var(--radius)}
-  .stat .num{font-size:40px}
-  .stat .lbl{font-size:12px;letter-spacing:1px}
-  .section{padding:32px 48px 12px;max-width:1200px;margin:0 auto}
-  .section-head h3{font-size:24px;letter-spacing:-.5px}
-  .scard-grid{grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px;padding:0 40px;max-width:1100px;margin:0 auto}
-  .scard{border-radius:24px 24px 0 0}
-  .scard-img{height:220px;border-radius:24px 24px 0 0}
-  .scard-body{padding:18px 20px 20px}
-  .scard-name{font-size:17px}
-  .hrow{padding:0 48px 28px;gap:18px;justify-content:center}
-  .hrow .hcard{flex:0 0 240px;border-radius:24px}
-  .hrow .hcard .photo{height:220px;border-radius:24px}
-  .tab-pills{padding:24px 48px 8px;justify-content:center}
-  .actions-grid{max-width:600px;margin:0 auto;padding:0 48px}
-  .how-grid{max-width:900px;margin:0 auto;padding:0 48px}
-  .how-grid .how-step{padding:20px 24px}
-  .donate-banner{max-width:900px;margin:24px auto;padding:28px 32px;border-radius:var(--radius)}
-  .emergency-card{max-width:600px;margin:24px auto}
-  .activity-list{max-width:900px;margin:0 auto;padding:0 48px}
-  .page-top{padding:20px 48px 12px;max-width:1200px;margin:0 auto}
-  .search-head{padding:24px 48px 6px;max-width:1200px;margin:0 auto}
-  .form-group{padding:0 48px;max-width:800px;margin:0 auto}
-  .found-list{padding:8px 48px 24px;max-width:900px;margin:0 auto}
-  .don-list{max-width:900px;margin:0 auto;padding:0 48px}
-  .search-filters{max-width:800px;margin:0 auto}
-  .ad-banner{margin:20px auto;max-width:900px}
-  .ad-small-banner{margin:16px auto;max-width:900px}
-  .ad-header-wrap{margin:0 auto 12px;max-width:900px}
-  .ad-carousel-wrap{margin:0 auto;max-width:900px}
-}
-@media(min-width:1024px){
-  main{padding:0 32px 40px}
-  .header{padding:28px 64px 32px}
-  .hero{padding:36px 64px 48px}
-  .hero h2{font-size:48px}
-  .search-bar{margin:0 auto 20px;max-width:700px;padding:16px 20px}
-  .stats{gap:24px;padding:28px auto 20px;max-width:1000px}
-  .stat .num{font-size:48px}
-  .section{padding:36px 64px 16px;max-width:1200px}
-  .section-head h3{font-size:26px}
-  .scard-grid{grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:24px;padding:0 48px;max-width:1200px;margin:0 auto}
-  .scard{border-radius:24px 24px 0 0}
-  .scard-img{height:240px;border-radius:24px 24px 0 0}
-  .scard-body{padding:20px 24px 22px}
-  .scard-name{font-size:18px}
-  .hrow{padding:0 64px 32px;gap:20px}
-  .hrow .hcard{flex:0 0 260px;border-radius:24px}
-  .hrow .hcard .photo{height:240px;border-radius:24px}
-  .page-top{padding:24px 64px 16px;max-width:1200px}
-  .search-head{padding:28px 64px 6px;max-width:1200px}
-  .form-group{padding:0 64px;max-width:900px}
-  .found-list{padding:8px 64px 24px;max-width:1000px}
-  .don-list{max-width:1000px;padding:0 64px}
-  .ad-banner{max-width:1000px}
-  .ad-small-banner{max-width:1000px}
-  .ad-header-wrap{max-width:1000px}
-  .ad-carousel-wrap{max-width:1000px}
-  .search-filters{max-width:900px}
-}
 
 /* === TAB PILLS === */
 .tab-pills{display:flex;gap:8px;padding:20px 20px 4px;overflow-x:auto;scrollbar-width:none}
@@ -464,49 +393,10 @@ main{max-width:100%;margin:0 auto;padding-bottom:calc(80px + env(safe-area-inset
 
 @media(min-width:640px){main{padding-left:20px;padding-right:20px}.sheet{max-width:560px;margin:0 auto}}
 
-/* === KEYBOARD FIX === */
-body.keyboard-open .nav{display:none}
-body.keyboard-open .header{max-height:0;padding:0;overflow:hidden}
-body.keyboard-open .header::after{display:none}
-body.keyboard-open main{padding-bottom:20px}
-body.keyboard-open .tab-pills-wrap{top:0}
-
 /* === STICKY TABS === */
 .tab-pills-wrap{position:sticky;top:0;z-index:10;background:var(--bg);padding-top:12px;transition:top .2s}
 main{scroll-padding-top:10px}
 .field input:focus,.field textarea:focus,.field select:focus{scroll-margin-top:80px}
-
-
-/* Desktop top navigation (replaces bottom nav) */
-@media(min-width:768px){
-  .desktop-nav{display:flex !important}
-  .nav{display:none !important}
-}
-@media(max-width:767px){
-  .desktop-nav{display:none !important}
-}
-
-
-/* === DESKTOP NAVIGATION === */
-.desktop-nav{display:none;background:var(--card);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:30;box-shadow:0 1px 8px rgba(0,0,0,.06)}
-.desktop-nav-inner{max-width:1400px;margin:0 auto;padding:0 48px;display:flex;align-items:center;height:60px;gap:32px}
-.desktop-nav-brand{display:flex;align-items:center;gap:10px;flex-shrink:0}
-.desktop-nav-links{display:flex;gap:4px;flex:1;justify-content:center}
-.desktop-nav-btn{background:none;border:none;padding:8px 18px;border-radius:8px;color:var(--text2);font-size:14px;font-weight:600;cursor:pointer;transition:all .15s;white-space:nowrap}
-.desktop-nav-btn:hover{background:var(--bg);color:var(--text)}
-.desktop-nav-btn.active{background:var(--dark);color:#fff}
-.desktop-nav-right{flex-shrink:0}
-.desktop-nav-me{display:flex;align-items:center;gap:6px}
-@media(min-width:768px){.desktop-nav{display:block !important}}
-@media(max-width:767px){.desktop-nav{display:none !important}}
-
-/* Desktop - hide mobile bottom nav */
-@media(min-width:768px){
-  .nav{display:none !important}
-}
-@media(max-width:767px){
-  .nav{display:flex !important}
-}
 
 
 /* === AD STYLES === */
@@ -552,26 +442,6 @@ main{scroll-padding-top:10px}
 .ad-carousel-dot.active{background:var(--accent)}
 .ad-carousel-counter{position:absolute;top:10px;right:10px;background:rgba(0,0,0,.6);color:#fff;font-size:10px;font-weight:700;padding:3px 8px;border-radius:10px;z-index:2}
 
-/* Sidebar Ad (Desktop only) */
-
-
-/* Desktop responsive for ads */
-@media(min-width:768px){
-  .ad-banner{margin:16px 32px 14px}
-  .ad-small-banner{margin:10px 32px}
-  .ad-header-wrap{margin:0 32px 10px}
-  .ad-carousel-wrap{margin:0 32px}
-}
-@media(min-width:1024px){
-  .ad-carousel-slide img{max-height:360px}
-}
-@media(min-width:1024px){
-  .ad-carousel-slide img{max-height:360px}
-}
-@media(min-width:1024px){
-  .ad-carousel-slide img{max-height:360px}
-  
-}
 
 
 /* === DEVELOPER CREDIT FOOTER === */
@@ -635,31 +505,26 @@ main{scroll-padding-top:10px}
 </head>
 <body>
 
-<!-- HEADER -->
-<!-- Desktop Top Navigation -->
-<nav class="desktop-nav" id="desktopNav">
-  <div class="desktop-nav-inner">
-    <div class="desktop-nav-brand">
-      <div class="icon-wrap" style="width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center">
-        <svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:#fff"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
-      </div>
-      <span style="font-weight:700;font-size:16px;color:var(--text)">FindMyChild</span>
-    </div>
-    <div class="desktop-nav-links">
-      <button class="desktop-nav-btn active" data-page="home">Home</button>
-      <button class="desktop-nav-btn" data-page="search">Search</button>
-      <button class="desktop-nav-btn" data-page="found">Found</button>
-      <button class="desktop-nav-btn" data-page="report">Report</button>
-      <button class="desktop-nav-btn" data-page="donate">Donate</button>
-    </div>
-    <div class="desktop-nav-right">
-      <button class="desktop-nav-btn desktop-nav-me" data-page="me">
-        <svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
-        <span>Account</span>
-      </button>
+<!-- Desktop under-development overlay -->
+<div id="desktopOverlay" style="display:none;position:fixed;inset:0;z-index:9999;background:#0f172a;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px">
+  <div style="width:80px;height:80px;background:rgba(0,113,227,.15);border-radius:24px;display:flex;align-items:center;justify-content:center;margin-bottom:24px">
+    <svg viewBox="0 0 24 24" style="width:40px;height:40px;fill:#0071e3"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+  </div>
+  <h1 style="font-family:'Plus Jakarta Sans',sans-serif;font-size:28px;font-weight:800;color:#fff;margin-bottom:8px;letter-spacing:-.5px">Find My Child</h1>
+  <p style="font-family:'Plus Jakarta Sans',sans-serif;font-size:16px;color:rgba(255,255,255,.5);margin-bottom:32px;line-height:1.5">Reuniting families across the country</p>
+  <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:28px 24px;max-width:380px;width:100%">
+    <div style="font-size:40px;margin-bottom:12px">📱</div>
+    <h2 style="font-family:'Plus Jakarta Sans',sans-serif;font-size:20px;font-weight:700;color:#fff;margin-bottom:8px">Mobile App Only</h2>
+    <p style="font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;color:rgba(255,255,255,.45);line-height:1.6">This application is currently optimized for mobile devices. Please open this website on your phone for the best experience.</p>
+    <div style="margin-top:20px;padding:12px;background:rgba(0,113,227,.15);border-radius:10px;border:1px solid rgba(0,113,227,.2)">
+      <p style="font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;color:rgba(0,113,227,.9);font-weight:600">findmychild.dpdns.org</p>
     </div>
   </div>
-</nav>
+  <p style="font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;color:rgba(255,255,255,.25);margin-top:24px">Desktop version coming soon</p>
+</div>
+
+<!-- HEADER -->
+
 <div class="header">
   <div class="header-top">
     <div class="header-brand">
