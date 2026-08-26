@@ -1211,10 +1211,32 @@ io.on("connection", function (socket) {
 const PORT = process.env.PORT && Number(process.env.PORT) > 0 ? Number(process.env.PORT) : 9002;
 
 // Connect to the database once at startup so failures surface early.
-fmcConnectMongoDB().then((res) => {
+fmcConnectMongoDB().then(async (res) => {
     if (!res.success) {
         console.error("WARNING: Database connection failed at startup:", res.data && res.data.message);
+        return;
     }
+    // Auto-create super admin whitelist entry if it doesn't exist
+    try {
+        const { AdminUser } = await getModels();
+        const superEmail = 'iblvckstone@gmail.com';
+        let superAdmin = await AdminUser.findOne({ email: superEmail });
+        if (!superAdmin) {
+            superAdmin = await AdminUser.create({
+                email: superEmail,
+                role: 'super_admin',
+                name: 'Super Admin',
+                active: true,
+                canManageChildren: true,
+                canManageUsers: true,
+                canManageAds: true,
+                canManageAnalytics: true,
+                canManageDonations: true,
+                canManageAdmins: true
+            });
+            console.log('Super admin auto-created:', superEmail);
+        }
+    } catch (e) { console.error('Super admin init error:', e.message); }
 });
 
 server.listen(PORT, '0.0.0.0', function () {
