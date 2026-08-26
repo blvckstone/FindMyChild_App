@@ -756,10 +756,23 @@ app.post('/api/admin/ads', requireAdmin, async (req, res) => {
     try {
         const { Advertisement } = await getModels();
         const b = req.body;
-        const imagePath = await saveImage(req.files && req.files.image);
+        let imageUrl = '';
+        let imageUrls = [];
+        if (req.files && req.files.images) {
+            const files = Array.isArray(req.files.images) ? req.files.images : [req.files.images];
+            for (const file of files) {
+                const p = await saveImage(file);
+                if (p) imageUrls.push(p);
+            }
+            if (imageUrls.length) imageUrl = imageUrls[0];
+        } else if (req.files && req.files.image) {
+            imageUrl = await saveImage(req.files.image);
+            imageUrls = [imageUrl];
+        }
         const ad = await Advertisement.create({
             title: String(b.title || '').trim().slice(0, 100),
-            imageUrl: imagePath || String(b.imageUrl || '').trim(),
+            imageUrl: imageUrl || String(b.imageUrl || '').trim(),
+            imageUrls: imageUrls,
             linkUrl: String(b.linkUrl || '').trim(),
             type: b.type || 'banner',
             position: b.position || 'home',
@@ -793,6 +806,15 @@ app.put('/api/admin/ads/:id', requireAdmin, async (req, res) => {
         if (b.imageUrl !== undefined) update.imageUrl = String(b.imageUrl).trim();
         const imagePath = await saveImage(req.files && req.files.image);
         if (imagePath) update.imageUrl = imagePath;
+        if (req.files && req.files.images) {
+            const files = Array.isArray(req.files.images) ? req.files.images : [req.files.images];
+            const urls = [];
+            for (const file of files) {
+                const p = await saveImage(file);
+                if (p) urls.push(p);
+            }
+            if (urls.length) { update.imageUrls = urls; update.imageUrl = urls[0]; }
+        }
         const ad = await Advertisement.findByIdAndUpdate(req.params.id, update, { new: true });
         if (!ad) return res.status(404).json({ success: false, message: 'Ad not found.' });
         dataCache.ads = null;

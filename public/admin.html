@@ -345,7 +345,7 @@ button{font-family:inherit;cursor:pointer}input,select,textarea{font-family:inhe
 
 <!-- ===== ADS ===== -->
 <div class="page" id="pg-ads">
-  <div class="page-head"><h2>Advertisements</h2><div class="actions"><button class="btn-sm" onclick="showAddAdModal()">+ New Ad</button></div></div>
+  <div class="page-head"><h2>Advertisements</h2><div class="actions"><button class="btn-sm" onclick="editingAdId=null;showAddAdModal()">+ New Ad</button></div></div>
   <div class="stats" style="margin-bottom:18px" id="adsStats"></div>
   <div class="filter-bar" style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
     <input id="adsSearch" placeholder="Search ads..." oninput="renderAdsFiltered()" style="flex:1;min-width:120px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px">
@@ -934,7 +934,6 @@ const adTypes=['carousel','fullscreen','banner','small_banner','header','sidebar
 const adPositions=['home','search','found','report','sidebar'];
 let editingAdId=null;
 function showAddAdModal(a){
-  editingAdId=null;
   const isEdit=!!a;
   $('modalTitle').textContent=isEdit?'Edit Advertisement':'Create Advertisement';
   const typeHints={banner:'1200×300',small_banner:'1200×200',header:'1200×150',fullscreen:'1080×1920',carousel:'1080×1080',sidebar:'300×600',popup:'Custom size',interstitial:'1080×1920'};
@@ -953,7 +952,7 @@ function showAddAdModal(a){
     </div>
     <div class="grid2">
       <div class="field"><label>Priority</label><input id="ad_priority" type="number" value="${isEdit?(a.priority||0):0}" min="0"></div>
-      <div class="field"><label>Image${isEdit?' (leave empty to keep current)':''}</label><input id="ad_image" type="file" accept="image/*"></div>
+      <div class="field"><label>Image${isEdit?' (leave empty to keep current)':''}</label><input id="ad_image" type="file" accept="image/*" multiple></div>
     </div>
     ${hintHtml}
     <div class="grid2">
@@ -983,7 +982,8 @@ async function submitAd(){
   try{const fd=new FormData();
   fd.append('title',$('ad_title').value.trim());fd.append('advertiserName',$('ad_advertiser').value.trim());fd.append('linkUrl',$('ad_link').value.trim());fd.append('type',$('ad_type').value);fd.append('position',$('ad_position').value);fd.append('priority',$('ad_priority').value);
   if($('ad_start').value)fd.append('startDate',$('ad_start').value);if($('ad_end').value)fd.append('endDate',$('ad_end').value);
-  const file=$('ad_image')?.files[0];if(file)fd.append('image',file);
+  const files=$('ad_image')?.files;
+  if(files&&files.length){for(var i=0;i<files.length;i++)fd.append('images',files[i]);}
   if(editingAdId){
     await api('/api/admin/ads/'+editingAdId,{method:'PUT',body:fd});toast('Ad updated!');
   }else{

@@ -65,6 +65,7 @@ const analyticsSchema = mongoose.Schema({
 const adSchema = mongoose.Schema({
     title: String,
     imageUrl: String,
+    imageUrls: [String],
     linkUrl: String,
     type: { type: String, enum: ['carousel', 'fullscreen', 'banner', 'small_banner', 'header', 'sidebar', 'popup', 'interstitial'], default: 'banner' },
     position: { type: String, default: 'home' },

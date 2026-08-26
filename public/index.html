@@ -740,13 +740,13 @@ main{scroll-padding-top:10px}
 
 <!-- MODAL -->
 <div class="modal-bg" id="modalBg"><div class="modal"><h3 id="modalTitle"></h3><div id="modalBody"></div></div></div>
-<!-- Fullscreen/Interstitial Ad Overlay -->
+<!-- Fullscreen/Interstitial/Popup Ad Overlay -->
 <div id="adOverlay" style="display:none;position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.85);align-items:center;justify-content:center;flex-direction:column">
   <div id="adOverlayContent" style="position:relative;max-width:420px;width:90%"></div>
   <button onclick="closeAdOverlay()" style="position:fixed;top:16px;right:16px;background:rgba(255,255,255,.95);border:none;border-radius:50%;width:40px;height:40px;font-size:20px;cursor:pointer;z-index:101;box-shadow:0 2px 12px rgba(0,0,0,.3)">✕</button>
 </div>
 <!-- Sidebar Ad (Desktop only) -->
-<div id="adSidebar" style="display:none;position:fixed;right:20px;top:50%;transform:translateY(-50%);width:160px;z-index:5"></div>
+<div id="adSidebar" style="display:none;position:fixed;right:16px;top:50%;transform:translateY(-50%);width:160px;z-index:5"><button onclick="this.parentElement.style.display='none'" style="position:absolute;top:-10px;right:-10px;width:22px;height:22px;border-radius:50%;background:#fff;border:1px solid #e5e5ea;font-size:11px;cursor:pointer;z-index:10;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.15)">X</button></div>
 <div id="toast"></div>
 
 <script src="/socket.io/socket.io.js"></script>
@@ -996,7 +996,8 @@ function adClick(ad){
   if(ad&&ad._id){fetch('/api/ads/'+ad._id+'/click',{method:'POST'}).catch(()=>{});}
   if(ad&&ad.linkUrl)window.open(ad.linkUrl,'_blank');
 }
-function closeAdOverlay(){const o=$('adOverlay');if(o)o.style.display='none';}
+function closeAdOverlay(){var o=$('adOverlay');if(o)o.style.display='none';}
+function closeSidebarAd(){var s=$('adSidebar');if(s)s.style.display='none';}
 function renderAds(){
   ['adBanner','adHeader','adCarousel'].forEach(function(id){var b=$(id);if(b){b.innerHTML='';b.style.display='none'}});
   var sb=$('adSidebar');if(sb){sb.innerHTML='';sb.style.display='none';}
@@ -1022,7 +1023,7 @@ function renderAds(){
   /* Carousel: auto-sliding with dots and counter */
   var ca=active.filter(function(a){return a.type==='carousel'&&a.position==='home'});
   if(ca.length){var slides=ca.slice(0,5);var b=$('adCarousel');
-    var sHtml=slides.map(function(a,i){trackAd(a);return '<div class="ad-carousel-slide"><a'+clickFn(a)+' style="display:block;text-decoration:none"><img src="'+esc(a.imageUrl)+'" alt="'+esc(a.title||'')+'" loading="lazy"><div class="ad-slide-info"><span class="ad-title">'+esc(a.title||'')+'</span>'+(a.advertiserName?'<span class="ad-by">'+esc(a.advertiserName)+'</span>':'')+'</div></a></div>';}).join('');
+    var sHtml=slides.map(function(a,i){trackAd(a);var imgs=(a.imageUrls&&a.imageUrls.length)?a.imageUrls:[a.imageUrl];return imgs.map(function(url,si){return '<div class="ad-carousel-slide"><a'+clickFn(a)+' style="display:block;text-decoration:none"><img src="'+esc(url)+'" alt="'+esc(a.title||'')+'" loading="lazy"><div class="ad-slide-info"><span class="ad-title">'+esc(a.title||'')+'</span>'+(a.advertiserName?'<span class="ad-by">'+esc(a.advertiserName)+'</span>':'')+'</div></a></div>';}).join('');}).join('');
     var dHtml=slides.map(function(_,i){return '<div class="ad-carousel-dot'+(i===0?' active':'')+'" onclick="moveCarousel('+i+')"></div>';}).join('');
     b.innerHTML='<div class="ad-carousel-wrap"><div class="ad-carousel-counter">1/'+slides.length+'</div><div class="ad-carousel-track" id="carouselTrack" style="transform:translateX(0)">'+sHtml+'</div><div class="ad-carousel-dots">'+dHtml+'</div></div>';
     b.style.display='block';carouselIdx=0;
@@ -1030,12 +1031,12 @@ function renderAds(){
     carouselTimer=setInterval(function(){moveCarousel((carouselIdx+1)%slides.length)},4000);
   }
   /* Fullscreen / Interstitial: popup overlay */
-  var fa=active.filter(function(a){return ['fullscreen','interstitial'].indexOf(a.type)!==-1&&a.position==='home'});
+  var fa=active.filter(function(a){return ['fullscreen','interstitial','popup'].indexOf(a.type)!==-1&&a.position==='home'});
   if(fa.length&&!sessionStorage.getItem('ad_shown_'+fa[0]._id)){var a=fa[0];sessionStorage.setItem('ad_shown_'+a._id,'1');setTimeout(function(){showAdOverlay(a);trackAd(a);},2000);}
   /* Sidebar: fixed right (desktop only) */
   var sa=active.filter(function(a){return a.type==='sidebar'||a.position==='sidebar'});
   if(sa.length){var a=sa[0];trackAd(a);var sb=$('adSidebar');
-    sb.innerHTML='<a '+clickFn(a)+' style="display:block;text-decoration:none"><img src="'+esc(a.imageUrl)+'" alt="'+esc(a.title||'')+'" loading="lazy"><div class="ad-label"><div class="ad-title">'+esc(a.title||'')+'</div>'+(a.advertiserName?'<div class="ad-by">'+esc(a.advertiserName)+'</div>':'')+'</div></a>';
+    sb.innerHTML='<div style="position:relative"><button onclick="closeSidebarAd()" style="position:absolute;top:4px;right:4px;width:20px;height:20px;border-radius:50%;background:rgba(255,255,255,.9);border:none;font-size:11px;cursor:pointer;z-index:10;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.15)">X</button><a '+clickFn(a)+' style="display:block;text-decoration:none"><img src="'+esc(a.imageUrl)+'" alt="'+esc(a.title||'')+'" loading="lazy"><div class="ad-label"><div class="ad-title">'+esc(a.title||'')+'</div>'+(a.advertiserName?'<div class="ad-by">'+esc(a.advertiserName)+'</div>':'')+'</div></a></div>';
     sb.style.display='block';}
   active.slice(0,3).forEach(function(a){trackAd(a);});
 }
@@ -1051,10 +1052,11 @@ function showAdOverlay(a){
   var box=$('adOverlayContent');
   if(!box)return;
   var link=a.linkUrl||'#';
-  box.innerHTML='<a onclick="adClick(activeAds.find(function(x){return x._id==\''+a._id+'\'}));closeAdOverlay()" style="display:block;text-decoration:none;border-radius:16px;overflow:hidden;background:var(--card);box-shadow:0 8px 40px rgba(0,0,0,.4)"><img src="'+esc(a.imageUrl)+'" style="width:100%;max-height:500px;object-fit:cover;display:block"><div style="padding:16px;text-align:center"><div style="font-size:18px;font-weight:800;color:var(--text);margin-bottom:6px">'+esc(a.title||'Advertisement')+'</div>'+(a.advertiserName?'<div style="font-size:13px;color:var(--text2)">By '+esc(a.advertiserName)+'</div>':'')+'<div style="margin-top:12px;padding:10px;background:var(--accent);color:#fff;border-radius:10px;font-size:14px;font-weight:700">Visit Now</div></div></a>';
+  var isFS=['fullscreen','interstitial','popup'].indexOf(a.type)!==-1;
+  var imgH=isFS?'max-height:70vh;object-fit:contain':'max-height:220px;object-fit:cover';
+  box.innerHTML='<a onclick="adClick(activeAds.find(function(x){return x._id==\''+a._id+'\'}));closeAdOverlay()" style="display:block;text-decoration:none;border-radius:16px;overflow:hidden;background:var(--card);box-shadow:0 8px 40px rgba(0,0,0,.4)"><img src="'+esc(a.imageUrl)+'" style="width:100%;'+imgH+';display:block"><div style="padding:16px;text-align:center"><div style="font-size:18px;font-weight:800;color:var(--text);margin-bottom:6px">'+esc(a.title||'Advertisement')+'</div>'+(a.advertiserName?'<div style="font-size:13px;color:var(--text2)">By '+esc(a.advertiserName)+'</div>':'')+'<div style="margin-top:12px;padding:10px;background:var(--accent);color:#fff;border-radius:10px;font-size:14px;font-weight:700">Visit Now</div></div></a>';
   $('adOverlay').style.display='flex';
 }
-
 /* --- Boot --- */
 $('backdrop').addEventListener('click',closeDetail);
 $('sheetClose').addEventListener('click',closeDetail);
