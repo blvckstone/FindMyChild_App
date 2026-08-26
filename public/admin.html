@@ -64,7 +64,7 @@ button{font-family:inherit;cursor:pointer}input,select,textarea{font-family:inhe
 .stat .icon.red{background:var(--red-light)}.stat .icon.red svg{fill:var(--red)}
 .stat .icon.orange{background:var(--orange-light)}.stat .icon.orange svg{fill:var(--orange)}
 .stat .icon.purple{background:var(--purple-light)}.stat .icon.purple svg{fill:var(--purple)}
-.stat .num{font-size:28px;font-weight:800;letter-spacing:-.5px}
+.stat .num{font-size:28px;font-weight:800;letter-spacing:-.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .stat .lbl{font-size:12px;color:var(--text2);font-weight:500}
 
 /* Filter bar */
@@ -794,7 +794,7 @@ async function loadAds(){
   $('adsStats').innerHTML=`
     <div class="stat"><div class="icon blue"><svg viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H3V5h18v14z"/></svg></div><div><div class="num">${allAds.length}</div><div class="lbl">Total Ads</div></div></div>
     <div class="stat"><div class="icon green"><svg viewBox="0 0 24 24"><path d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z"/></svg></div><div><div class="num" style="color:var(--green)">${activeAds}</div><div class="lbl">Active</div></div></div>
-    <div class="stat"><div class="icon orange"><svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg></div><div><div class="num" style="color:var(--orange)">${totalImpressions} / ${totalClicks}</div><div class="lbl">Impressions / Clicks</div></div></div>
+    <div class="stat"><div class="icon orange"><svg viewBox="0 0 24 24"><path d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z"/></svg></div><div><div class="num" style="color:var(--orange);font-size:20px">${totalImpressions}</div><div class="lbl">Impressions</div></div></div><div class="stat"><div class="icon green"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg></div><div><div class="num" style="color:var(--green);font-size:20px">${totalClicks}</div><div class="lbl">Clicks</div></div></div>
     <div class="stat"><div class="icon red"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg></div><div><div class="num" style="color:var(--red)">${expiredAds}</div><div class="lbl">Expired</div></div></div>`;
   renderAdsList();
   }catch(e){$('adsList').innerHTML='<div class="empty">Failed to load ads.</div>'}
@@ -836,57 +836,10 @@ function renderAdCard(a){
   const imgUrl=a.imageUrl||'';
   const isExpired=a.endDate&&new Date(a.endDate)<new Date();
   const daysLeft=a.endDate?Math.ceil((new Date(a.endDate)-new Date())/(1000*60*60*24)):null;
-  // Type-specific preview
-  let preview='';
-  const previewStyle=`width:100%;border-radius:8px;overflow:hidden;background:${s.bg};border:1px solid var(--border)`;
-  if(a.type==='banner'||a.type==='header'||a.type==='small_banner'){
-    preview=`<div style="${previewStyle};aspect-ratio:3/1;display:flex;align-items:center;justify-content:center">
-      ${imgUrl?'<img src="'+esc(imgUrl)+'" style="width:100%;height:100%;object-fit:cover">':'<div style="text-align:center;padding:10px"><div style="font-size:24px">'+s.icon+'</div><div style="font-size:10px;color:var(--text3)">'+s.desc+'</div></div>'}
-    </div>`;
-  }else if(a.type==='carousel'){
-    preview=`<div style="${previewStyle};aspect-ratio:1/1;max-width:160px;display:flex;align-items:center;justify-content:center">
-      ${imgUrl?'<img src="'+esc(imgUrl)+'" style="width:100%;height:100%;object-fit:cover">':'<div style="text-align:center"><div style="font-size:28px">'+s.icon+'</div></div>'}
-    </div>`;
-  }else if(a.type==='fullscreen'||a.type==='interstitial'){
-    preview=`<div style="${previewStyle};aspect-ratio:9/16;max-width:80px;display:flex;align-items:center;justify-content:center">
-      ${imgUrl?'<img src="'+esc(imgUrl)+'" style="width:100%;height:100%;object-fit:cover">':'<div style="text-align:center"><div style="font-size:24px">'+s.icon+'</div><div style="font-size:8px;color:var(--text3)">Full Screen</div></div>'}
-    </div>`;
-  }else if(a.type==='sidebar'){
-    preview=`<div style="${previewStyle};aspect-ratio:1/2;max-width:60px;display:flex;align-items:center;justify-content:center">
-      ${imgUrl?'<img src="'+esc(imgUrl)+'" style="width:100%;height:100%;object-fit:cover">':'<div style="text-align:center"><div style="font-size:20px">'+s.icon+'</div></div>'}
-    </div>`;
-  }else{
-    preview=`<div style="${previewStyle};aspect-ratio:1/1;max-width:80px;display:flex;align-items:center;justify-content:center">
-      ${imgUrl?'<img src="'+esc(imgUrl)+'" style="width:100%;height:100%;object-fit:cover">':'<div style="text-align:center"><div style="font-size:24px">'+s.icon+'</div></div>'}
-    </div>`;
-  }
-  return `<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px;cursor:pointer;border-left:4px solid ${s.color}" onclick="openAdDetail('${a._id}')">
-    <div style="display:flex;gap:14px;align-items:flex-start">
-      <div style="flex:0 0 auto">${preview}</div>
-      <div style="flex:1;min-width:0;overflow:hidden">
-        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px">
-          <span style="font-size:14px;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(a.title||'Untitled')}</span>
-          <span style="display:inline-block;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;background:${a.active?(isExpired?'var(--red-light)':'var(--green-light)'):'var(--bg)'};color:${a.active?(isExpired?'#dc2626':'#047857'):'var(--text3)'}">${isExpired?'EXPIRED':a.active?'ACTIVE':'PAUSED'}</span>
-        </div>
-        <div style="margin-bottom:6px">${adTypeBadge(a.type)} <span style="font-size:11px;color:var(--text3);margin-left:4px">${s.size} · ${s.desc}</span></div>
-        ${a.advertiserName?'<div style="font-size:12px;color:var(--text2);margin-bottom:2px">🏢 '+esc(a.advertiserName)+'</div>':''}
-        ${a.linkUrl?'<div style="font-size:11px;color:var(--accent);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">🔗 '+esc(a.linkUrl)+'</div>':''}
-        <div style="display:flex;gap:12px;font-size:11px;color:var(--text3);margin-top:4px">
-          <span>👁️ ${a.impressions||0}</span>
-          <span>👆 ${a.clicks||0}</span>
-          <span>📍 ${esc(a.position||'home')}</span>
-          <span>⚡ P${a.priority||0}</span>
-          ${daysLeft!==null?(daysLeft<=0?'<span style="color:var(--red)">Expired</span>':'<span>'+daysLeft+'d left</span>'):''}
-        </div>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0" onclick="event.stopPropagation()">
-        <button class="btn-sm${a.active?' btn-outline':''}" onclick="toggleAd('${a._id}',${!a.active})" style="padding:6px 10px;font-size:10px">${a.active?'Pause':'On'}</button>
-        <button class="btn-sm btn-outline" onclick="editAd('${a._id}')" style="padding:6px 10px;font-size:10px">Edit</button>
-        ${isExpired?'<button class="btn-sm" onclick="relaunchAd(\''+a._id+'\')" style="padding:6px 10px;font-size:10px;background:var(--green);color:#fff">Relaunch</button>':''}
-        <button class="btn-sm btn-red" onclick="deleteAd('${a._id}')" style="padding:6px 10px;font-size:10px">Del</button>
-      </div>
-    </div>
-  </div>`;
+  // Compact uniform thumbnail: 72x56 for all ad types
+  const thumbStyle='width:72px;height:56px;border-radius:8px;overflow:hidden;flex-shrink:0;background:'+s.bg+';border:1px solid var(--border);display:flex;align-items:center;justify-content:center';
+  const thumb=imgUrl?'<img src="'+esc(imgUrl)+'" style="width:100%;height:100%;object-fit:cover">':'<div style="text-align:center"><span style="font-size:20px">'+s.icon+'</span></div>';
+  return '<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:10px;cursor:pointer;border-left:4px solid '+s.color+'" onclick="openAdDetail(\''+a._id+'\')"><div style="display:flex;gap:12px;align-items:center"><div style="'+thumbStyle+'">'+thumb+'</div><div style="flex:1;min-width:0;overflow:hidden"><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px"><span style="font-size:13px;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(a.title||'Untitled')+'</span><span style="font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;background:'+(a.active?(isExpired?'var(--red-light)':'var(--green-light)'):'var(--bg)')+';color:'+(a.active?(isExpired?'#dc2626':'#047857'):'var(--text3)')+'">'+(isExpired?'EXPIRED':a.active?'ACTIVE':'PAUSED')+'</span></div><div style="margin-bottom:3px">'+adTypeBadge(a.type)+' <span style="font-size:10px;color:var(--text3);margin-left:4px">'+s.size+' · '+s.desc+'</span></div>'+(a.advertiserName?'<div style="font-size:11px;color:var(--text2);margin-bottom:2px">🏢 '+esc(a.advertiserName)+'</div>':'')+'<div style="display:flex;gap:10px;font-size:10px;color:var(--text3);margin-top:3px"><span>👁 '+((a.impressions||0))+'</span><span>👆 '+((a.clicks||0))+'</span><span>📍 '+esc(a.position||'home')+'</span><span>⚡ P'+((a.priority||0))+'</span>'+(daysLeft!==null?(daysLeft<=0?'<span style="color:var(--red)">Expired</span>':'<span>'+daysLeft+'d left</span>'):'')+'</div></div><div style="display:flex;flex-direction:column;gap:3px;flex-shrink:0" onclick="event.stopPropagation()"><button class="btn-sm'+(a.active?' btn-outline':'')+'" onclick="toggleAd(\''+a._id+'\','+(a.active?'false':'true')+')" style="padding:5px 8px;font-size:9px">'+((a.active)?'Pause':'On')+'</button><button class="btn-sm btn-outline" onclick="editAd(\''+a._id+'\')" style="padding:5px 8px;font-size:9px">Edit</button>'+(isExpired?'<button class="btn-sm" onclick="relaunchAd(\''+a._id+'\')" style="padding:5px 8px;font-size:9px;background:var(--green);color:#fff">Relaunch</button>':'')+'<button class="btn-sm btn-red" onclick="deleteAd(\''+a._id+'\')" style="padding:5px 8px;font-size:9px">Del</button></div></div></div>';
 }
 function openAdDetail(id){
   const a=allAds.find(x=>x._id===id);if(!a)return;
