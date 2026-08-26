@@ -208,6 +208,11 @@ button{font-family:inherit;cursor:pointer}input,select,textarea{font-family:inhe
   <div class="field"><label>Username</label><input id="loginUser" type="text" autocomplete="username" placeholder="Enter username"></div>
   <div class="field"><label>Password</label><input id="loginPass" type="password" autocomplete="current-password" placeholder="Enter password"></div>
   <button class="btn" id="loginBtn">Sign In</button>
+  <div style="text-align:center;margin:8px 0;color:var(--text3);font-size:12px">— or —</div>
+  <a href="/api/admin/auth/google" style="display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:14px;background:#fff;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-weight:700;color:var(--text);text-decoration:none;cursor:pointer;transition:border-color .2s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+    <svg width="20" height="20" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+    Sign in with Google
+  </a>
 </div>
 </div>
 
@@ -350,7 +355,7 @@ button{font-family:inherit;cursor:pointer}input,select,textarea{font-family:inhe
   <div class="filter-bar" style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
     <input id="adsSearch" placeholder="Search ads..." oninput="renderAdsFiltered()" style="flex:1;min-width:120px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px">
     <select id="adsFilterType" onchange="renderAdsFiltered()" style="padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px">
-      <option value="">All Types</option><option value="banner">Banner</option><option value="small_banner">Small Banner</option><option value="header">Header</option><option value="carousel">Carousel</option><option value="fullscreen">Fullscreen</option><option value="sidebar">Sidebar</option><option value="popup">Popup</option><option value="interstitial">Interstitial</option>
+      <option value="">All Types</option><option value="banner">Banner</option><option value="small_banner">Small Banner</option><option value="header">Header</option><option value="carousel">Carousel</option><option value="fullscreen">Fullscreen</option><option value="popup">Popup</option><option value="interstitial">Interstitial</option>
     </select>
     <select id="adsFilterStatus" onchange="renderAdsFiltered()" style="padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px">
       <option value="">All Status</option><option value="active">Active</option><option value="paused">Paused</option><option value="expired">Expired</option>
@@ -777,8 +782,7 @@ const adTypeStyles={
   header:{color:'var(--purple)',bg:'var(--purple-light)',icon:'📌',desc:'Header Bar',size:'1200×150',aspect:'8:1'},
   fullscreen:{color:'var(--red)',bg:'var(--red-light)',icon:'📱',desc:'Full Screen',size:'1080×1920',aspect:'9:16'},
   carousel:{color:'var(--orange)',bg:'var(--orange-light)',icon:'🔄',desc:'Carousel/Square',size:'1080×1080',aspect:'1:1'},
-  sidebar:{color:'#0891b2',bg:'#ecfeff',icon:'📋',desc:'Sidebar',size:'300×600',aspect:'1:2'},
-  popup:{color:'#d946ef',bg:'#fdf4ff',icon:'💬',desc:'Popup Modal',size:'Custom',aspect:'Auto'},
+    popup:{color:'#d946ef',bg:'#fdf4ff',icon:'💬',desc:'Popup Modal',size:'Custom',aspect:'Auto'},
   interstitial:{color:'#ea580c',bg:'#fff7ed',icon:'⚡',desc:'Interstitial',size:'1080×1920',aspect:'9:16'}
 };
 function adTypeBadge(type){
@@ -883,13 +887,13 @@ function openAdDetail(id){
 async function toggleAd(id,active){try{await api('/api/admin/ads/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({active})});toast(active?'Ad activated!':'Ad paused!');loadAds()}catch(e){toast(e.message,'err')}}
 async function deleteAd(id){if(!confirm('Delete this ad?'))return;try{await api('/api/admin/ads/'+id,{method:'DELETE'});toast('Ad deleted.');loadAds()}catch(e){toast(e.message,'err')}}
 
-const adTypes=['carousel','fullscreen','banner','small_banner','header','sidebar','popup','interstitial'];
-const adPositions=['home','search','found','report','sidebar'];
+const adTypes=['carousel','fullscreen','banner','small_banner','header','popup','interstitial'];
+const adPositions=['home','search','found','report',none];
 let editingAdId=null;
 function showAddAdModal(a){
   const isEdit=!!a;
   $('modalTitle').textContent=isEdit?'Edit Advertisement':'Create Advertisement';
-  const typeHints={banner:'1200×300',small_banner:'1200×200',header:'1200×150',fullscreen:'1080×1920',carousel:'1080×1080',sidebar:'300×600',popup:'Custom size',interstitial:'1080×1920'};
+  const typeHints={banner:'1200×300',small_banner:'1200×200',header:'1200×150',fullscreen:'1080×1920',carousel:'1080×1080',popup:'Custom size',interstitial:'1080×1920'};
   let hintHtml='<div style="margin-bottom:12px"><div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:6px">Recommended Sizes by Type:</div>';
   Object.entries(typeHints).forEach(([t,s])=>{hintHtml+=`<div style="display:inline-flex;align-items:center;gap:4px;margin:2px 6px 2px 0;font-size:10px;color:var(--text2)"><span style="font-weight:700">${t.replace(/_/g,' ')}:</span> ${s}</div>`});
   hintHtml+='</div>';
@@ -946,6 +950,11 @@ async function submitAd(){
 }
 
 // Init — show app immediately if token exists to avoid login flash
+/* Handle Google OAuth redirect for admin */
+const adminUrlParams=new URLSearchParams(window.location.search);
+const adminTokenParam=adminUrlParams.get("admin_token");
+if(adminTokenParam){token=adminTokenParam;localStorage.setItem("fmc_admin_token",adminTokenParam);window.history.replaceState({},window.location.pathname);}
+
 if(token){$('loginView').style.display='none';$('appView').style.display='block';loadDashboard().catch(()=>{token='';showLogin()})}else showLogin();
 </script>
 </body>

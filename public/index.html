@@ -60,33 +60,71 @@ button{font-family:inherit}input,select,textarea{font-family:inherit}
 .search-bar span{font-size:14px;color:rgba(255,255,255,.35);font-weight:500}
 
 /* === MAIN CONTENT === */
-main{max-width:480px;margin:0 auto;padding-bottom:calc(80px + env(safe-area-inset-bottom))}
+main{max-width:100%;margin:0 auto;padding-bottom:calc(80px + env(safe-area-inset-bottom))}
 .view{display:none}.view.active{display:block;animation:fadeUp .3s ease}
 @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 
 /* === DESKTOP RESPONSIVE === */
 @media(min-width:768px){
-  main{max-width:960px;padding-bottom:32px}
-  .header{padding:20px 32px 24px}
-  .header::after{height:32px}
-  .hero{padding:28px 32px 40px}
-  .hero h2{font-size:36px}
-  .search-bar{margin:0 32px 12px}
-  .stats{grid-template-columns:repeat(3,1fr);gap:16px;padding:20px 32px 12px}
-  .stat{padding:24px 20px}
-  .stat .num{font-size:36px}
-  .section{padding:28px 32px 12px}
-  .section-head h3{font-size:22px}
-  .scard-grid{grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;padding:0 32px}
-  .hrow{padding:0 32px 24px;gap:16px}
-  .hrow .hcard{flex:0 0 240px}
-  .hrow .hcard .photo{height:180px}
-  .tab-pills{padding:24px 32px 8px}
+  main{max-width:100%;padding:0 24px 32px}
+  .header{padding:24px 48px 28px;border-radius:0 0 24px 24px}
+  .header::after{display:none}
+  .hero{padding:32px 48px 44px;text-align:center}
+  .hero h2{font-size:42px;letter-spacing:-1px}
+  .hero p{font-size:16px}
+  .search-bar{margin:0 auto 16px;max-width:600px}
+  .stats{grid-template-columns:repeat(3,1fr);gap:20px;padding:24px auto 16px;max-width:900px;margin:0 auto}
+  .stat{padding:28px 24px;border-radius:var(--radius)}
+  .stat .num{font-size:40px}
+  .stat .lbl{font-size:12px;letter-spacing:1px}
+  .section{padding:32px 48px 12px;max-width:1200px;margin:0 auto}
+  .section-head h3{font-size:24px;letter-spacing:-.5px}
+  .scard-grid{grid-template-columns:repeat(3,1fr);gap:20px;padding:0 48px;max-width:1200px;margin:0 auto}
+  .hrow{padding:0 48px 28px;gap:18px;justify-content:center}
+  .hrow .hcard{flex:0 0 260px}
+  .hrow .hcard .photo{height:200px}
+  .tab-pills{padding:24px 48px 8px;justify-content:center}
+  .actions-grid{max-width:600px;margin:0 auto;padding:0 48px}
+  .how-grid{max-width:900px;margin:0 auto;padding:0 48px}
+  .how-grid .how-step{padding:20px 24px}
+  .donate-banner{max-width:900px;margin:24px auto;padding:28px 32px;border-radius:var(--radius)}
+  .emergency-card{max-width:600px;margin:24px auto}
+  .activity-list{max-width:900px;margin:0 auto;padding:0 48px}
+  .page-top{padding:20px 48px 12px;max-width:1200px;margin:0 auto}
+  .search-head{padding:24px 48px 6px;max-width:1200px;margin:0 auto}
+  .form-group{padding:0 48px;max-width:800px;margin:0 auto}
+  .found-list{padding:8px 48px 24px;max-width:900px;margin:0 auto}
+  .don-list{max-width:900px;margin:0 auto;padding:0 48px}
+  .search-filters{max-width:800px;margin:0 auto}
+  .ad-banner{margin:20px auto;max-width:900px}
+  .ad-small-banner{margin:16px auto;max-width:900px}
+  .ad-header-wrap{margin:0 auto 12px;max-width:900px}
+  .ad-carousel-wrap{margin:0 auto;max-width:900px}
 }
 @media(min-width:1024px){
-  main{max-width:1100px}
-  .scard-grid{grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px}
-  .hero h2{font-size:40px}
+  main{padding:0 32px 40px}
+  .header{padding:28px 64px 32px}
+  .hero{padding:36px 64px 48px}
+  .hero h2{font-size:48px}
+  .search-bar{margin:0 auto 20px;max-width:700px;padding:16px 20px}
+  .stats{gap:24px;padding:28px auto 20px;max-width:1000px}
+  .stat .num{font-size:48px}
+  .section{padding:36px 64px 16px;max-width:1200px}
+  .section-head h3{font-size:26px}
+  .scard-grid{grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:24px;padding:0 64px;max-width:1400px}
+  .hrow{padding:0 64px 32px;gap:20px}
+  .hrow .hcard{flex:0 0 280px}
+  .hrow .hcard .photo{height:220px}
+  .page-top{padding:24px 64px 16px;max-width:1200px}
+  .search-head{padding:28px 64px 6px;max-width:1200px}
+  .form-group{padding:0 64px;max-width:900px}
+  .found-list{padding:8px 64px 24px;max-width:1000px}
+  .don-list{max-width:1000px;padding:0 64px}
+  .ad-banner{max-width:1000px}
+  .ad-small-banner{max-width:1000px}
+  .ad-header-wrap{max-width:1000px}
+  .ad-carousel-wrap{max-width:1000px}
+  .search-filters{max-width:900px}
 }
 
 /* === TAB PILLS === */
@@ -138,7 +176,7 @@ main{max-width:480px;margin:0 auto;padding-bottom:calc(80px + env(safe-area-inse
 .scard-age{background:var(--bg);padding:2px 8px;border-radius:6px;font-weight:600;font-size:11px}
 .scard-loc{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px}
 .scard-date{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text3);margin-top:8px;font-weight:500}
-@media(max-width:600px){.scard-grid{grid-template-columns:1fr 1fr;gap:10px;padding:0 16px}.scard-img{height:140px}}
+@media(max-width:600px){.scard-grid{grid-template-columns:repeat(2,1fr);gap:10px;padding:0 14px}.scard-img{height:130px}.stats{padding:12px 14px 8px;gap:8px}.stat{padding:14px 10px;border-radius:var(--radius-sm)}.stat .num{font-size:26px}.section{padding:18px 14px 8px}.hrow{padding:0 14px 18px;gap:10px}.hrow .hcard{flex:0 0 170px}.hrow .hcard .photo{height:130px}.tab-pills{padding:14px 14px 6px;gap:6px}.pill{padding:8px 14px;font-size:12px}.form-group{padding:0 14px}.page-top{padding:14px 14px 8px}.search-head{padding:18px 14px 4px}.found-list{padding:8px 14px 24px}.don-list{padding:0 14px}}.scard-img{height:140px}}
 
 /* === HORIZONTAL CARDS (home page) === */
 .hcard{
@@ -461,11 +499,7 @@ main{scroll-padding-top:10px}
 .ad-carousel-counter{position:absolute;top:10px;right:10px;background:rgba(0,0,0,.6);color:#fff;font-size:10px;font-weight:700;padding:3px 8px;border-radius:10px;z-index:2}
 
 /* Sidebar Ad (Desktop only) */
-.ad-sidebar-wrap{position:fixed;right:16px;top:50%;transform:translateY(-50%);width:140px;z-index:5;border-radius:var(--radius-sm);overflow:hidden;border:1px solid var(--border);box-shadow:var(--shadow);display:none;background:var(--card)}
-.ad-sidebar-wrap img{width:100%;display:block;border-radius:var(--radius-sm) var(--radius-sm) 0 0;object-fit:contain;background:#f8f8f8}
-.ad-sidebar-wrap .ad-label{padding:6px 8px;text-align:center}
-.ad-sidebar-wrap .ad-label .ad-title{font-size:10px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ad-sidebar-wrap .ad-label .ad-by{font-size:9px;color:var(--text3);margin-top:2px}
+
 
 /* Desktop responsive for ads */
 @media(min-width:768px){
@@ -482,9 +516,9 @@ main{scroll-padding-top:10px}
 }
 @media(min-width:1024px){
   .ad-carousel-slide img{max-height:360px}
-  .ad-sidebar-wrap{display:block}
+  
 }
-@media(max-width:1023px){.ad-sidebar-wrap{display:none !important}}
+
 
 /* === DEVELOPER CREDIT FOOTER === */
 .dev-footer{padding:32px 20px 24px;text-align:center;border-top:1px solid var(--border);margin-top:24px;margin-bottom:calc(70px + env(safe-area-inset-bottom))}
@@ -748,7 +782,7 @@ main{scroll-padding-top:10px}
   <button onclick="closeAdOverlay()" style="position:fixed;top:16px;right:16px;background:rgba(255,255,255,.95);border:none;border-radius:50%;width:40px;height:40px;font-size:20px;cursor:pointer;z-index:101;box-shadow:0 2px 12px rgba(0,0,0,.3)">✕</button>
 </div>
 <!-- Sidebar Ad (Desktop only) -->
-<div id="adSidebar" class="ad-sidebar-wrap"></div>
+
 <div id="toast"></div>
 
 <script src="/socket.io/socket.io.js"></script>
@@ -1075,12 +1109,6 @@ function renderAds(){
   /* === FULLSCREEN / INTERSTITIAL / POPUP === */
   var fa=active.filter(function(a){return ['fullscreen','interstitial','popup'].indexOf(a.type)!==-1&&a.position==='home'});
   if(fa.length&&!sessionStorage.getItem('ad_shown_'+fa[0]._id)){var a=fa[0];sessionStorage.setItem('ad_shown_'+a._id,'1');setTimeout(function(){showAdOverlay(a);trackAd(a);},2000);}
-
-  /* === SIDEBAR === */
-  var sa=active.filter(function(a){return a.type==='sidebar'||a.position==='sidebar'});
-  if(sa.length){var a=sa[0];trackAd(a);var sb=document.getElementById('adSidebar');
-    sb.innerHTML='<div style="position:relative"><button onclick="closeSidebarAd()" style="position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;border:none;font-size:12px;cursor:pointer;z-index:10;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.15)" title="Close ad">&times;</button><a '+clickFn(a)+' style="display:block;text-decoration:none"><img src="'+esc(a.imageUrl)+'" alt="'+esc(a.title||'')+'" loading="lazy"><div class="ad-label"><div class="ad-title">'+esc(a.title||'')+'</div>'+(a.advertiserName?'<div class="ad-by">'+esc(a.advertiserName)+'</div>':'')+'</div></a></div>';
-    sb.style.display='block';}
   active.slice(0,3).forEach(function(a){trackAd(a);});
 }
 function moveCarousel(idx){

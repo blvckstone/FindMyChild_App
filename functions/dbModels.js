@@ -62,12 +62,30 @@ const analyticsSchema = mongoose.Schema({
     createdAt: { type: Date, default: Date.now, index: true }
 });
 
+// Admin whitelist schema - emails allowed to access admin panel
+const adminUserSchema = mongoose.Schema({
+    email: { type: String, required: true, unique: true, lowercase: true },
+    role: { type: String, enum: ['super_admin', 'admin', 'editor'], default: 'admin' },
+    name: { type: String, default: '' },
+    photo: { type: String, default: '' },
+    googleId: { type: String, default: '' },
+    // Permissions for non-super_admin roles
+    canManageChildren: { type: Boolean, default: true },
+    canManageUsers: { type: Boolean, default: true },
+    canManageAds: { type: Boolean, default: true },
+    canManageAnalytics: { type: Boolean, default: true },
+    canManageDonations: { type: Boolean, default: true },
+    canManageAdmins: { type: Boolean, default: false },
+    active: { type: Boolean, default: true },
+    createdAt: { type: Date, default: Date.now }
+});
+
 const adSchema = mongoose.Schema({
     title: String,
     imageUrl: String,
     imageUrls: [String],
     linkUrl: String,
-    type: { type: String, enum: ['carousel', 'fullscreen', 'banner', 'small_banner', 'header', 'sidebar', 'popup', 'interstitial'], default: 'banner' },
+    type: { type: String, enum: ['carousel', 'fullscreen', 'banner', 'small_banner', 'header', 'popup', 'interstitial'], default: 'banner' },
     position: { type: String, default: 'home' },
     active: { type: Boolean, default: true },
     priority: { type: Number, default: 0 },
@@ -94,7 +112,8 @@ const getModels = async () => {
             const Donation = mongoose.models.Donation || mongoose.model('Donation', donationSchema);
             const Analytics = mongoose.models.Analytics || mongoose.model('Analytics', analyticsSchema);
             const Advertisement = mongoose.models.Advertisement || mongoose.model('Advertisement', adSchema);
-            return { Child: db.data, User, FoundRequest, Praise, Gift, Donation, Analytics, Advertisement };
+            const AdminUser = mongoose.models.AdminUser || mongoose.model('AdminUser', adminUserSchema);
+            return { Child: db.data, User, FoundRequest, Praise, Gift, Donation, Analytics, Advertisement, AdminUser };
         })();
     }
     return modelsPromise;

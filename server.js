@@ -31,7 +31,7 @@ const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 10, message: { su
 //-----------------------------------------------Functions Module--------------------------------------------------------------->
 const fmcConnectMongoDB = require('./functions/fmcDB/fmcMongoDB');
 const getModels = require('./functions/dbModels');
-const { loginAdmin, loginUser, signupUser, findOrCreateGoogleUser, logout, requireAuth, requireAdmin, isValidPhone, sanitize } = require('./functions/auth');
+const { loginAdmin, loginAdminGoogle, signupUser, loginUser, findOrCreateGoogleUser, logout, requireAuth, requireAdmin, requireSuperAdmin, hasPermission, isValidPhone, sanitize, SUPER_ADMIN_EMAIL } = require('./functions/auth');
 const { sendOTP, verifyOTP, sendWelcomeEmail } = require('./functions/email');
 // const userConnectMongoDB = require('./functions/userDB/userMongoDB');
 const getAllData = require('./functions/getAllData/getAllData.js');
@@ -70,6 +70,23 @@ if (googleClientId && googleClientSecret) {
 }
 passport.serializeUser((user, done) => done(null, user));
 passport.deserializeUser((obj, done) => done(null, obj));
+
+// Admin Google OAuth strategy (separate callback URL)
+if (googleClientId && googleClientSecret) {
+    passport.use("google-admin", new GoogleStrategy({
+        clientID: googleClientId,
+        clientSecret: googleClientSecret,
+        callbackURL: process.env.GOOGLE_ADMIN_CALLBACK_URL || "https://findmychild.dpdns.org/api/admin/auth/google/callback",
+        scope: ["profile", "email"]
+    }, async (accessToken, refreshToken, profile, done) => {
+        try {
+            const result = await loginAdminGoogle(profile);
+            return done(null, result);
+        } catch (error) { return done(error, null); }
+    }));
+    console.log("Admin Google OAuth configured");
+}
+
 
 //-----------------------------------------------Socket.io---------------------------------------------------------------------->
 const io = new Server(server, { cors: { origin: "*" } });
@@ -346,12 +363,31 @@ app.get('/api/donations', async (req, res) => {
 
 // ---- Admin: login / logout ----
 app.post('/api/admin/login', (req, res) => {
-    const token = loginAdmin(req.body.username, req.body.password);
-    if (token) {
-        res.json({ success: true, token });
+    const result = loginAdmin(req.body.username, req.body.password);
+    if (result) {
+        res.json({ success: true, token: result.token, role: result.role, name: result.name });
     } else {
         res.status(401).json({ success: false, message: "Invalid username or password." });
     }
+});
+
+// Admin Google OAuth routes
+if (googleClientId && googleClientSecret) {
+    app.get('/api/admin/auth/google', passport.authenticate('google-admin', { scope: ['profile', 'email'] }));
+    app.get('/api/admin/auth/google/callback', (req, res, next) => {
+        passport.authenticate('google-admin', { failureRedirect: '/admin?error=not_whitelisted', session: false }, (err, result, info) => {
+            if (err || !result) {
+                console.error('Admin Google auth error:', err ? err.message : 'Email not whitelisted');
+                return res.redirect('/admin?error=' + encodeURIComponent(err ? err.message : 'not_whitelisted'));
+            }
+            res.redirect('/admin?admin_token=' + result.token + '&admin_name=' + encodeURIComponent(result.admin.name || '') + '&admin_role=' + (result.admin.role || 'admin'));
+        })(req, res, next);
+    });
+}
+
+// Get current admin info
+app.get('/api/admin/me', requireAdmin, (req, res) => {
+    res.json({ success: true, admin: req.adminInfo });
 });
 
 app.post('/api/admin/logout', requireAdmin, (req, res) => {
@@ -851,6 +887,115 @@ app.delete('/api/admin/ads/:id', requireAdmin, async (req, res) => {
     }
 });
 //------------------------------------------------------------------------------------------------------------------------------>
+
+// ---- Admin: admin whitelist management ----
+// List all whitelisted admins (super_admin only)
+app.get('/api/admin/admins', requireAdmin, requireSuperAdmin, async (req, res) => {
+    try {
+        const { AdminUser } = await getModels();
+        const admins = await AdminUser.find().sort({ createdAt: -1 }).lean();
+        res.json({ success: true, data: admins });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// Add admin to whitelist (super_admin only)
+app.post('/api/admin/admins', requireAdmin, requireSuperAdmin, async (req, res) => {
+    try {
+        const { AdminUser } = await getModels();
+        const { email, role, name, canManageChildren, canManageUsers, canManageAds, canManageAnalytics, canManageDonations, canManageAdmins } = req.body;
+        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            return res.status(400).json({ success: false, message: 'Valid email required.' });
+        }
+        const existing = await AdminUser.findOne({ email: email.toLowerCase() });
+        if (existing) return res.status(400).json({ success: false, message: 'Email already whitelisted.' });
+        const admin = await AdminUser.create({
+            email: email.toLowerCase(),
+            role: role || 'editor',
+            name: name || '',
+            canManageChildren: canManageChildren !== false,
+            canManageUsers: canManageUsers !== false,
+            canManageAds: canManageAds !== false,
+            canManageAnalytics: canManageAnalytics !== false,
+            canManageDonations: canManageDonations !== false,
+            canManageAdmins: canManageAdmins === true
+        });
+        res.status(201).json({ success: true, data: admin });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// Update admin in whitelist (super_admin only)
+app.put('/api/admin/admins/:id', requireAdmin, requireSuperAdmin, async (req, res) => {
+    try {
+        const { AdminUser } = await getModels();
+        const { role, name, active, canManageChildren, canManageUsers, canManageAds, canManageAnalytics, canManageDonations, canManageAdmins } = req.body;
+        const admin = await AdminUser.findById(req.params.id);
+        if (!admin) return res.status(404).json({ success: false, message: 'Admin not found.' });
+        // Cannot deactivate or demote super admin
+        if (admin.email === process.env.SUPER_ADMIN_EMAIL || admin.email === 'iblvckstone@gmail.com') {
+            if (active === false || (role && role !== 'super_admin')) {
+                return res.status(403).json({ success: false, message: 'Cannot modify super admin.' });
+            }
+        }
+        if (role !== undefined) admin.role = role;
+        if (name !== undefined) admin.name = name;
+        if (active !== undefined) admin.active = active;
+        if (canManageChildren !== undefined) admin.canManageChildren = canManageChildren;
+        if (canManageUsers !== undefined) admin.canManageUsers = canManageUsers;
+        if (canManageAds !== undefined) admin.canManageAds = canManageAds;
+        if (canManageAnalytics !== undefined) admin.canManageAnalytics = canManageAnalytics;
+        if (canManageDonations !== undefined) admin.canManageDonations = canManageDonations;
+        if (canManageAdmins !== undefined) admin.canManageAdmins = canManageAdmins;
+        await admin.save();
+        res.json({ success: true, data: admin });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// Delete admin from whitelist (super_admin only, cannot delete self)
+app.delete('/api/admin/admins/:id', requireAdmin, requireSuperAdmin, async (req, res) => {
+    try {
+        const { AdminUser } = await getModels();
+        const admin = await AdminUser.findById(req.params.id);
+        if (!admin) return res.status(404).json({ success: false, message: 'Admin not found.' });
+        if (admin.email === 'iblvckstone@gmail.com') {
+            return res.status(403).json({ success: false, message: 'Cannot delete the super admin.' });
+        }
+        await AdminUser.findByIdAndDelete(req.params.id);
+        res.json({ success: true, message: 'Admin removed.' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// Ensure super admin exists in whitelist
+app.get('/api/admin/ensure-super-admin', requireAdmin, requireSuperAdmin, async (req, res) => {
+    try {
+        const { AdminUser } = await getModels();
+        let superAdmin = await AdminUser.findOne({ email: 'iblvckstone@gmail.com' });
+        if (!superAdmin) {
+            superAdmin = await AdminUser.create({
+                email: 'iblvckstone@gmail.com',
+                role: 'super_admin',
+                name: 'Super Admin',
+                active: true,
+                canManageChildren: true,
+                canManageUsers: true,
+                canManageAds: true,
+                canManageAnalytics: true,
+                canManageDonations: true,
+                canManageAdmins: true
+            });
+        }
+        res.json({ success: true, data: superAdmin });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
 
 // ---- Admin: user management ----
 app.get('/api/admin/users', requireAdmin, async (req, res) => {

@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const { hashPassword, verifyPassword } = require('./passwords');
 const getModels = require('./dbModels');
 
+// Legacy admin login (username/password)
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
 const ADMIN_PASS = process.env.ADMIN_PASS || 'admin123';
 
@@ -9,8 +10,12 @@ if (!process.env.ADMIN_USERNAME || !process.env.ADMIN_PASS) {
     console.warn("WARNING: Using default admin credentials (admin / admin123). Set ADMIN_USERNAME and ADMIN_PASS in .env to change them.");
 }
 
-const adminTokens = new Set();          // token -> (admin)
-const userTokens = new Map();           // token -> userId
+// Super admin email - cannot be removed or demoted
+const SUPER_ADMIN_EMAIL = 'iblvckstone@gmail.com';
+
+// Admin tokens: token -> { email, role, permissions }
+const adminTokens = new Map();
+const userTokens = new Map();
 
 const safeEqual = (a, b) => {
     const ba = Buffer.from(String(a));
@@ -19,13 +24,93 @@ const safeEqual = (a, b) => {
     return crypto.timingSafeEqual(ba, bb);
 };
 
+// Legacy admin login (username/password)
 const loginAdmin = (username, password) => {
     if (safeEqual(username, ADMIN_USERNAME) && safeEqual(password, ADMIN_PASS)) {
         const token = crypto.randomBytes(24).toString('hex');
-        adminTokens.add(token);
-        return token;
+        adminTokens.set(token, {
+            email: SUPER_ADMIN_EMAIL,
+            role: 'super_admin',
+            permissions: { all: true }
+        });
+        return { token, role: 'super_admin', email: SUPER_ADMIN_EMAIL, name: 'Admin' };
     }
     return null;
+};
+
+// Admin Google login - check whitelist
+const loginAdminGoogle = async (profile) => {
+    const { AdminUser } = await getModels();
+    const email = (profile.emails && profile.emails[0] && profile.emails[0].value || '').toLowerCase();
+    const name = profile.displayName || '';
+    const photo = (profile.photos && profile.photos[0] && profile.photos[0].value) || '';
+    const googleId = profile.id;
+
+    // Super admin always gets access
+    if (email === SUPER_ADMIN_EMAIL) {
+        // Ensure super admin exists in whitelist
+        let admin = await AdminUser.findOne({ email: SUPER_ADMIN_EMAIL });
+        if (!admin) {
+            admin = await AdminUser.create({
+                email: SUPER_ADMIN_EMAIL,
+                role: 'super_admin',
+                name: name || 'Super Admin',
+                photo,
+                googleId,
+                active: true,
+                canManageAdmins: true,
+                canManageChildren: true,
+                canManageUsers: true,
+                canManageAds: true,
+                canManageAnalytics: true,
+                canManageDonations: true
+            });
+        } else if (!admin.googleId) {
+            admin.googleId = googleId;
+            if (photo) admin.photo = photo;
+            if (name) admin.name = name;
+            await admin.save();
+        }
+        const token = crypto.randomBytes(24).toString('hex');
+        adminTokens.set(token, {
+            email,
+            role: 'super_admin',
+            permissions: { all: true }
+        });
+        return { token, admin: { email, name: admin.name, photo: admin.photo, role: 'super_admin', permissions: { all: true } } };
+    }
+
+    // Check whitelist for other emails
+    let admin = await AdminUser.findOne({ email, active: true });
+    if (!admin) {
+        return null; // Not whitelisted
+    }
+
+    // Update Google ID if not set
+    if (!admin.googleId) {
+        admin.googleId = googleId;
+        if (photo) admin.photo = photo;
+        if (name) admin.name = name;
+        await admin.save();
+    }
+
+    const permissions = {
+        canManageChildren: admin.canManageChildren,
+        canManageUsers: admin.canManageUsers,
+        canManageAds: admin.canManageAds,
+        canManageAnalytics: admin.canManageAnalytics,
+        canManageDonations: admin.canManageDonations,
+        canManageAdmins: admin.canManageAdmins
+    };
+
+    const token = crypto.randomBytes(24).toString('hex');
+    adminTokens.set(token, {
+        email,
+        role: admin.role,
+        permissions
+    });
+
+    return { token, admin: { email, name: admin.name, photo: admin.photo, role: admin.role, permissions } };
 };
 
 const signupUser = async ({ fullName, contactNumber, emailId, password } = {}) => {
@@ -80,15 +165,33 @@ const requireAuth = (req, res, next) => {
     return res.status(401).json({ success: false, message: "Please log in first." });
 };
 
-// Express middleware: requires a valid ADMIN token.
+// Express middleware: requires a valid ADMIN token. Sets req.adminInfo.
 const requireAdmin = (req, res, next) => {
     const header = req.headers.authorization || '';
     const token = header.startsWith('Bearer ') ? header.slice(7) : '';
-    if (token && adminTokens.has(token)) {
+    const adminInfo = adminTokens.get(token);
+    if (adminInfo) {
         req.token = token;
+        req.adminInfo = adminInfo;
         return next();
     }
     return res.status(401).json({ success: false, message: "Unauthorized. Please log in as admin." });
+};
+
+// Middleware: requires super_admin role
+const requireSuperAdmin = (req, res, next) => {
+    if (req.adminInfo && req.adminInfo.role === 'super_admin') {
+        return next();
+    }
+    return res.status(403).json({ success: false, message: "Super admin access required." });
+};
+
+// Check specific permission
+const hasPermission = (req, perm) => {
+    if (!req.adminInfo) return false;
+    if (req.adminInfo.permissions && req.adminInfo.permissions.all) return true;
+    if (req.adminInfo.permissions && req.adminInfo.permissions[perm]) return true;
+    return false;
 };
 
 // Phone validation (Indian format)
@@ -102,7 +205,7 @@ const sanitize = (str) => {
     return String(str).trim().replace(/<[^>]*>/g, '').slice(0, 500);
 };
 
-// Google OAuth: find or create user
+// Google OAuth: find or create user (for regular users)
 const findOrCreateGoogleUser = async (profile) => {
     const { User } = await getModels();
     const googleId = profile.id;
@@ -130,7 +233,6 @@ const findOrCreateGoogleUser = async (profile) => {
                 createdAt: new Date().toISOString()
             });
         } catch (createErr) {
-            // If duplicate contactNumber issue, try creating with a unique placeholder
             if (createErr.code === 11000) {
                 user = await User.create({
                     userFullName: name,
@@ -151,4 +253,8 @@ const findOrCreateGoogleUser = async (profile) => {
     return { user: { _id: user._id, userFullName: user.userFullName, emailId: user.emailId, photo: user.photo }, token };
 };
 
-module.exports = { loginAdmin, signupUser, loginUser, findOrCreateGoogleUser, logout, requireAuth, requireAdmin, isValidPhone, sanitize };
+module.exports = {
+    loginAdmin, loginAdminGoogle, signupUser, loginUser, findOrCreateGoogleUser,
+    logout, requireAuth, requireAdmin, requireSuperAdmin, hasPermission,
+    isValidPhone, sanitize, SUPER_ADMIN_EMAIL
+};
