@@ -57,9 +57,16 @@ if (googleClientId && googleClientSecret) {
         clientID: googleClientId,
         clientSecret: googleClientSecret,
         callbackURL: process.env.GOOGLE_CALLBACK_URL || 'https://findmychild.dpdns.org/api/auth/google/callback',
-        scope: ['profile', 'email']
-    }, async (accessToken, refreshToken, profile, done) => {
+        scope: ['profile', 'email'],
+        passReqToCallback: true
+    }, async (req, accessToken, refreshToken, profile, done) => {
         try {
+            // Distinguish admin vs user login via state parameter
+            const isAdmin = req.query && req.query.state === 'admin_login';
+            if (isAdmin) {
+                const result = await loginAdminGoogle(profile);
+                return done(null, result);
+            }
             const result = await findOrCreateGoogleUser(profile);
             return done(null, result);
         } catch (error) { return done(error, null); }
@@ -71,7 +78,7 @@ if (googleClientId && googleClientSecret) {
 passport.serializeUser((user, done) => done(null, user));
 passport.deserializeUser((obj, done) => done(null, obj));
 
-// Admin uses same Google strategy (distinguished by state parameter)
+// Admin Google login handled via state parameter in strategy callback
 //-----------------------------------------------Socket.io---------------------------------------------------------------------->
 const io = new Server(server, { cors: { origin: "*" } });
 
@@ -358,10 +365,10 @@ app.post('/api/admin/login', (req, res) => {
 // Admin Google OAuth routes
 if (googleClientId && googleClientSecret) {
     app.get('/api/admin/auth/google', (req, res, next) => {
-        passport.authenticate('google', { scope: ['profile', 'email'], state: 'admin_login' })(req, res, next);
+        passport.authenticate('google', { scope: ['profile', 'email'], state: 'admin_login', callbackURL: '/api/admin/auth/google/callback' })(req, res, next);
     });
     app.get('/api/admin/auth/google/callback', (req, res, next) => {
-        passport.authenticate('google', { failureRedirect: '/admin?error=google_failed', session: false }, (err, result, info) => {
+        passport.authenticate('google', { failureRedirect: '/admin?error=google_failed', session: false, callbackURL: '/api/admin/auth/google/callback' }, (err, result, info) => {
             if (err || !result) {
                 console.error('Admin Google auth error:', err ? err.message : 'Email not whitelisted');
                 return res.redirect('/admin?error=' + encodeURIComponent(err ? err.message : 'not_whitelisted'));

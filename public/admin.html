@@ -236,6 +236,7 @@ button{font-family:inherit;cursor:pointer}input,select,textarea{font-family:inhe
     <a href="#" data-page="users"><svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>Users</a>
     <a href="#" data-page="analytics"><svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>Analytics</a>
     <a href="#" data-page="ads"><svg viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H3V5h18v14z"/></svg>Ads</a>
+    <a href="#" data-page="whitelist"><svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM12 17c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zM9 8V6c0-1.66 1.34-3 3-3s3 1.34 3 3v2H9z"/></svg>Admin Whitelist<span class="badge" id="badgeWhitelist">0</span></a>
   </nav>
   <div class="logout"><button id="logoutBtn"><svg viewBox="0 0 24 24"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>Logout</button></div>
 </div>
@@ -364,6 +365,13 @@ button{font-family:inherit;cursor:pointer}input,select,textarea{font-family:inhe
   <div id="adsList"></div>
 </div>
 
+<!-- ===== ADMIN WHITELIST ===== -->
+<div class="page" id="pg-whitelist">
+  <div class="page-head"><h2>Admin Whitelist</h2><div class="actions"><button class="btn-sm" onclick="showAddAdminModal()">+ Add Admin</button></div></div>
+  <div class="filter-bar"><input id="whitelistSearch" placeholder="Search admins..." oninput="renderWhitelist()"></div>
+  <div id="whitelistList"></div>
+</div>
+
 </div><!-- /main -->
 </div><!-- /app -->
 
@@ -422,11 +430,12 @@ function navigateTo(page){
   if(page==='users')loadUsers();
   if(page==='analytics')loadAnalytics();
   if(page==='ads')loadAds();
+  if(page==='whitelist')loadWhitelist();
 }
 document.querySelectorAll('#sideNav a[data-page]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();navigateTo(a.dataset.page)}));
 document.querySelectorAll('#mobNav button[data-page]').forEach(b=>b.addEventListener('click',()=>{if(b.dataset.page==='more'){showMoreMenu();return}navigateTo(b.dataset.page)}));
 function showMoreMenu(){
-  const pages=[{id:'analytics',label:'Analytics',icon:'📊'},{id:'ads',label:'Ads',icon:'📺'},{id:'donations',label:'Donations',icon:'💰'},{id:'praise',label:'Praise & Gifts',icon:'⭐'},{id:'users',label:'Users',icon:'👥'},{id:'add',label:'Add New',icon:'➕'}];
+  const pages=[{id:'analytics',label:'Analytics',icon:'📊'},{id:'ads',label:'Ads',icon:'📺'},{id:'donations',label:'Donations',icon:'💰'},{id:'praise',label:'Praise & Gifts',icon:'⭐'},{id:'users',label:'Users',icon:'👥'},{id:'whitelist',label:'Admin Whitelist',icon:'🔐'},{id:'add',label:'Add New',icon:'➕'}];
   $('modalTitle').textContent='More';
   $('modalBody').innerHTML=pages.map(p=>`<div onclick="closeModal();navigateTo('${p.id}')" style="display:flex;align-items:center;gap:14px;padding:16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background=''"><span style="font-size:20px">${p.icon}</span><span style="font-size:15px;font-weight:600;color:var(--text)">${p.label}</span><span style="margin-left:auto;color:var(--text3)">›</span></div>`).join('');
   $('modalBg').classList.add('show');
@@ -947,6 +956,96 @@ async function submitAd(){
     await api('/api/admin/ads',{method:'POST',body:fd});toast('Ad created!');
   }
   closeModal();loadAds();editingAdId=null}catch(e){toast(e.message,'err')}
+}
+
+// === ADMIN WHITELIST ===
+let allAdmins=[];
+async function loadWhitelist(){
+  try{const r=await api('/api/admin/admins');allAdmins=r.data||[]}catch(e){allAdmins=[]}
+  $('badgeWhitelist').textContent=allAdmins.filter(a=>a.active).length;
+  renderWhitelist();
+}
+function renderWhitelist(){
+  const q=($('whitelistSearch')?.value||'').toLowerCase();
+  let list=allAdmins;
+  if(q)list=list.filter(a=>(a.email||'').toLowerCase().includes(q)||(a.name||'').toLowerCase().includes(q));
+  if(!list.length){$('whitelistList').innerHTML='<div class="card-section"><div class="cs-body"><div class="empty">No admin users found.</div></div></div>';return;}
+  $('whitelistList').innerHTML=list.map(a=>{
+    const isSuperAdmin=a.email==='iblvckstone@gmail.com';
+    const roleColor=a.role==='super_admin'?'var(--red)':a.role==='admin'?'var(--accent)':'var(--orange)';
+    const roleBg=a.role==='super_admin'?'var(--red-light)':a.role==='admin'?'var(--accent-light)':'var(--orange-light)';
+    const photo=a.photo?'<img src="'+esc(a.photo)+'" style="width:100%;height:100%;object-fit:cover;border-radius:12px">':'';
+    const perms=[];
+    if(a.canManageChildren)perms.push('Children');
+    if(a.canManageUsers)perms.push('Users');
+    if(a.canManageAds)perms.push('Ads');
+    if(a.canManageAnalytics)perms.push('Analytics');
+    if(a.canManageDonations)perms.push('Donations');
+    if(a.canManageAdmins)perms.push('Admins');
+    return'<div class="card-section" style="margin-bottom:10px"><div class="item"><div class="img-wrap" style="width:48px;height:48px;border-radius:12px;background:var(--border);overflow:hidden;display:flex;align-items:center;justify-content:center;flex-shrink:0">'+(photo||'<svg viewBox="0 0 24 24" style="width:22px;height:22px;fill:var(--text3)"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>')+'</div><div class="info" style="min-width:0;flex:1;overflow:hidden"><div class="top"><span class="name">'+esc(a.name||a.email)+'</span><div class="badges"><span style="display:inline-block;font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;background:'+roleBg+';color:'+roleColor+'">'+esc(a.role||'editor').toUpperCase()+'</span>'+(a.active?'<span class="sbadge approved">ACTIVE</span>':'<span class="sbadge rejected">DISABLED</span>')+(isSuperAdmin?'<span style="display:inline-block;font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;background:var(--red-light);color:var(--red)">SUPER</span>':'')+'</div></div><div class="sub">✉️ '+esc(a.email)+'</div>'+(perms.length?'<div class="meta" style="font-size:11px;color:var(--text3)">Perms: '+perms.join(', ')+'</div>':'')+'</div><div class="acts">'+(isSuperAdmin?'':'<button class="btn-sm btn-outline" onclick="event.stopPropagation();toggleAdminActive(\''+a._id+'\','+(!a.active)+')" style="padding:7px 12px;font-size:11px">'+(a.active?'Disable':'Enable')+'</button><button class="btn-sm btn-outline" onclick="event.stopPropagation();openEditAdmin(\''+a._id+'\')" style="padding:7px 12px;font-size:11px">Edit</button><button class="btn-sm btn-red" onclick="event.stopPropagation();deleteAdmin(\''+a._id+'\')" style="padding:7px 12px;font-size:11px">Del</button>')+'</div></div></div>';
+  }).join('');
+}
+function showAddAdminModal(){
+  $('modalTitle').textContent='Add Admin to Whitelist';
+  $('modalBody').innerHTML=`<div style="padding:4px 0">
+    <div class="field"><label>Email Address *</label><input id="wa_email" type="email" placeholder="admin@example.com"></div>
+    <div class="field"><label>Name</label><input id="wa_name" placeholder="Display name"></div>
+    <div class="field"><label>Role</label><select id="wa_role"><option value="editor">Editor</option><option value="admin">Admin</option></select></div>
+    <div style="margin-bottom:16px"><div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px">Permissions</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" id="wa_children" checked> Children</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" id="wa_users" checked> Users</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" id="wa_ads" checked> Ads</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" id="wa_analytics" checked> Analytics</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" id="wa_donations" checked> Donations</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" id="wa_manageadmins"> Admin Whitelist</label>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px"><button class="btn" onclick="submitAddAdmin()" style="flex:1">Add to Whitelist</button><button class="btn btn-outline" onclick="closeModal()" style="flex:1">Cancel</button></div>
+  </div>`;
+  $('modalBg').classList.add('show');
+}
+async function submitAddAdmin(){
+  try{
+    const email=$('wa_email').value.trim();
+    if(!email||!email.includes('@')){toast('Valid email required','err');return}
+    await api('/api/admin/admins',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,name:$('wa_name').value.trim(),role:$('wa_role').value,canManageChildren:$('wa_children').checked,canManageUsers:$('wa_users').checked,canManageAds:$('wa_ads').checked,canManageAnalytics:$('wa_analytics').checked,canManageDonations:$('wa_donations').checked,canManageAdmins:$('wa_manageadmins').checked})});
+    toast('Admin added to whitelist!');closeModal();loadWhitelist()
+  }catch(e){toast(e.message,'err')}
+}
+function openEditAdmin(id){
+  const a=allAdmins.find(x=>x._id===id);if(!a)return;
+  $('modalTitle').textContent='Edit — '+(a.name||a.email);
+  $('modalBody').innerHTML=`<div style="padding:4px 0">
+    <div class="field"><label>Email</label><input value="${esc(a.email)}" disabled style="opacity:.6"></div>
+    <div class="field"><label>Name</label><input id="ea_name" value="${esc(a.name)}"></div>
+    <div class="field"><label>Role</label><select id="ea_role"><option value="editor" ${a.role==='editor'?'selected':''}>Editor</option><option value="admin" ${a.role==='admin'?'selected':''}>Admin</option><option value="super_admin" ${a.role==='super_admin'?'selected':''}>Super Admin</option></select></div>
+    <div style="margin-bottom:16px"><div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px">Permissions</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" id="ea_children" ${a.canManageChildren?'checked':''}> Children</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" id="ea_users" ${a.canManageUsers?'checked':''}> Users</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" id="ea_ads" ${a.canManageAds?'checked':''}> Ads</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" id="ea_analytics" ${a.canManageAnalytics?'checked':''}> Analytics</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" id="ea_donations" ${a.canManageDonations?'checked':''}> Donations</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" id="ea_manageadmins" ${a.canManageAdmins?'checked':''}> Admin Whitelist</label>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px"><button class="btn" onclick="submitEditAdmin('${a._id}')" style="flex:1">Save Changes</button><button class="btn btn-outline" onclick="closeModal()" style="flex:1">Cancel</button></div>
+  </div>`;
+  $('modalBg').classList.add('show');
+}
+async function submitEditAdmin(id){
+  try{
+    await api('/api/admin/admins/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:$('ea_name').value.trim(),role:$('ea_role').value,canManageChildren:$('ea_children').checked,canManageUsers:$('ea_users').checked,canManageAds:$('ea_ads').checked,canManageAnalytics:$('ea_analytics').checked,canManageDonations:$('ea_donations').checked,canManageAdmins:$('ea_manageadmins').checked})});
+    toast('Admin updated!');closeModal();loadWhitelist()
+  }catch(e){toast(e.message,'err')}
+}
+async function toggleAdminActive(id,active){
+  try{await api('/api/admin/admins/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({active})});toast(active?'Admin enabled!':'Admin disabled!');loadWhitelist()}catch(e){toast(e.message,'err')}
+}
+async function deleteAdmin(id){
+  if(!confirm('Remove this admin from the whitelist?'))return;
+  try{await api('/api/admin/admins/'+id,{method:'DELETE'});toast('Admin removed.');loadWhitelist()}catch(e){toast(e.message,'err')}
 }
 
 // Init — show app immediately if token exists to avoid login flash
