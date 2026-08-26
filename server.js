@@ -71,23 +71,7 @@ if (googleClientId && googleClientSecret) {
 passport.serializeUser((user, done) => done(null, user));
 passport.deserializeUser((obj, done) => done(null, obj));
 
-// Admin Google OAuth strategy (separate callback URL)
-if (googleClientId && googleClientSecret) {
-    passport.use("google-admin", new GoogleStrategy({
-        clientID: googleClientId,
-        clientSecret: googleClientSecret,
-        callbackURL: process.env.GOOGLE_ADMIN_CALLBACK_URL || "https://findmychild.dpdns.org/api/admin/auth/google/callback",
-        scope: ["profile", "email"]
-    }, async (accessToken, refreshToken, profile, done) => {
-        try {
-            const result = await loginAdminGoogle(profile);
-            return done(null, result);
-        } catch (error) { return done(error, null); }
-    }));
-    console.log("Admin Google OAuth configured");
-}
-
-
+// Admin uses same Google strategy (distinguished by state parameter)
 //-----------------------------------------------Socket.io---------------------------------------------------------------------->
 const io = new Server(server, { cors: { origin: "*" } });
 
@@ -373,9 +357,11 @@ app.post('/api/admin/login', (req, res) => {
 
 // Admin Google OAuth routes
 if (googleClientId && googleClientSecret) {
-    app.get('/api/admin/auth/google', passport.authenticate('google-admin', { scope: ['profile', 'email'] }));
+    app.get('/api/admin/auth/google', (req, res, next) => {
+        passport.authenticate('google', { scope: ['profile', 'email'], state: 'admin_login' })(req, res, next);
+    });
     app.get('/api/admin/auth/google/callback', (req, res, next) => {
-        passport.authenticate('google-admin', { failureRedirect: '/admin?error=not_whitelisted', session: false }, (err, result, info) => {
+        passport.authenticate('google', { failureRedirect: '/admin?error=google_failed', session: false }, (err, result, info) => {
             if (err || !result) {
                 console.error('Admin Google auth error:', err ? err.message : 'Email not whitelisted');
                 return res.redirect('/admin?error=' + encodeURIComponent(err ? err.message : 'not_whitelisted'));

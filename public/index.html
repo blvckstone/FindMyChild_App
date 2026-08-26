@@ -65,7 +65,8 @@ main{max-width:100%;margin:0 auto;padding-bottom:calc(80px + env(safe-area-inset
 @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 
 /* === DESKTOP RESPONSIVE === */
-@media(min-width:768px){
+@media(min-width:768px){.nav{display:none !important}
+
   main{max-width:100%;padding:0 24px 32px}
   .header{padding:24px 48px 28px;border-radius:0 0 24px 24px}
   .header::after{display:none}
@@ -455,6 +456,39 @@ body.keyboard-open .tab-pills-wrap{top:0}
 main{scroll-padding-top:10px}
 .field input:focus,.field textarea:focus,.field select:focus{scroll-margin-top:80px}
 
+
+/* Desktop top navigation (replaces bottom nav) */
+@media(min-width:768px){
+  .desktop-nav{display:flex !important}
+  .nav{display:none !important}
+}
+@media(max-width:767px){
+  .desktop-nav{display:none !important}
+}
+
+
+/* === DESKTOP NAVIGATION === */
+.desktop-nav{display:none;background:var(--card);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:30;box-shadow:0 1px 8px rgba(0,0,0,.06)}
+.desktop-nav-inner{max-width:1400px;margin:0 auto;padding:0 48px;display:flex;align-items:center;height:60px;gap:32px}
+.desktop-nav-brand{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.desktop-nav-links{display:flex;gap:4px;flex:1;justify-content:center}
+.desktop-nav-btn{background:none;border:none;padding:8px 18px;border-radius:8px;color:var(--text2);font-size:14px;font-weight:600;cursor:pointer;transition:all .15s;white-space:nowrap}
+.desktop-nav-btn:hover{background:var(--bg);color:var(--text)}
+.desktop-nav-btn.active{background:var(--dark);color:#fff}
+.desktop-nav-right{flex-shrink:0}
+.desktop-nav-me{display:flex;align-items:center;gap:6px}
+@media(min-width:768px){.desktop-nav{display:block !important}}
+@media(max-width:767px){.desktop-nav{display:none !important}}
+
+/* Desktop - hide mobile bottom nav */
+@media(min-width:768px){
+  .nav{display:none !important}
+}
+@media(max-width:767px){
+  .nav{display:flex !important}
+}
+
+
 /* === AD STYLES === */
 /* Banner Ad - Full-width card with image + overlay */
 .ad-banner{margin:16px 20px 12px;border-radius:var(--radius);overflow:hidden;position:relative;cursor:pointer;transition:transform .15s;border:1px solid var(--border);box-shadow:var(--shadow)}
@@ -582,6 +616,30 @@ main{scroll-padding-top:10px}
 <body>
 
 <!-- HEADER -->
+<!-- Desktop Top Navigation -->
+<nav class="desktop-nav" id="desktopNav">
+  <div class="desktop-nav-inner">
+    <div class="desktop-nav-brand">
+      <div class="icon-wrap" style="width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center">
+        <svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:#fff"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+      </div>
+      <span style="font-weight:700;font-size:16px;color:var(--text)">FindMyChild</span>
+    </div>
+    <div class="desktop-nav-links">
+      <button class="desktop-nav-btn active" data-page="home">Home</button>
+      <button class="desktop-nav-btn" data-page="search">Search</button>
+      <button class="desktop-nav-btn" data-page="found">Found</button>
+      <button class="desktop-nav-btn" data-page="report">Report</button>
+      <button class="desktop-nav-btn" data-page="donate">Donate</button>
+    </div>
+    <div class="desktop-nav-right">
+      <button class="desktop-nav-btn desktop-nav-me" data-page="me">
+        <svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+        <span>Account</span>
+      </button>
+    </div>
+  </div>
+</nav>
 <div class="header">
   <div class="header-top">
     <div class="header-brand">
@@ -928,13 +986,18 @@ $('reportBtn').addEventListener('click',async()=>{
   const name=$('r_name').value.trim(),contact=$('r_contact').value.trim(),msg=$('reportMsg');if(!name){msg.textContent='Enter the child\'s full name.';return}if(!contact){msg.textContent='Enter a contact number.';return}const fd=new FormData();fd.append('fullName',name);fd.append('gender',$('r_gender').value);fd.append('age',$('r_age').value);fd.append('address',$('r_address').value.trim());fd.append('state',$('r_state').value.trim());fd.append('contactNumber',contact);fd.append('missingDate',$('r_date').value);fd.append('missingTime',$('r_time').value);fd.append('missingLocation',$('r_location').value.trim());fd.append('info',$('r_info').value.trim());const file=$('r_photo').files[0];if(file)fd.append('image',file);const btn=$('reportBtn');btn.disabled=true;btn.textContent='Submitting...';msg.textContent='';try{const r=await fetch('/api/children',{method:'POST',headers:{'Authorization':'Bearer '+userToken},body:fd});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.message||'Failed');msg.textContent=j.message;$('r_name').value='';$('r_gender').value='';$('r_age').value='';$('r_address').value='';$('r_state').value='';$('r_contact').value='';$('r_date').value='';$('r_time').value='';$('r_location').value='';$('r_info').value='';$('r_photo').value=''}catch(e){msg.textContent=e.message}finally{btn.disabled=false;btn.textContent='Submit for review'}});
 
 /* --- Navigation --- */
-function showView(name){['home','search','found','report','me','donate'].forEach(v=>$('view-'+v).classList.toggle('active',v===name));['navHome','navSearch','navFound','navReport','navMe'].forEach(n=>$(n).classList.toggle('active',n==='nav'+name.charAt(0).toUpperCase()+name.slice(1)));if(name==='me')renderMe();if(name==='donate')loadDonations();if(name==='found')renderFound();trackSection(name);window.scrollTo(0,0)}
+function showView(name){['home','search','found','report','me','donate'].forEach(v=>$('view-'+v).classList.toggle('active',v===name));['navHome','navSearch','navFound','navReport','navMe'].forEach(n=>$(n).classList.toggle('active',n==='nav'+name.charAt(0).toUpperCase()+name.slice(1)));
+  if($('desktopNav')){$('desktopNav').querySelectorAll('.desktop-nav-btn').forEach(b=>b.classList.toggle('active',b.getAttribute('data-page')===name));}if(name==='me')renderMe();if(name==='donate')loadDonations();if(name==='found')renderFound();trackSection(name);window.scrollTo(0,0)}
 $('heroSearch').addEventListener('click',()=>{showView('search');setTimeout(()=>$('q').focus(),300)})
 $('navHome').addEventListener('click',()=>showView('home'));
 $('navSearch').addEventListener('click',()=>showView('search'));
 $('navFound').addEventListener('click',()=>showView('found'));
 $('navReport').addEventListener('click',()=>showView('report'));
 $('navMe').addEventListener('click',()=>showView('me'));
+// Desktop nav handlers
+if($('desktopNav')){$('desktopNav').querySelectorAll('.desktop-nav-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{const p=btn.getAttribute('data-page');if(p)showView(p)});
+});}
 $('homeDonate').addEventListener('click',()=>showView('donate'));
 $('searchBtn').addEventListener('click',doSearch);
 $('q').addEventListener('keydown',e=>{if(e.key==='Enter')doSearch()});
