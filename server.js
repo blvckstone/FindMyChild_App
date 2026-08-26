@@ -758,16 +758,21 @@ app.post('/api/admin/ads', requireAdmin, async (req, res) => {
         const b = req.body;
         let imageUrl = '';
         let imageUrls = [];
-        if (req.files && req.files.images) {
-            const files = Array.isArray(req.files.images) ? req.files.images : [req.files.images];
-            for (const file of files) {
-                const p = await saveImage(file);
-                if (p) imageUrls.push(p);
+        // Collect all uploaded files from both 'images' and 'image' fields
+        if (req.files) {
+            const allFiles = [];
+            if (req.files.images) {
+                const imgs = Array.isArray(req.files.images) ? req.files.images : [req.files.images];
+                allFiles.push(...imgs);
+            }
+            if (req.files.image) {
+                const img = Array.isArray(req.files.image) ? req.files.image : [req.files.image];
+                allFiles.push(...img);
+            }
+            for (const file of allFiles) {
+                try { const p = await saveImage(file); if (p) imageUrls.push(p); } catch(e) { /* skip */ }
             }
             if (imageUrls.length) imageUrl = imageUrls[0];
-        } else if (req.files && req.files.image) {
-            imageUrl = await saveImage(req.files.image);
-            imageUrls = [imageUrl];
         }
         const ad = await Advertisement.create({
             title: String(b.title || '').trim().slice(0, 100),
@@ -806,12 +811,21 @@ app.put('/api/admin/ads/:id', requireAdmin, async (req, res) => {
         if (b.imageUrl !== undefined) update.imageUrl = String(b.imageUrl).trim();
         const imagePath = await saveImage(req.files && req.files.image);
         if (imagePath) update.imageUrl = imagePath;
-        if (req.files && req.files.images) {
-            const files = Array.isArray(req.files.images) ? req.files.images : [req.files.images];
+        const putFiles = [];
+        if (req.files) {
+            if (req.files.images) {
+                const imgs = Array.isArray(req.files.images) ? req.files.images : [req.files.images];
+                putFiles.push(...imgs);
+            }
+            if (req.files.image) {
+                const img = Array.isArray(req.files.image) ? req.files.image : [req.files.image];
+                putFiles.push(...img);
+            }
+        }
+        if (putFiles.length) {
             const urls = [];
-            for (const file of files) {
-                const p = await saveImage(file);
-                if (p) urls.push(p);
+            for (const file of putFiles) {
+                try { const p = await saveImage(file); if (p) urls.push(p); } catch(e) {}
             }
             if (urls.length) { update.imageUrls = urls; update.imageUrl = urls[0]; }
         }
