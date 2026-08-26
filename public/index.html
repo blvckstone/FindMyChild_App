@@ -82,12 +82,12 @@ main{max-width:100%;margin:0 auto;padding-bottom:calc(80px + env(safe-area-inset
   .section-head h3{font-size:24px;letter-spacing:-.5px}
   .scard-grid{grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px;padding:0 40px;max-width:1100px;margin:0 auto}
   .scard{border-radius:24px}
-  .scard-img{height:220px;border-radius:24px 24px 0 0}
+  .scard-img{height:220px;border-radius:24px}
   .scard-body{padding:18px 20px 20px}
   .scard-name{font-size:17px}
   .hrow{padding:0 48px 28px;gap:18px;justify-content:center}
   .hrow .hcard{flex:0 0 240px;border-radius:24px}
-  .hrow .hcard .photo{height:220px;border-radius:24px 24px 0 0}
+  .hrow .hcard .photo{height:220px;border-radius:24px}
   .tab-pills{padding:24px 48px 8px;justify-content:center}
   .actions-grid{max-width:600px;margin:0 auto;padding:0 48px}
   .how-grid{max-width:900px;margin:0 auto;padding:0 48px}
@@ -118,12 +118,12 @@ main{max-width:100%;margin:0 auto;padding-bottom:calc(80px + env(safe-area-inset
   .section-head h3{font-size:26px}
   .scard-grid{grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:24px;padding:0 48px;max-width:1200px;margin:0 auto}
   .scard{border-radius:24px}
-  .scard-img{height:240px;border-radius:24px 24px 0 0}
+  .scard-img{height:240px;border-radius:24px}
   .scard-body{padding:20px 24px 22px}
   .scard-name{font-size:18px}
   .hrow{padding:0 64px 32px;gap:20px}
   .hrow .hcard{flex:0 0 260px;border-radius:24px}
-  .hrow .hcard .photo{height:240px;border-radius:24px 24px 0 0}
+  .hrow .hcard .photo{height:240px;border-radius:24px}
   .page-top{padding:24px 64px 16px;max-width:1200px}
   .search-head{padding:28px 64px 6px;max-width:1200px}
   .form-group{padding:0 64px;max-width:900px}
@@ -176,7 +176,7 @@ main{max-width:100%;margin:0 auto;padding-bottom:calc(80px + env(safe-area-inset
   transition:all .3s cubic-bezier(.4,0,.2,1);transform:perspective(1000px) translateY(0)}
 .scard:hover{transform:perspective(1000px) translateY(-8px) rotateX(2deg);box-shadow:0 16px 40px rgba(0,0,0,.18),0 4px 12px rgba(0,0,0,.12),inset 0 1px 0 rgba(255,255,255,.8)}
 .scard:active{transform:perspective(1000px) translateY(-2px) scale(.98)}
-.scard-img{height:200px;position:relative;background:linear-gradient(135deg,#f5f5f7,#e8e8ed);overflow:hidden;border-radius:20px 20px 0 0}
+.scard-img{height:200px;position:relative;background:linear-gradient(135deg,#f5f5f7,#e8e8ed);overflow:hidden;border-radius:20px}
 .scard-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1}
 .scard-img .ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#f5f5f7,#e8e8ed)}
 .scard-img .ph svg{width:64px;height:64px;fill:#aeaeb2;opacity:.5}
@@ -189,7 +189,7 @@ main{max-width:100%;margin:0 auto;padding-bottom:calc(80px + env(safe-area-inset
 .scard-age{background:var(--bg);padding:4px 10px;border-radius:8px;font-weight:600;font-size:12px}
 .scard-loc{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px}
 .scard-date{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text3);margin-top:10px;font-weight:500}
-@media(max-width:600px){.scard-grid{grid-template-columns:repeat(2,1fr);gap:12px;padding:0 16px}.scard{border-radius:16px}.scard-img{height:140px;border-radius:16px 16px 0 0}.scard-badge{top:10px;left:10px;padding:4px 10px;border-radius:10px}.scard-body{padding:12px 14px 14px}.scard-name{font-size:14px;margin-bottom:6px}.scard-info{font-size:11px;gap:6px}.stats{padding:12px 14px 8px;gap:8px}.stat{padding:14px 10px;border-radius:var(--radius-sm)}.stat .num{font-size:26px}.section{padding:18px 14px 8px}.hrow{padding:0 14px 18px;gap:10px}.hrow .hcard{flex:0 0 160px;border-radius:16px}.hrow .hcard .photo{height:140px;border-radius:16px 16px 0 0}.hrow .hcard .meta{padding:10px 12px 12px}.hrow .hcard .name{font-size:13px}.hrow .hcard .sub{font-size:11px;margin-top:3px}.hrow .hcard .date{font-size:10px;margin-top:4px}.tab-pills{padding:14px 14px 6px;gap:6px}.pill{padding:8px 14px;font-size:12px}.form-group{padding:0 14px}.page-top{padding:14px 14px 8px}.search-head{padding:18px 14px 4px}.found-list{padding:8px 14px 24px}.don-list{padding:0 14px}}.scard-img{height:140px}}
+@media(max-width:600px){.scard-grid{grid-template-columns:repeat(2,1fr);gap:12px;padding:0 16px}.scard{border-radius:16px}.scard-img{height:140px;border-radius:16px}.scard-badge{top:10px;left:10px;padding:4px 10px;border-radius:10px}.scard-body{padding:12px 14px 14px}.scard-name{font-size:14px;margin-bottom:6px}.scard-info{font-size:11px;gap:6px}.stats{padding:12px 14px 8px;gap:8px}.stat{padding:14px 10px;border-radius:var(--radius-sm)}.stat .num{font-size:26px}.section{padding:18px 14px 8px}.hrow{padding:0 14px 18px;gap:10px}.hrow .hcard{flex:0 0 160px;border-radius:16px}.hrow .hcard .photo{height:140px;border-radius:16px}.hrow .hcard .meta{padding:10px 12px 12px}.hrow .hcard .name{font-size:13px}.hrow .hcard .sub{font-size:11px;margin-top:3px}.hrow .hcard .date{font-size:10px;margin-top:4px}.tab-pills{padding:14px 14px 6px;gap:6px}.pill{padding:8px 14px;font-size:12px}.form-group{padding:0 14px}.page-top{padding:14px 14px 8px}.search-head{padding:18px 14px 4px}.found-list{padding:8px 14px 24px}.don-list{padding:0 14px}}.scard-img{height:140px}}
 
 /* === HORIZONTAL CARDS (home page) === */
 .hcard{
@@ -205,7 +205,7 @@ main{max-width:100%;margin:0 auto;padding-bottom:calc(80px + env(safe-area-inset
   box-shadow:0 16px 40px rgba(0,0,0,.18),0 4px 12px rgba(0,0,0,.12),inset 0 1px 0 rgba(255,255,255,.8);
 }
 .hcard:active{transform:perspective(1000px) translateY(-2px) scale(.98)}
-.hcard .photo{height:180px;position:relative;background:linear-gradient(135deg,#f5f5f7,#e8e8ed);overflow:hidden;border-radius:20px 20px 0 0}
+.hcard .photo{height:180px;position:relative;background:linear-gradient(135deg,#f5f5f7,#e8e8ed);overflow:hidden;border-radius:20px}
 .hcard .photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1}
 .hcard .photo::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,transparent 60%,rgba(0,0,0,.08) 100%);z-index:2}
 .hcard .photo .placeholder{width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#f5f5f7,#e8e8ed)}
