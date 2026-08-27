@@ -388,6 +388,8 @@ button{font-family:inherit;cursor:pointer}input,select,textarea{font-family:inhe
 <div id="toast"></div>
 
 <script>
+window.onerror=function(msg,src,line,col,err){document.body.insertAdjacentHTML('afterbegin','<div style="position:fixed;top:0;left:0;right:0;background:red;color:#fff;z-index:99999;padding:12px;text-align:center;font:14px monospace">JS ERROR: '+msg+' (line '+line+')</div>');return false};
+console.log('[ADMIN-SCRIPT] Script started at',new Date().toISOString());
 let token=localStorage.getItem('fmc_admin_token')||'',allChildren=[],allUsers=[],allFoundReqs=[],allPraise=[],allGifts=[],allDonations=[];
 let currentFoundFilter='',currentPraiseFilter='';
 const $=id=>document.getElementById(id);
