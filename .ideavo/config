@@ -1,0 +1,35 @@
+{
+  "systemSetup": [],
+  "templateName": "custom",
+  "projectDependencies": [
+    {
+      "name": "Install Dependencies",
+      "command": "npm install"
+    }
+  ],
+  "codeChecks": [
+    {
+      "name": "Check Syntax",
+      "command": "node --check server.js"
+    }
+  ],
+  "buildSteps": [],
+  "runStep": [
+    {
+      "name": "Run Dev Server",
+      "command": "npm run dev --port 9002",
+      "port": "9002"
+    }
+  ],
+  "deploySteps": [],
+  "cleanupFiles": [
+    "node_modules"
+  ],
+  "packageManager": "npm",
+  "envPaths": [
+    {
+      "name": "default",
+      "path": ".env"
+    }
+  ]
+}

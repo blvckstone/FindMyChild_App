@@ -1208,7 +1208,11 @@ io.on("connection", function (socket) {
 });
 
 //-----------------------------------------------Start server------------------------------------------------------------------->
-const PORT = process.env.PORT && Number(process.env.PORT) > 0 ? Number(process.env.PORT) : 9002;
+let PORT = process.env.PORT && Number(process.env.PORT) > 0 ? Number(process.env.PORT) : 9002;
+const portArgIdx = process.argv.indexOf('--port');
+if (portArgIdx !== -1 && process.argv[portArgIdx + 1]) {
+    PORT = Number(process.argv[portArgIdx + 1]);
+}
 
 // Connect to the database once at startup so failures surface early.
 fmcConnectMongoDB().then(async (res) => {
