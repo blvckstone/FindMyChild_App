@@ -1033,6 +1033,13 @@ app.put('/api/admin/admins/:id', requireAdmin, requireSuperAdmin, async (req, re
             if (active === false || (role && role !== 'super_admin')) {
                 return res.status(403).json({ success: false, message: 'Cannot modify super admin.' });
             }
+            // Block permission flag changes for super admin — they always have full access
+            delete req.body.canManageChildren;
+            delete req.body.canManageUsers;
+            delete req.body.canManageAds;
+            delete req.body.canManageAnalytics;
+            delete req.body.canManageDonations;
+            delete req.body.canManageAdmins;
         }
         if (role !== undefined) admin.role = role;
         if (name !== undefined) admin.name = name;
