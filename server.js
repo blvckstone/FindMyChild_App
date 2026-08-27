@@ -404,8 +404,42 @@ if (googleClientId && googleClientSecret) {
 }
 
 // Get current admin info
-app.get('/api/admin/me', requireAdmin, (req, res) => {
-    res.json({ success: true, admin: req.adminInfo });
+app.get('/api/admin/me', requireAdmin, async (req, res) => {
+    try {
+        const { AdminUser } = await getModels();
+        const admin = await AdminUser.findOne({ email: req.adminInfo.email }).lean();
+        if (!admin) return res.json({ success: true, admin: req.adminInfo });
+        res.json({ success: true, admin });
+    } catch (e) {
+        res.json({ success: true, admin: req.adminInfo });
+    }
+});
+
+// Update current admin profile
+app.put('/api/admin/me', requireAdmin, async (req, res) => {
+    try {
+        const { AdminUser } = await getModels();
+        const { name, photo } = req.body;
+        const update = {};
+        if (name !== undefined) update.name = String(name).trim();
+        if (photo !== undefined) update.photo = String(photo).trim();
+        const admin = await AdminUser.findOneAndUpdate(
+            { email: req.adminInfo.email },
+            { $set: update },
+            { new: true }
+        ).lean();
+        if (!admin) return res.status(404).json({ success: false, message: 'Admin not found in whitelist.' });
+        // Re-sign token with updated info
+        const newToken = signAdminToken({
+            email: admin.email,
+            role: admin.role,
+            permissions: { all: admin.role === 'super_admin', children: admin.canManageChildren, users: admin.canManageUsers, ads: admin.canManageAds, analytics: admin.canManageAnalytics, donations: admin.canManageDonations, admins: admin.canManageAdmins }
+        });
+        adminTokens.set(newToken, { email: admin.email, role: admin.role, permissions: { all: admin.role === 'super_admin' } });
+        res.json({ success: true, admin, token: newToken });
+    } catch (e) {
+        res.status(500).json({ success: false, message: e.message });
+    }
 });
 
 // Debug endpoint - test admin auth without middleware

@@ -131,6 +131,21 @@ button{font-family:inherit;cursor:pointer}input,select,textarea{font-family:inhe
 .dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px}
 @media(max-width:480px){.grid2{grid-template-columns:1fr}.dash-grid{grid-template-columns:1fr}}
 .modal-foot{padding:16px 24px;border-top:1px solid var(--border);display:flex;gap:10px;position:sticky;bottom:0;background:var(--card)}
+.profile-hero{display:flex;flex-direction:column;align-items:center;padding:28px 20px;background:var(--card);border-radius:var(--radius);border:1px solid var(--border);margin-bottom:16px}
+.profile-avatar{width:80px;height:80px;border-radius:20px;background:var(--accent);display:flex;align-items:center;justify-content:center;margin-bottom:14px;overflow:hidden}
+.profile-avatar img{width:100%;height:100%;object-fit:cover}
+.profile-avatar svg{width:36px;height:36px;fill:#fff}
+.profile-hero h3{font-size:18px;font-weight:800;color:var(--text)}
+.profile-hero .role-badge{display:inline-block;font-size:11px;font-weight:700;padding:4px 12px;border-radius:8px;margin-top:6px;text-transform:uppercase}
+.profile-hero .email{font-size:13px;color:var(--text3);margin-top:6px}
+.profile-section{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:16px;overflow:hidden}
+.profile-section .ps-head{padding:14px 18px;border-bottom:1px solid var(--border);font-size:14px;font-weight:700;color:var(--text)}
+.profile-section .ps-body{padding:16px 18px}
+.profile-perm{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px;color:var(--text2)}
+.profile-perm:last-child{border-bottom:none}
+.profile-perm .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.profile-perm .dot.on{background:var(--green)}
+.profile-perm .dot.off{background:var(--border)}
 
 /* Toast */
 #toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(80px);background:var(--dark);color:#fff;padding:12px 20px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;z-index:60;opacity:0;transition:all .3s;max-width:90vw;text-align:center;box-shadow:var(--shadow-md)}
@@ -240,6 +255,7 @@ button{font-family:inherit;cursor:pointer}input,select,textarea{font-family:inhe
     <a href="#" data-page="analytics"><svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>Analytics</a>
     <a href="#" data-page="ads"><svg viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H3V5h18v14z"/></svg>Ads</a>
     <a href="#" data-page="whitelist"><svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM12 17c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zM9 8V6c0-1.66 1.34-3 3-3s3 1.34 3 3v2H9z"/></svg>Admin Whitelist<span class="badge" id="badgeWhitelist">0</span></a>
+    <a href="#" data-page="profile"><svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>My Profile</a>
   </nav>
   <div class="logout"><button id="logoutBtn"><svg viewBox="0 0 24 24"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>Logout</button></div>
 </div>
@@ -375,6 +391,12 @@ button{font-family:inherit;cursor:pointer}input,select,textarea{font-family:inhe
   <div id="whitelistList"></div>
 </div>
 
+<!-- ===== MY PROFILE ===== -->
+<div class="page" id="pg-profile">
+  <div class="page-head"><h2>My Profile</h2></div>
+  <div id="profileContent"></div>
+</div>
+
 </div><!-- /main -->
 </div><!-- /app -->
 
@@ -437,13 +459,16 @@ function navigateTo(page){
   if(page==='analytics')loadAnalytics();
   if(page==='ads')loadAds();
   if(page==='whitelist')loadWhitelist();
+  if(page==='profile')loadProfile();
 }
 document.querySelectorAll('#sideNav a[data-page]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();navigateTo(a.dataset.page)}));
 document.querySelectorAll('#mobNav button[data-page]').forEach(b=>b.addEventListener('click',()=>{if(b.dataset.page==='more'){showMoreMenu();return}navigateTo(b.dataset.page)}));
 function showMoreMenu(){
-  const pages=[{id:'analytics',label:'Analytics',icon:'📊'},{id:'ads',label:'Ads',icon:'📺'},{id:'donations',label:'Donations',icon:'💰'},{id:'praise',label:'Praise & Gifts',icon:'⭐'},{id:'users',label:'Users',icon:'👥'},{id:'whitelist',label:'Admin Whitelist',icon:'🔐'},{id:'add',label:'Add New',icon:'➕'}];
+  const pages=[{id:'analytics',label:'Analytics',icon:'📊'},{id:'ads',label:'Ads',icon:'📺'},{id:'donations',label:'Donations',icon:'💰'},{id:'praise',label:'Praise & Gifts',icon:'⭐'},{id:'users',label:'Users',icon:'👥'},{id:'whitelist',label:'Admin Whitelist',icon:'🔐'},{id:'add',label:'Add New',icon:'➕'},{id:'profile',label:'My Profile',icon:'👤'}];
   $('modalTitle').textContent='More';
-  $('modalBody').innerHTML=pages.map(p=>`<div onclick="closeModal();navigateTo('${p.id}')" style="display:flex;align-items:center;gap:14px;padding:16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background=''"><span style="font-size:20px">${p.icon}</span><span style="font-size:15px;font-weight:600;color:var(--text)">${p.label}</span><span style="margin-left:auto;color:var(--text3)">›</span></div>`).join('');
+  const items=pages.map(p=>`<div onclick="closeModal();navigateTo('${p.id}')" style="display:flex;align-items:center;gap:14px;padding:16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background=''"><span style="font-size:20px">${p.icon}</span><span style="font-size:15px;font-weight:600;color:var(--text)">${p.label}</span><span style="margin-left:auto;color:var(--text3)">›</span></div>`).join('');
+  const logoutBtn=`<div onclick="closeModal();$('logoutBtn').click()" style="display:flex;align-items:center;gap:14px;padding:16px;cursor:pointer;transition:background .15s;color:var(--red)" onmouseover="this.style.background='var(--red-light)'" onmouseout="this.style.background=''"><span style="font-size:20px">🚪</span><span style="font-size:15px;font-weight:600">Logout</span></div>`;
+  $('modalBody').innerHTML=items+logoutBtn;
   $('modalBg').classList.add('show');
 }
 
@@ -1052,6 +1077,72 @@ async function toggleAdminActive(id,active){
 async function deleteAdmin(id){
   if(!confirm('Remove this admin from the whitelist?'))return;
   try{await api('/api/admin/admins/'+id,{method:'DELETE'});toast('Admin removed.');loadWhitelist()}catch(e){toast(e.message,'err')}
+}
+
+// === MY PROFILE ===
+let myAdminInfo=null;
+async function loadProfile(){
+  try{
+    const r=await api('/api/admin/me');
+    myAdminInfo=r.admin||{};
+    const a=myAdminInfo;
+    const isSuperAdmin=a.role==='super_admin';
+    const roleBg=isSuperAdmin?'var(--red-light)':a.role==='admin'?'var(--accent-light)':'var(--orange-light)';
+    const roleColor=isSuperAdmin?'var(--red)':a.role==='admin'?'var(--accent)':'var(--orange)';
+    const photo=a.photo?'<img src="'+esc(a.photo)+'" alt="'+esc(a.name)+'">':'<svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>';
+    const perms=[
+      {label:'Children Management',on:a.canManageChildren!==false},
+      {label:'Users Management',on:a.canManageUsers!==false},
+      {label:'Ads Management',on:a.canManageAds!==false},
+      {label:'Analytics Access',on:a.canManageAnalytics!==false},
+      {label:'Donations Management',on:a.canManageDonations!==false},
+      {label:'Admin Whitelist',on:a.canManageAdmins===true}
+    ];
+    $('profileContent').innerHTML=`
+      <div class="profile-hero">
+        <div class="profile-avatar">${photo}</div>
+        <h3>${esc(a.name||a.email)}</h3>
+        <span class="role-badge" style="background:${roleBg};color:${roleColor}">${esc(a.role||'admin').replace('_',' ').toUpperCase()}</span>
+        <div class="email">✉️ ${esc(a.email)}</div>
+      </div>
+      <div class="profile-section">
+        <div class="ps-head">Edit Profile</div>
+        <div class="ps-body">
+          <div class="field"><label>Display Name</label><input id="profName" value="${esc(a.name||'')}" placeholder="Your display name"></div>
+          <div class="field"><label>Photo URL</label><input id="profPhoto" value="${esc(a.photo||'')}" placeholder="https://example.com/photo.jpg"></div>
+          <button class="btn" onclick="saveProfile()" style="margin-top:4px">Save Changes</button>
+        </div>
+      </div>
+      <div class="profile-section">
+        <div class="ps-head">My Permissions</div>
+        <div class="ps-body">
+          ${perms.map(p=>'<div class="profile-perm"><span class="dot '+(p.on?'on':'off')+'"></span><span>'+(isSuperAdmin?'✅':p.on?'✅':'❌')+' '+p.label+'</span></div>').join('')}
+          ${isSuperAdmin?'<div style="margin-top:8px;font-size:12px;color:var(--text3)">Super admin has full access to everything.</div>':''}
+        </div>
+      </div>
+      <div class="profile-section">
+        <div class="ps-head">Account Info</div>
+        <div class="ps-body">
+          <div style="font-size:13px;color:var(--text2);line-height:2">
+            <div><strong>Email:</strong> ${esc(a.email)}</div>
+            <div><strong>Role:</strong> ${esc(a.role||'admin').replace('_',' ').toUpperCase()}</div>
+            <div><strong>Joined:</strong> ${fmtDate(a.createdAt)}</div>
+          </div>
+        </div>
+      </div>
+    `;
+  }catch(e){toast(e.message,'err')}
+}
+async function saveProfile(){
+  try{
+    const name=$('profName').value.trim();
+    const photo=$('profPhoto').value.trim();
+    const r=await api('/api/admin/me',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,photo})});
+    if(r.token){token=r.token;localStorage.setItem('fmc_admin_token',r.token)}
+    if(name)localStorage.setItem('fmc_admin_name',name);
+    toast('Profile updated!');
+    loadProfile();
+  }catch(e){toast(e.message,'err')}
 }
 
 // Init — show app immediately if token exists to avoid login flash
