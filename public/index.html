@@ -691,6 +691,25 @@ main{scroll-padding-top:10px}
     </div>
     <div class="section"><div class="section-head"><h3>Recent Donors</h3><span class="count" id="donTotal"></span></div><div class="don-list" id="donList"></div></div>
   </section>
+
+  <!-- ABOUT US -->
+  <section class="view" id="view-about">
+    <div class="page-top"><button class="back-btn" onclick="showView('home')"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button><h2>About Us</h2></div>
+    <div class="form-group" id="aboutContent"><p style="text-align:center;padding:40px;color:var(--text3)">Loading...</p></div>
+  </section>
+
+  <!-- CONTACT US -->
+  <section class="view" id="view-contact">
+    <div class="page-top"><button class="back-btn" onclick="showView('home')"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button><h2>Contact Us</h2></div>
+    <div class="form-group" id="contactContent"><p style="text-align:center;padding:40px;color:var(--text3)">Loading...</p></div>
+  </section>
+
+  <!-- LEGAL PAGES -->
+  <section class="view" id="view-legal">
+    <div class="page-top"><button class="back-btn" onclick="showView('home')"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button><h2 id="legalTitle">Legal</h2></div>
+    <div class="form-group" id="legalContent"><p style="text-align:center;padding:40px;color:var(--text3)">Loading...</p></div>
+  </section>
+
 </main>
 
 <!-- DEVELOPER CREDIT -->
@@ -698,6 +717,13 @@ main{scroll-padding-top:10px}
   <div class="df-name">Developed By Er. MD Shoeb</div>
   <div class="df-line">In Malegaon<br>For Gumshuda Bacho Ki Talash Group</div>
   <div class="df-disclaimer"><strong>Non-Profitable Initiative</strong> — This is a social help platform created solely to reunite missing children with their families. No commercial purpose. If you wish to support this cause, you can donate voluntarily to help keep this platform running.</div>
+  <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;justify-content:center">
+    <a href="#" onclick="showView('about');return false" style="font-size:12px;color:var(--accent);text-decoration:none;font-weight:600">About Us</a>
+    <a href="#" onclick="showView('contact');return false" style="font-size:12px;color:var(--accent);text-decoration:none;font-weight:600">Contact Us</a>
+    <a href="#" onclick="showLegal('privacy-policy');return false" style="font-size:12px;color:var(--accent);text-decoration:none;font-weight:600">Privacy</a>
+    <a href="#" onclick="showLegal('terms-and-conditions');return false" style="font-size:12px;color:var(--accent);text-decoration:none;font-weight:600">Terms</a>
+    <a href="#" onclick="showLegal('disclaimer');return false" style="font-size:12px;color:var(--accent);text-decoration:none;font-weight:600">Disclaimer</a>
+  </div>
 </div>
 
 <!-- BOTTOM NAV -->
@@ -871,7 +897,7 @@ $('reportBtn').addEventListener('click',async()=>{
   const name=$('r_name').value.trim(),contact=$('r_contact').value.trim(),msg=$('reportMsg');if(!name){msg.textContent='Enter the child\'s full name.';return}if(!contact){msg.textContent='Enter a contact number.';return}const fd=new FormData();fd.append('fullName',name);fd.append('gender',$('r_gender').value);fd.append('age',$('r_age').value);fd.append('address',$('r_address').value.trim());fd.append('state',$('r_state').value.trim());fd.append('contactNumber',contact);fd.append('missingDate',$('r_date').value);fd.append('missingTime',$('r_time').value);fd.append('missingLocation',$('r_location').value.trim());fd.append('info',$('r_info').value.trim());const file=$('r_photo').files[0];if(file)fd.append('image',file);const btn=$('reportBtn');btn.disabled=true;btn.textContent='Submitting...';msg.textContent='';try{const r=await fetch('/api/children',{method:'POST',headers:{'Authorization':'Bearer '+userToken},body:fd});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.message||'Failed');msg.textContent=j.message;$('r_name').value='';$('r_gender').value='';$('r_age').value='';$('r_address').value='';$('r_state').value='';$('r_contact').value='';$('r_date').value='';$('r_time').value='';$('r_location').value='';$('r_info').value='';$('r_photo').value=''}catch(e){msg.textContent=e.message}finally{btn.disabled=false;btn.textContent='Submit for review'}});
 
 /* --- Navigation --- */
-function showView(name){['home','search','found','report','me','donate'].forEach(v=>$('view-'+v).classList.toggle('active',v===name));['navHome','navSearch','navFound','navReport','navMe'].forEach(n=>$(n).classList.toggle('active',n==='nav'+name.charAt(0).toUpperCase()+name.slice(1)));
+function showView(name){['home','search','found','report','me','donate','about','contact','legal'].forEach(v=>{var el=$('view-'+v);if(el)el.classList.toggle('active',v===name)});['navHome','navSearch','navFound','navReport','navMe'].forEach(n=>$(n).classList.toggle('active',n==='nav'+name.charAt(0).toUpperCase()+name.slice(1)));
   if($('desktopNav')){$('desktopNav').querySelectorAll('.desktop-nav-btn').forEach(b=>b.classList.toggle('active',b.getAttribute('data-page')===name));}if(name==='me')renderMe();if(name==='donate')loadDonations();if(name==='found')renderFound();trackSection(name);window.scrollTo(0,0)}
 $('heroSearch').addEventListener('click',()=>{showView('search');setTimeout(()=>$('q').focus(),300)})
 $('navHome').addEventListener('click',()=>showView('home'));
@@ -939,6 +965,76 @@ async function loadMyRequests(){const box=$('myReqs');if(!box)return;try{const j
 /* --- Donations --- */
 $('donateBtn').addEventListener('click',async()=>{const msg=$('donateMsg');try{const j=await api('/api/donations',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({donorName:$('d_name').value.trim(),emailId:$('d_email').value.trim(),amount:$('d_amount').value,message:$('d_msg').value.trim()})});msg.textContent=j.message;$('d_name').value='';$('d_email').value='';$('d_amount').value='';$('d_msg').value='';loadDonations()}catch(e){msg.textContent=e.message}});
 async function loadDonations(){try{const j=await api('/api/donations');$('donTotal').textContent=money(j.total)+' raised';$('donList').innerHTML=j.data.length?j.data.map(d=>`<div class="don-item"><div class="drow"><span class="dname">${esc(d.donorName)}</span><span class="damt">${money(d.amount)}</span></div>${d.message?'<div class="dmsg">'+esc(d.message)+'</div>':''}<div class="ddate">${fmtDate(d.createdAt)}</div></div>`).join(''):'<div class="empty"><p>No donations yet.</p></div>'}catch(e){}}
+
+/* --- About Us page --- */
+async function loadAboutPage(){
+  try{
+    const r=await fetch('/api/pages/about-us');const j=await r.json();
+    if(!j.success||!j.data){$('aboutContent').innerHTML='<p style="text-align:center;padding:40px;color:var(--text3)">Content coming soon.</p>';return}
+    const p=j.data;let html='<div style="padding:0 0 20px">'+p.content+'</div>';
+    if(p.extra){
+      if(p.extra.mission)html+='<div style="background:var(--accent-light);border-radius:16px;padding:20px;margin-bottom:16px"><h3 style="font-size:16px;font-weight:800;margin-bottom:8px;color:var(--accent)">Our Mission</h3><p style="font-size:14px;color:var(--text2);line-height:1.6">'+esc(p.extra.mission)+'</p></div>';
+      if(p.extra.vision)html+='<div style="background:var(--green-light);border-radius:16px;padding:20px;margin-bottom:16px"><h3 style="font-size:16px;font-weight:800;margin-bottom:8px;color:var(--green)">Our Vision</h3><p style="font-size:14px;color:var(--text2);line-height:1.6">'+esc(p.extra.vision)+'</p></div>';
+    }
+    html+='<div style="margin-top:16px;display:flex;flex-wrap:wrap;gap:10px">';
+    html+='<button class="pill active" onclick="showView(\'contact\')">Contact Us</button>';
+    html+='<button class="pill" onclick="showLegal(\'privacy-policy\')">Privacy Policy</button>';
+    html+='<button class="pill" onclick="showLegal(\'terms-and-conditions\')">Terms</button>';
+    html+='<button class="pill" onclick="showLegal(\'disclaimer\')">Disclaimer</button>';
+    html+='</div>';
+    $('aboutContent').innerHTML=html;
+  }catch(e){$('aboutContent').innerHTML='<p style="color:var(--red);padding:20px">Failed to load.</p>'}
+}
+
+/* --- Contact Us page --- */
+async function loadContactPage(){
+  try{
+    const r=await fetch('/api/pages/contact-us');const j=await r.json();
+    if(!j.success||!j.data){$('contactContent').innerHTML='<p style="text-align:center;padding:40px;color:var(--text3)">Content coming soon.</p>';return}
+    const p=j.data;const ex=p.extra||{};let html=p.content?'<div style="padding:0 0 16px">'+p.content+'</div>':'';
+    html+='<div style="background:var(--red-light);border-radius:12px;padding:16px;margin-bottom:16px;font-size:13px;color:var(--red);font-weight:600">'+esc(ex.emergencyNote||'In emergency call 112 or 1098 immediately.')+'</div>';
+    const items=[
+      {icon:'📞',label:'Phone',value:ex.phone,href:ex.phone?'tel:'+ex.phone.replace(/[^0-9+]/g,''):null},
+      {icon:'✉️',label:'Email',value:ex.email,href:ex.email?'mailto:'+ex.email:null},
+      {icon:'💬',label:'WhatsApp',value:ex.whatsapp,href:ex.whatsapp?'https://wa.me/'+ex.whatsapp.replace(/[^0-9]/g,''):null},
+      {icon:'📍',label:'Address',value:ex.address},
+      {icon:'🕐',label:'Hours',value:ex.helplineHours}
+    ].filter(i=>i.value);
+    items.forEach(i=>{
+      const tag=i.href?'a':'div';
+      const attrs=i.href?" href='"+esc(i.href)+"' target='_blank' style='text-decoration:none;color:inherit'":'';
+      html+='<'+tag+attrs+' style="display:flex;align-items:center;gap:14px;padding:16px;background:var(--card);border:1.5px solid var(--border);border-radius:16px;margin-bottom:10px;cursor:'+(i.href?'pointer':'default')+'"><span style="font-size:24px">'+i.icon+'</span><div><div style="font-size:12px;color:var(--text3);font-weight:600">'+i.label+'</div><div style="font-size:15px;font-weight:700;color:var(--text)">'+esc(i.value)+'</div></div></'+tag+'>';
+    });
+    if(ex.socialMedia){
+      const socials=Object.entries(ex.socialMedia).filter(([,v])=>v);
+      if(socials.length){
+        html+='<div style="margin-top:12px"><div style="font-size:12px;color:var(--text3);font-weight:600;margin-bottom:8px">Follow Us</div><div style="display:flex;gap:10px">';
+        socials.forEach(([k,v])=>{const icons={facebook:'📘',instagram:'📸',twitter:'🐦'};html+='<a href="'+esc(v)+'" target="_blank" style="display:flex;align-items:center;justify-content:center;width:44px;height:44px;background:var(--accent-light);border-radius:12px;font-size:20px;text-decoration:none">'+(icons[k]||'🔗')+'</a>'});
+        html+='</div></div>';
+      }
+    }
+    $('contactContent').innerHTML=html;
+  }catch(e){$('contactContent').innerHTML='<p style="color:var(--red);padding:20px">Failed to load.</p>'}
+}
+
+/* --- Legal page loader --- */
+async function showLegal(slug){
+  showView('legal');
+  $('legalContent').innerHTML='<p style="text-align:center;padding:40px;color:var(--text3)">Loading...</p>';
+  try{
+    const r=await fetch('/api/legal/'+slug);const j=await r.json();
+    if(!j.success||!j.data){$('legalContent').innerHTML='<p style="text-align:center;padding:40px;color:var(--text3)">Page not found.</p>';return}
+    $('legalTitle').textContent=j.data.title||'Legal';
+    let html='<div style="padding:0 0 16px">'+j.data.content+'</div>';
+    if(j.data.effectiveDate)html+='<div style="font-size:12px;color:var(--text3);padding:12px 0;border-top:1px solid var(--border)">Effective: '+fmtDate(j.data.effectiveDate)+'</div>';
+    html+='<div style="margin-top:16px;display:flex;flex-wrap:wrap;gap:8px">';
+    html+='<button class="pill" onclick="showLegal(\'privacy-policy\')">Privacy Policy</button>';
+    html+='<button class="pill" onclick="showLegal(\'terms-and-conditions\')">Terms</button>';
+    html+='<button class="pill" onclick="showLegal(\'disclaimer\')">Disclaimer</button>';
+    html+='</div>';
+    $('legalContent').innerHTML=html;
+  }catch(e){$('legalContent').innerHTML='<p style="color:var(--red);padding:20px">Failed to load.</p>'}
+}
 
 /* --- Keyboard fix --- */
 function scrollFocusedIntoView(){setTimeout(()=>{const el=document.activeElement;if(el&&(el.tagName==='INPUT'||el.tagName==='TEXTAREA'||el.tagName==='SELECT')){const rect=el.getBoundingClientRect();const vh=window.visualViewport?window.visualViewport.height:window.innerHeight;if(rect.bottom>vh-20||rect.top<60){el.scrollIntoView({behavior:'smooth',block:'center'})}}},200)}

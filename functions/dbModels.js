@@ -80,6 +80,41 @@ const adminUserSchema = mongoose.Schema({
     createdAt: { type: Date, default: Date.now }
 });
 
+// Page content schema (About Us, Contact Us, etc.)
+const pageContentSchema = mongoose.Schema({
+    slug: { type: String, required: true, unique: true, lowercase: true },
+    title: { type: String, default: '' },
+    content: { type: String, default: '' },
+    metaDescription: { type: String, default: '' },
+    extra: mongoose.Schema.Types.Mixed,
+    updatedAt: { type: Date, default: Date.now },
+    createdAt: { type: Date, default: Date.now }
+});
+
+// Legal pages schema (Privacy Policy, Terms, Disclaimer)
+const legalPageSchema = mongoose.Schema({
+    slug: { type: String, required: true, unique: true, lowercase: true },
+    title: { type: String, default: '' },
+    content: { type: String, default: '' },
+    effectiveDate: { type: Date, default: Date.now },
+    updatedAt: { type: Date, default: Date.now },
+    createdAt: { type: Date, default: Date.now }
+});
+
+// Revenue / income tracking schema
+const revenueSchema = mongoose.Schema({
+    source: { type: String, required: true },
+    type: { type: String, enum: ['donation', 'ad_revenue', 'grant', 'sponsorship', 'membership', 'other'], default: 'other' },
+    amount: { type: Number, required: true },
+    description: { type: String, default: '' },
+    donorName: { type: String, default: '' },
+    emailId: { type: String, default: '' },
+    referenceId: { type: String, default: '' },
+    status: { type: String, enum: ['received', 'pending', 'confirmed'], default: 'received' },
+    date: { type: Date, default: Date.now },
+    createdAt: { type: Date, default: Date.now }
+});
+
 const adSchema = mongoose.Schema({
     title: String,
     imageUrl: String,
@@ -113,7 +148,10 @@ const getModels = async () => {
             const Analytics = mongoose.models.Analytics || mongoose.model('Analytics', analyticsSchema);
             const Advertisement = mongoose.models.Advertisement || mongoose.model('Advertisement', adSchema);
             const AdminUser = mongoose.models.AdminUser || mongoose.model('AdminUser', adminUserSchema);
-            return { Child: db.data, User, FoundRequest, Praise, Gift, Donation, Analytics, Advertisement, AdminUser };
+            const PageContent = mongoose.models.PageContent || mongoose.model('PageContent', pageContentSchema);
+            const LegalPage = mongoose.models.LegalPage || mongoose.model('LegalPage', legalPageSchema);
+            const Revenue = mongoose.models.Revenue || mongoose.model('Revenue', revenueSchema);
+            return { Child: db.data, User, FoundRequest, Praise, Gift, Donation, Analytics, Advertisement, AdminUser, PageContent, LegalPage, Revenue };
         })();
     }
     return modelsPromise;

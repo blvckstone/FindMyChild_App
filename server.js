@@ -1177,6 +1177,161 @@ app.post('/api/gifts', requireAuth, async (req, res) => {
     }
 });
 
+// ---- Admin: Revenue management ----
+app.get('/api/admin/revenue', requireAdmin, async (req, res) => {
+    try {
+        const { Revenue } = await getModels();
+        const data = await Revenue.find().sort({ date: -1 }).lean();
+        res.json({ success: true, data });
+    } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+});
+app.post('/api/admin/revenue', requireAdmin, async (req, res) => {
+    try {
+        const { Revenue } = await getModels();
+        const { source, type, amount, description, donorName, emailId, status, date } = req.body;
+        if (!source || !amount) return res.status(400).json({ success: false, message: 'Source and amount are required.' });
+        const record = await Revenue.create({ source, type: type || 'other', amount: Number(amount), description, donorName, emailId, status: status || 'received', date: date || new Date() });
+        res.status(201).json({ success: true, data: record });
+    } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+});
+app.put('/api/admin/revenue/:id', requireAdmin, async (req, res) => {
+    try {
+        const { Revenue } = await getModels();
+        const record = await Revenue.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        if (!record) return res.status(404).json({ success: false, message: 'Record not found.' });
+        res.json({ success: true, data: record });
+    } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+});
+app.delete('/api/admin/revenue/:id', requireAdmin, async (req, res) => {
+    try {
+        const { Revenue } = await getModels();
+        await Revenue.findByIdAndDelete(req.params.id);
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+});
+app.get('/api/admin/revenue/summary', requireAdmin, async (req, res) => {
+    try {
+        const { Revenue } = await getModels();
+        const all = await Revenue.find().lean();
+        const total = all.reduce((s, r) => s + (r.amount || 0), 0);
+        const byType = {};
+        all.forEach(r => { byType[r.type] = (byType[r.type] || 0) + (r.amount || 0); });
+        const bySource = {};
+        all.forEach(r => { bySource[r.source] = (bySource[r.source] || 0) + (r.amount || 0); });
+        const thisMonth = all.filter(r => { const d = new Date(r.date); const now = new Date(); return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear(); });
+        const monthTotal = thisMonth.reduce((s, r) => s + (r.amount || 0), 0);
+        res.json({ success: true, data: { total, monthTotal, byType, bySource, count: all.length } });
+    } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// ---- Public: page content (About Us, Contact Us) ----
+app.get('/api/pages/:slug', async (req, res) => {
+    try {
+        const { PageContent } = await getModels();
+        const page = await PageContent.findOne({ slug: req.params.slug }).lean();
+        if (!page) return res.status(404).json({ success: false, message: 'Page not found.' });
+        res.json({ success: true, data: page });
+    } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// ---- Admin: page content CRUD ----
+app.get('/api/admin/pages', requireAdmin, async (req, res) => {
+    try {
+        const { PageContent } = await getModels();
+        const data = await PageContent.find().sort({ updatedAt: -1 }).lean();
+        res.json({ success: true, data });
+    } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+});
+app.get('/api/admin/pages/:slug', requireAdmin, async (req, res) => {
+    try {
+        const { PageContent } = await getModels();
+        const page = await PageContent.findOne({ slug: req.params.slug }).lean();
+        if (!page) return res.status(404).json({ success: false, message: 'Page not found.' });
+        res.json({ success: true, data: page });
+    } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+});
+app.put('/api/admin/pages/:slug', requireAdmin, async (req, res) => {
+    try {
+        const { PageContent } = await getModels();
+        const { title, content, metaDescription, extra } = req.body;
+        const update = { updatedAt: new Date() };
+        if (title !== undefined) update.title = title;
+        if (content !== undefined) update.content = content;
+        if (metaDescription !== undefined) update.metaDescription = metaDescription;
+        if (extra !== undefined) update.extra = extra;
+        const page = await PageContent.findOneAndUpdate(
+            { slug: req.params.slug },
+            { $set: update },
+            { new: true, upsert: true }
+        );
+        res.json({ success: true, data: page });
+    } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+});
+app.delete('/api/admin/pages/:slug', requireAdmin, async (req, res) => {
+    try {
+        const { PageContent } = await getModels();
+        await PageContent.findOneAndDelete({ slug: req.params.slug });
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// ---- Public: legal pages ----
+app.get('/api/legal/:slug', async (req, res) => {
+    try {
+        const { LegalPage } = await getModels();
+        const page = await LegalPage.findOne({ slug: req.params.slug }).lean();
+        if (!page) return res.status(404).json({ success: false, message: 'Page not found.' });
+        res.json({ success: true, data: page });
+    } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+});
+app.get('/api/legal', async (req, res) => {
+    try {
+        const { LegalPage } = await getModels();
+        const data = await LegalPage.find().sort({ updatedAt: -1 }).select('slug title effectiveDate').lean();
+        res.json({ success: true, data });
+    } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// ---- Admin: legal pages CRUD ----
+app.get('/api/admin/legal', requireAdmin, async (req, res) => {
+    try {
+        const { LegalPage } = await getModels();
+        const data = await LegalPage.find().sort({ updatedAt: -1 }).lean();
+        res.json({ success: true, data });
+    } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+});
+app.get('/api/admin/legal/:slug', requireAdmin, async (req, res) => {
+    try {
+        const { LegalPage } = await getModels();
+        const page = await LegalPage.findOne({ slug: req.params.slug }).lean();
+        if (!page) return res.status(404).json({ success: false, message: 'Page not found.' });
+        res.json({ success: true, data: page });
+    } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+});
+app.put('/api/admin/legal/:slug', requireAdmin, async (req, res) => {
+    try {
+        const { LegalPage } = await getModels();
+        const { title, content, effectiveDate } = req.body;
+        const update = { updatedAt: new Date() };
+        if (title !== undefined) update.title = title;
+        if (content !== undefined) update.content = content;
+        if (effectiveDate !== undefined) update.effectiveDate = effectiveDate;
+        const page = await LegalPage.findOneAndUpdate(
+            { slug: req.params.slug },
+            { $set: update },
+            { new: true, upsert: true }
+        );
+        res.json({ success: true, data: page });
+    } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+});
+app.delete('/api/admin/legal/:slug', requireAdmin, async (req, res) => {
+    try {
+        const { LegalPage } = await getModels();
+        await LegalPage.findOneAndDelete({ slug: req.params.slug });
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
 io.on("connection", function (socket) {
     console.log("New socket user found", socket.id);
 
@@ -1303,6 +1458,75 @@ fmcConnectMongoDB().then(async (res) => {
             console.log('Super admin auto-created:', superEmail);
         }
     } catch (e) { console.error('Super admin init error:', e.message); }
+
+    // Seed default page content if none exists
+    try {
+        const { PageContent, LegalPage } = await getModels();
+
+        // About Us
+        const aboutExists = await PageContent.findOne({ slug: 'about-us' });
+        if (!aboutExists) {
+            await PageContent.create({
+                slug: 'about-us',
+                title: 'About Us',
+                content: '<h2>Gumshuda Bacho Ki Talash</h2><p>Find My Child (Gumshuda Bacho Ki Talash) is a non-profit social initiative dedicated to reuniting missing children with their families. We provide a free, publicly accessible platform where concerned citizens can report missing children and help locate them.</p><h3>Our Mission</h3><p>To create a community-driven network that helps locate missing children quickly and reunite them with their families. Every child deserves to be safe at home.</p><h3>How It Works</h3><ul><li><strong>Report:</strong> Anyone can submit a missing child report with details and photos.</li><li><strong>Verify:</strong> Our admin team reviews and verifies every submission.</li><li><strong>Publish:</strong> Verified reports are made public so the community can help.</li><li><strong>Reunite:</strong> When someone spots the child, they submit a Found Request.</li></ul><h3>Who We Are</h3><p>We are a volunteer-driven group based in Malegaon, Maharashtra. This platform was built with the sole purpose of social good — no commercial interest whatsoever.</p>',
+                metaDescription: 'Learn about Find My Child - a non-profit initiative to reunite missing children with their families.',
+                extra: { mission: 'To create a community-driven network that helps locate missing children quickly.', vision: 'A world where no child is lost and every family is whole.', foundedYear: 2026, location: 'Malegaon, Maharashtra, India' }
+            });
+            console.log('Seeded: About Us page');
+        }
+
+        // Contact Us
+        const contactExists = await PageContent.findOne({ slug: 'contact-us' });
+        if (!contactExists) {
+            await PageContent.create({
+                slug: 'contact-us',
+                title: 'Contact Us',
+                content: '<h2>Get In Touch</h2><p>We are here to help. Reach out to us for any queries, support, or to report a missing child.</p>',
+                extra: {
+                    phone: '+91 98765 43210',
+                    email: 'contact@findmychild.dpdns.org',
+                    altEmail: 'support@findmychild.dpdns.org',
+                    whatsapp: '+91 98765 43210',
+                    address: 'Malegaon, Maharashtra, India',
+                    socialMedia: {
+                        facebook: 'https://facebook.com/findmychild',
+                        instagram: 'https://instagram.com/findmychild',
+                        twitter: 'https://twitter.com/findmychild'
+                    },
+                    helplineHours: '24/7 - We never stop looking',
+                    emergencyNote: 'If a child is in immediate danger, please call 112 (Emergency) or 1098 (Child Helpline) immediately.'
+                }
+            });
+            console.log('Seeded: Contact Us page');
+        }
+
+        // Legal Pages
+        const legalPages = [
+            {
+                slug: 'privacy-policy',
+                title: 'Privacy Policy',
+                content: '<h1>Privacy Policy</h1><p><em>Last Updated: August 2026</em></p><h2>1. Introduction</h2><p>Find My Child ("we", "our", or "us") operates the findmychild.dpdns.org website and mobile application (the "Service"). This page informs you of our policies regarding the collection, use, and disclosure of personal information when you use our Service.</p><h2>2. Information We Collect</h2><p>We collect several types of information for various purposes to provide and improve our Service:</p><h3>2.1 Personal Data</h3><ul><li>Full name</li><li>Contact number (phone number)</li><li>Email address (optional)</li><li>Google account information (if you sign in via Google OAuth)</li></ul><h3>2.2 Child Report Data</h3><ul><li>Child\'s full name, age, gender</li><li>Address and location details</li><li>Photo(s) of the missing child</li><li>Date and time of disappearance</li><li>Description of the circumstances</li></ul><h3>2.3 Found Request Data</h3><ul><li>Finder\'s name and contact information</li><li>Details about the sighting</li></ul><h3>2.4 Usage Data</h3><p>We automatically collect information such as your IP address, browser type, pages visited, and time spent on pages for analytics purposes.</p><h2>3. How We Use Your Information</h2><ul><li>To operate and maintain the platform</li><li>To verify and publish missing child reports</li><li>To match found requests with missing children</li><li>To contact you regarding a report or request</li><li>To improve our platform and user experience</li><li>To ensure the safety and integrity of our platform</li></ul><h2>4. Data Sharing</h2><p>We do NOT sell, trade, or rent your personal information. We may share information only:</p><ul><li>When required by law or legal process</li><li>When we believe disclosure is necessary to protect the safety of a child</li><li>With law enforcement agencies upon valid request</li><li>With child helpline services (1098) when appropriate</li></ul><h2>5. Data Storage & Security</h2><p>Your data is stored on secure cloud servers (MongoDB Atlas). We implement industry-standard security measures to protect your information. However, no method of transmission over the Internet is 100% secure.</p><h2>6. Children\'s Privacy</h2><p>This platform is specifically designed to help children. We take extra care with children\'s data. Child report information is publicly visible only after admin verification, to prevent misuse.</p><h2>7. Your Rights</h2><ul><li><strong>Access:</strong> You can request a copy of your personal data.</li><li><strong>Correction:</strong> You can request correction of inaccurate data.</li><li><strong>Deletion:</strong> You can request deletion of your account and data.</li><li><strong>Opt-out:</strong> You can opt out of non-essential data collection.</li></ul><h2>8. Cookies</h2><p>We use essential cookies for authentication and session management. We do not use third-party advertising cookies.</p><h2>9. Third-Party Services</h2><ul><li><strong>Google OAuth:</strong> For optional sign-in functionality. Subject to <a href="https://policies.google.com/privacy">Google\'s Privacy Policy</a>.</li><li><strong>Cloudinary:</strong> For image storage and management.</li><li><strong>Resend:</strong> For sending OTP verification emails.</li></ul><h2>10. Changes to This Policy</h2><p>We may update this Privacy Policy from time to time. Changes will be posted on this page with an updated "Last Updated" date.</p><h2>11. Contact Us</h2><p>If you have questions about this Privacy Policy, please contact us at:</p><ul><li>Email: privacy@findmychild.dpdns.org</li><li>Phone: +91 98765 43210</li></ul>'
+            },
+            {
+                slug: 'terms-and-conditions',
+                title: 'Terms and Conditions',
+                content: '<h1>Terms and Conditions</h1><p><em>Last Updated: August 2026</em></p><h2>1. Acceptance of Terms</h2><p>By accessing or using Find My Child (findmychild.dpdns.org) and related services (the "Service"), you agree to be bound by these Terms and Conditions. If you do not agree, please do not use the Service.</p><h2>2. Description of Service</h2><p>Find My Child is a free, non-profit social platform that helps locate missing children by connecting communities. It allows users to submit missing child reports and found requests.</p><h2>3. User Responsibilities</h2><ul><li><strong>Accuracy:</strong> You must provide accurate and truthful information in all reports and requests.</li><li><strong>Good Faith:</strong> The platform must only be used for genuine purposes of finding missing children.</li><li><strong>No Misuse:</strong> You must NOT use the platform to harass, threaten, defame, or harm any individual.</li><li><strong>No False Reports:</strong> Submitting false or fabricated missing child reports is a serious offense and may be reported to law enforcement.</li></ul><h2>4. Prohibited Activities</h2><ul><li>Submitting false, misleading, or fabricated reports</li><li>Using the platform for commercial or advertising purposes without authorization</li><li>Attempting to access other users\' accounts or personal data</li><li>Using automated tools (bots, scrapers) to access the Service</li><li>Uploading content that is offensive, inappropriate, or violates any law</li><li>Impersonating any person or entity</li><li>Interfering with the proper functioning of the Service</li></ul><h2>5. User Content</h2><p>By submitting content (reports, images, messages) to the Service, you:</p><ul><li>Represent that you have the right to submit such content</li><li>Grant us a non-exclusive license to use, display, and distribute the content for the purpose of operating the Service</li><li>Understand that all reports are reviewed by administrators before publication</li></ul><h2>6. Intellectual Property</h2><p>The Service, including its design, code, logos, and original content, is the intellectual property of the Find My Child team. Unauthorized reproduction or distribution is prohibited.</p><h2>7. Disclaimer of Warranties</h2><p>THE SERVICE IS PROVIDED "AS IS" WITHOUT WARRANTIES OF ANY KIND. WE DO NOT GUARANTEE THAT:</p><ul><li>The Service will be available at all times</li><li>Missing children will be found</li><li>The information on the platform is always accurate or complete</li><li>The Service will be free from errors or interruptions</li></ul><h2>8. Limitation of Liability</h2><p>Find My Child and its operators shall NOT be liable for:</p><ul><li>Any direct, indirect, or consequential damages arising from use of the Service</li><li>Any harm resulting from reliance on information posted on the platform</li><li>Any actions taken by users based on information found on the platform</li></ul><h2>9. Emergency Situations</h2><p>This platform is NOT a substitute for emergency services. In case of immediate danger or emergency:</p><ul><li>Call <strong>112</strong> (Emergency Services)</li><li>Call <strong>1098</strong> (Child Helpline India)</li><li>Call <strong>100</strong> (Police)</li><li>Contact your nearest police station immediately</li></ul><h2>10. Account Termination</h2><p>We reserve the right to suspend or terminate accounts that violate these terms, without prior notice.</p><h2>11. Governing Law</h2><p>These Terms are governed by the laws of India. Any disputes shall be subject to the exclusive jurisdiction of courts in Maharashtra, India.</p><h2>12. Changes to Terms</h2><p>We reserve the right to modify these Terms at any time. Continued use of the Service after changes constitutes acceptance of the new Terms.</p><h2>13. Contact</h2><p>For questions about these Terms, contact: legal@findmychild.dpdns.org</p>'
+            },
+            {
+                slug: 'disclaimer',
+                title: 'Disclaimer',
+                content: '<h1>Disclaimer</h1><p><em>Last Updated: August 2026</em></p><h2>General Disclaimer</h2><p>The information on Find My Child (findmychild.dpdns.org) is provided in good faith for the purpose of helping reunite missing children with their families. While we strive to keep information accurate and up-to-date, we make no representations or warranties about the completeness, reliability, or accuracy of this information.</p><h2>No Guarantee of Results</h2><p>Find My Child is a community-driven initiative. While we work hard to help locate missing children, we do NOT guarantee that:</p><ul><li>Any missing child will be found</li><li>Reports will be processed within a specific timeframe</li><li>Information provided by users is accurate or verified</li></ul><h2>User-Generated Content</h2><p>All missing child reports and found requests are submitted by users. While our admin team reviews submissions before publishing:</p><ul><li>We are not responsible for inaccurate or misleading information</li><li>User-submitted photos may not always be current or accurate representations</li><li>Contact details provided by users are verified to a limited extent only</li></ul><h2>Third-Party Links</h2><p>The Service may contain links to external websites or services. We are not responsible for the content or privacy practices of these external sites.</p><h2>Not a Law Enforcement Agency</h2><p>Find My Child is a civilian volunteer initiative. We are NOT:</p><ul><li>A law enforcement agency</li><li>A government body</li><li>A licensed private investigation firm</li></ul><p>Our role is to facilitate community awareness and help connect people who have information about missing children.</p><h2>Emergency Notice</h2><p><strong>IMPORTANT:</strong> This platform is NOT a substitute for emergency services. If a child is in immediate danger:</p><ul><li><strong>Call 112</strong> (Emergency)</li><li><strong>Call 1098</strong> (Child Helpline)</li><li><strong>Call 100</strong> (Police)</li></ul><p>Please report to your nearest police station immediately. Do not wait for online responses in emergency situations.</p><h2>Limitation of Liability</h2><p>In no event shall Find My Child, its operators, volunteers, or affiliates be liable for any loss or damage including indirect or consequential loss or damage arising from the use of this platform.</p><h2>Fair Use</h2><p>This platform is operated as a non-profit social initiative. No commercial activities are conducted through this platform. Any donations received are used solely for maintaining and operating the platform.</p><h2>Contact</h2><p>For any concerns about the information on this platform, contact: legal@findmychild.dpdns.org</p>'
+            }
+        ];
+        for (const lp of legalPages) {
+            const exists = await LegalPage.findOne({ slug: lp.slug });
+            if (!exists) {
+                await LegalPage.create(lp);
+                console.log('Seeded: Legal page -', lp.title);
+            }
+        }
+    } catch (e) { console.error('Seed data error:', e.message); }
 });
 
 server.listen(PORT, '0.0.0.0', function () {
