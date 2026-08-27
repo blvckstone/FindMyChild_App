@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{height:auto;min-height:100%}
@@ -513,61 +514,17 @@ main{scroll-padding-top:10px}
 .page-content a{color:var(--accent);text-decoration:underline}
 .page-content strong{font-weight:700;color:var(--text)}
 .page-content blockquote{border-left:3px solid var(--accent);padding:10px 16px;margin:12px 0;background:var(--accent-light);border-radius:0 8px 8px 0;font-style:italic}
-#aboutContent,#contactContent,#legalContent{font-family:'Inter',sans-serif}
-#aboutContent h1,#contactContent h1,#legalContent h1{font-size:24px;font-weight:800;margin:20px 0 12px;color:var(--text);line-height:1.3}
-#aboutContent h2,#contactContent h2,#legalContent h2{font-size:20px;font-weight:700;margin:20px 0 10px;color:var(--text);line-height:1.3}
-#aboutContent h3,#contactContent h3,#legalContent h3{font-size:17px;font-weight:700;margin:18px 0 8px;color:var(--text);line-height:1.3}
-#aboutContent p,#contactContent p,#legalContent p{font-size:14px;line-height:1.8;margin:10px 0;color:var(--text2)}
-#aboutContent ul,#contactContent ul,#legalContent ul,#aboutContent ol,#contactContent ol,#legalContent ol{margin:10px 0 10px 20px;font-size:14px;line-height:1.8;color:var(--text2)}
+#aboutContent,#contactContent,#legalContent{font-family:'Plus Jakarta Sans',sans-serif}
+#aboutContent h1,#contactContent h1,#legalContent h1{font-size:22px;font-weight:800;margin:20px 0 10px;color:#111;line-height:1.3}
+#aboutContent h2,#contactContent h2,#legalContent h2{font-size:18px;font-weight:700;margin:18px 0 8px;color:#111;line-height:1.3}
+#aboutContent h3,#contactContent h3,#legalContent h3{font-size:16px;font-weight:700;margin:16px 0 6px;color:#111;line-height:1.3}
+#aboutContent p,#contactContent p,#legalContent p{font-size:14px;line-height:1.75;margin:8px 0;color:#444}
+#aboutContent ul,#contactContent ul,#legalContent ul,#aboutContent ol,#contactContent ol,#legalContent ol{margin:8px 0 8px 20px;font-size:14px;line-height:1.75;color:#444}
 #aboutContent li,#contactContent li,#legalContent li{margin-bottom:4px}
-#aboutContent a,#legalContent a{color:var(--accent);text-decoration:underline}
+#aboutContent a,#legalContent a{color:#111;text-decoration:underline;font-weight:500}
 #contactContent a{color:inherit;text-decoration:none}
-/* Contact Us Hero Banner */
-#contactContent .cc-hero{background:linear-gradient(135deg,var(--green) 0%,#059669 100%);border-radius:var(--radius);padding:28px 20px 24px;margin-bottom:20px;color:#fff;position:relative;overflow:hidden}
-#contactContent .cc-hero::after{content:'';position:absolute;top:-30px;right:-30px;width:120px;height:120px;background:rgba(255,255,255,0.1);border-radius:50%}
-#contactContent .cc-hero-icon{width:56px;height:56px;background:rgba(255,255,255,0.2);border-radius:16px;display:flex;align-items:center;justify-content:center;margin-bottom:14px}
-#contactContent .cc-hero-icon .material-symbols-outlined{font-size:28px;color:#fff}
-#contactContent .cc-hero h3{font-size:20px;font-weight:800;margin-bottom:6px;letter-spacing:-0.3px}
-#contactContent .cc-hero p{font-size:13px;opacity:0.85;line-height:1.5}
-/* Emergency Banner */
-#contactContent .cc-emergency{background:linear-gradient(135deg,#fff5f5 0%,#fee2e2 100%);border-radius:var(--radius);padding:18px;margin-bottom:20px;border:1px solid rgba(239,68,68,0.12);position:relative}
-#contactContent .cc-emergency-icon{width:36px;height:36px;background:var(--red);border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:10px}
-#contactContent .cc-emergency-icon .material-symbols-outlined{font-size:20px;color:#fff}
-#contactContent .cc-emergency-title{font-size:14px;color:var(--red);font-weight:800;margin-bottom:4px}
-#contactContent .cc-emergency-text{font-size:13px;color:#991b1b;line-height:1.6}
-/* Contact Grid — 2x2 */
-#contactContent .cc-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
-#contactContent .cc-card{background:var(--card);border:1.5px solid var(--border);border-radius:var(--radius);padding:20px 16px;text-align:center;transition:transform .15s;position:relative;overflow:hidden}
-#contactContent .cc-card:active{transform:scale(0.97)}
-#contactContent .cc-card::after{content:'';position:absolute;top:0;left:0;right:0;height:3px}
-#contactContent .cc-card[data-type=phone]::after{background:var(--accent)}
-#contactContent .cc-card[data-type=email]::after{background:var(--orange)}
-#contactContent .cc-card[data-type=whatsapp]::after{background:#25D366}
-#contactContent .cc-card[data-type=address]::after{background:var(--red)}
-#contactContent .cc-card[data-type=hours]::after{background:var(--purple)}
-#contactContent .cc-card-icon{width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px}
-#contactContent .cc-card[data-type=phone] .cc-card-icon{background:#eff6ff;color:var(--accent)}
-#contactContent .cc-card[data-type=email] .cc-card-icon{background:#fff7ed;color:var(--orange)}
-#contactContent .cc-card[data-type=whatsapp] .cc-card-icon{background:#f0fdf4;color:#25D366}
-#contactContent .cc-card[data-type=address] .cc-card-icon{background:#fef2f2;color:var(--red)}
-#contactContent .cc-card[data-type=hours] .cc-card-icon{background:#f5f3ff;color:var(--purple)}
-#contactContent .cc-card-icon .material-symbols-outlined{font-size:22px}
-#contactContent .cc-card-label{font-size:11px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px}
-#contactContent .cc-card-value{font-size:14px;font-weight:700;color:var(--text);line-height:1.3}
-/* Social Media Row */
-#contactContent .cc-socials{margin-top:8px}
-#contactContent .cc-socials-title{font-size:13px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px}
-#contactContent .cc-socials-row{display:flex;gap:12px;justify-content:center}
-#contactContent .cc-social-btn{display:flex;flex-direction:column;align-items:center;gap:6px;text-decoration:none;transition:transform .15s}
-#contactContent .cc-social-btn:active{transform:scale(0.92)}
-#contactContent .cc-social-circle{width:52px;height:52px;border-radius:16px;display:flex;align-items:center;justify-content:center;color:#fff}
-#contactContent .cc-social-circle .material-symbols-outlined{font-size:24px;color:#fff}
-#contactContent .cc-social-name{font-size:11px;color:var(--text3);font-weight:600}
-/* About Us Hero */
-#abouContent .ab-hero{background:linear-gradient(135deg,var(--accent) 0%,#1d4ed8 100%);border-radius:var(--radius);padding:28px 20px 24px;margin-bottom:20px;color:#fff;position:relative;overflow:hidden}
-#abouContent .ab-hero::after{content:'';position:absolute;bottom:-20px;right:-20px;width:100px;height:100px;background:rgba(255,255,255,0.1);border-radius:50%}
-#aboutContent strong,#contactContent strong,#legalContent strong{font-weight:700;color:var(--text)}
-#aboutContent blockquote,#contactContent blockquote,#legalContent blockquote{border-left:3px solid var(--accent);padding:10px 16px;margin:12px 0;background:var(--accent-light);border-radius:0 8px 8px 0;font-style:italic}
+#aboutContent strong,#contactContent strong,#legalContent strong{font-weight:700;color:#111}
+#aboutContent blockquote,#contactContent blockquote,#legalContent blockquote{border-left:3px solid #ddd;padding:10px 16px;margin:12px 0;background:#f9f9f9;border-radius:0 8px 8px 0;font-style:italic;color:#555}
 </style>
 </head>
 <body>
@@ -1037,66 +994,84 @@ async function loadDonations(){try{const j=await api('/api/donations');$('donTot
 async function loadAboutPage(){
   try{
     const r=await fetch('/api/pages/about-us');const j=await r.json();
-    if(!j.success||!j.data){$('aboutContent').innerHTML='<p style="text-align:center;padding:40px;color:var(--text3)">Content coming soon.</p>';return}
+    if(!j.success||!j.data){$('aboutContent').innerHTML='<p class="text-center py-10 text-gray-400">Content coming soon.</p>';return}
     const p=j.data;let html='';
-    // Hero Banner
-    html+='<div class="cc-hero" style="background:linear-gradient(135deg,var(--accent) 0%,#1d4ed8 100%)"><div class="cc-hero-icon"><span class="material-symbols-outlined">info</span></div><h3>About Us</h3><p>Learn about our mission to help reunite missing children with their families.</p></div>';
-    // Main content
-    html+='<div class="page-content" style="padding:0 0 20px">'+p.content+'</div>';
-    // Mission & Vision cards
+    // Hero
+    html+='<div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-5">';
+    html+='<div class="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center mb-4"><span class="material-symbols-outlined text-gray-700 text-[22px]">info</span></div>';
+    html+='<h3 class="text-lg font-bold text-gray-900 mb-1">About Us</h3>';
+    html+='<p class="text-sm text-gray-500 leading-relaxed">Learn about our mission to help reunite missing children with their families.</p>';
+    html+='</div>';
+    // Content
+    html+='<div class="page-content mb-5">'+p.content+'</div>';
+    // Mission & Vision
     if(p.extra){
-      if(p.extra.mission)html+='<div style="background:var(--accent-light);border-radius:var(--radius);padding:22px 20px;margin-bottom:14px;border:1px solid rgba(59,130,246,0.1)"><div style="display:flex;align-items:center;gap:10px;margin-bottom:10px"><div style="width:36px;height:36px;background:var(--accent);border-radius:10px;display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:20px;color:#fff">flag</span></div><h3 style="font-size:16px;font-weight:800;color:var(--accent);margin:0">Our Mission</h3></div><p style="font-size:14px;color:var(--text2);line-height:1.7;margin:0">'+esc(p.extra.mission)+'</p></div>';
-      if(p.extra.vision)html+='<div style="background:var(--green-light);border-radius:var(--radius);padding:22px 20px;margin-bottom:14px;border:1px solid rgba(52,199,89,0.1)"><div style="display:flex;align-items:center;gap:10px;margin-bottom:10px"><div style="width:36px;height:36px;background:var(--green);border-radius:10px;display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:20px;color:#fff">visibility</span></div><h3 style="font-size:16px;font-weight:800;color:var(--green);margin:0">Our Vision</h3></div><p style="font-size:14px;color:var(--text2);line-height:1.7;margin:0">'+esc(p.extra.vision)+'</p></div>';
+      if(p.extra.mission)html+='<div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-3"><div class="flex items-center gap-3 mb-3"><div class="w-9 h-9 bg-gray-900 rounded-xl flex items-center justify-center"><span class="material-symbols-outlined text-white text-[18px]">flag</span></div><h3 class="text-base font-bold text-gray-900">Our Mission</h3></div><p class="text-sm text-gray-500 leading-relaxed m-0">'+esc(p.extra.mission)+'</p></div>';
+      if(p.extra.vision)html+='<div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-3"><div class="flex items-center gap-3 mb-3"><div class="w-9 h-9 bg-gray-900 rounded-xl flex items-center justify-center"><span class="material-symbols-outlined text-white text-[18px]">visibility</span></div><h3 class="text-base font-bold text-gray-900">Our Vision</h3></div><p class="text-sm text-gray-500 leading-relaxed m-0">'+esc(p.extra.vision)+'</p></div>';
     }
-    // Quick links
-    html+='<div style="margin-top:20px;display:flex;flex-wrap:wrap;gap:10px">';
+    // Links
+    html+='<div class="flex flex-wrap gap-2 mt-5">';
     html+='<button class="pill active" onclick="showView(\'contact\')">Contact Us</button>';
     html+='<button class="pill" onclick="showLegal(\'privacy-policy\')">Privacy Policy</button>';
     html+='<button class="pill" onclick="showLegal(\'terms-and-conditions\')">Terms</button>';
     html+='<button class="pill" onclick="showLegal(\'disclaimer\')">Disclaimer</button>';
     html+='</div>';
     $('aboutContent').innerHTML=html;
-  }catch(e){$('aboutContent').innerHTML='<p style="color:var(--red);padding:20px">Failed to load.</p>'}
+  }catch(e){$('aboutContent').innerHTML='<p class="text-red-500 p-5">Failed to load.</p>'}
 }
 
 /* --- Contact Us page --- */
 async function loadContactPage(){
   try{
     const r=await fetch('/api/pages/contact-us');const j=await r.json();
-    if(!j.success||!j.data){$('contactContent').innerHTML='<p style="text-align:center;padding:40px;color:var(--text3)">Content coming soon.</p>';return}
+    if(!j.success||!j.data){$('contactContent').innerHTML='<p class="text-center py-10 text-gray-400">Content coming soon.</p>';return}
     const p=j.data;const ex=p.extra||{};
     let html='';
-    // Hero Banner
-    html+='<div class="cc-hero"><div class="cc-hero-icon"><span class="material-symbols-outlined">support_agent</span></div><h3>Need Help?</h3><p>'+esc(p.content?p.content.replace(/<[^>]+>/g,'').substring(0,120):'We are here to help. Reach out for queries, support, or to report a missing child.')+'</p></div>';
-    // Emergency Banner
-    html+='<div class="cc-emergency"><div class="cc-emergency-icon"><span class="material-symbols-outlined">emergency</span></div><div class="cc-emergency-title">Emergency? Call Now</div><div class="cc-emergency-text">'+esc(ex.emergencyNote||'If a child is in immediate danger, please call 112 (Emergency) or 1098 (Child Helpline) immediately.')+'</div></div>';
-    // Contact Grid — 2x2
+    // Hero
+    html+='<div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-5">';
+    html+='<div class="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center mb-4"><span class="material-symbols-outlined text-gray-700 text-[22px]">support_agent</span></div>';
+    html+='<h3 class="text-lg font-bold text-gray-900 mb-1">Need Help?</h3>';
+    html+='<p class="text-sm text-gray-500 leading-relaxed">'+esc(p.content?p.content.replace(/<[^>]+>/g,'').substring(0,120):'We are here to help. Reach out for queries, support, or to report a missing child.')+'</p>';
+    html+='</div>';
+    // Emergency
+    html+='<div class="bg-red-50 border border-red-100 rounded-2xl p-5 mb-5">';
+    html+='<div class="flex items-start gap-3">';
+    html+='<div class="w-10 h-10 bg-red-500 rounded-xl flex items-center justify-center flex-shrink-0"><span class="material-symbols-outlined text-white text-[18px]">emergency</span></div>';
+    html+='<div><div class="text-sm font-bold text-red-600 mb-1">Emergency? Call Now</div><div class="text-xs text-red-500/80 leading-relaxed">'+esc(ex.emergencyNote||'If a child is in immediate danger, please call 112 (Emergency) or 1098 (Child Helpline) immediately.')+'</div></div>';
+    html+='</div></div>';
+    // Contact Cards — 2x2 grid
     const cards=[
-      {type:'phone',icon:'call',label:'Phone',value:ex.phone,href:ex.phone?'tel:'+ex.phone.replace(/[^0-9+]/g,''):null},
-      {type:'email',icon:'mail',label:'Email',value:ex.email,href:ex.email?'mailto:'+ex.email:null},
-      {type:'whatsapp',icon:'chat',label:'WhatsApp',value:ex.whatsapp,href:ex.whatsapp?'https://wa.me/'+ex.whatsapp.replace(/[^0-9]/g,''):null},
-      {type:'address',icon:'location_on',label:'Address',value:ex.address},
-      {type:'hours',icon:'schedule',label:'Hours',value:ex.helplineHours}
+      {icon:'call',label:'Phone',value:ex.phone,href:ex.phone?'tel:'+ex.phone.replace(/[^0-9+]/g,''):null},
+      {icon:'mail',label:'Email',value:ex.email,href:ex.email?'mailto:'+ex.email:null},
+      {icon:'chat',label:'WhatsApp',value:ex.whatsapp,href:ex.whatsapp?'https://wa.me/'+ex.whatsapp.replace(/[^0-9]/g,''):null},
+      {icon:'location_on',label:'Address',value:ex.address},
+      {icon:'schedule',label:'Hours',value:ex.helplineHours}
     ].filter(c=>c.value);
-    html+='<div class="cc-grid">';
+    html+='<div class="grid grid-cols-2 gap-3 mb-5">';
     cards.forEach(c=>{
       const tag=c.href?'a':'div';
-      const attrs=c.href?' href="'+esc(c.href)+'" target="_blank" style="text-decoration:none;color:inherit"':'';
-      html+='<'+tag+attrs+' class="cc-card" data-type="'+c.type+'"><div class="cc-card-icon"><span class="material-symbols-outlined">'+c.icon+'</span></div><div class="cc-card-label">'+c.label+'</div><div class="cc-card-value">'+esc(c.value)+'</div></'+tag+'>';
+      const attrs=c.href?' href="'+esc(c.href)+'" target="_blank"':'';
+      html+='<'+tag+attrs+' class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 text-center hover:shadow-md transition-shadow" style="text-decoration:none;color:inherit">';
+      html+='<div class="w-11 h-11 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-3"><span class="material-symbols-outlined text-gray-600 text-xl">'+c.icon+'</span></div>';
+      html+='<div class="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1">'+c.label+'</div>';
+      html+='<div class="text-sm font-bold text-gray-900">'+esc(c.value)+'</div>';
+      html+='</'+tag+'>';
     });
     html+='</div>';
     // Social Media
     if(ex.socialMedia){
       const socials=Object.entries(ex.socialMedia).filter(([,v])=>v);
       if(socials.length){
-        const socialCfg={facebook:{icon:'facebook',color:'#1877F2',name:'Facebook'},instagram:{icon:'photo_camera',color:'#E4405F',name:'Instagram'},youtube:{icon:'smart_display',color:'#FF0000',name:'YouTube'},whatsapp:{icon:'chat',color:'#25D366',name:'WhatsApp'},twitter:{icon:'tag',color:'#1DA1F2',name:'Twitter'},linkedin:{icon:'work',color:'#0A66C2',name:'LinkedIn'}};
-        html+='<div class="cc-socials"><div class="cc-socials-title">Follow Us</div><div class="cc-socials-row">';
-        socials.forEach(([k,v])=>{const s=socialCfg[k]||{icon:'link',color:'var(--accent)',name:k};html+='<a href="'+esc(v)+'" target="_blank" class="cc-social-btn"><div class="cc-social-circle" style="background:'+s.color+'"><span class="material-symbols-outlined">'+s.icon+'</span></div><div class="cc-social-name">'+s.name+'</div></a>'});
+        const socialCfg={facebook:{icon:'facebook',name:'Facebook'},instagram:{icon:'photo_camera',name:'Instagram'},youtube:{icon:'smart_display',name:'YouTube'},whatsapp:{icon:'chat',name:'WhatsApp'},twitter:{icon:'tag',name:'Twitter'},linkedin:{icon:'work',name:'LinkedIn'}};
+        html+='<div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">';
+        html+='<div class="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-4 text-center">Follow Us</div>';
+        html+='<div class="flex justify-center gap-5">';
+        socials.forEach(([k,v])=>{const s=socialCfg[k]||{icon:'link',name:k};html+='<a href="'+esc(v)+'" target="_blank" class="flex flex-col items-center gap-2 no-underline"><div class="w-12 h-12 bg-gray-900 rounded-2xl flex items-center justify-center hover:bg-gray-700 transition-colors"><span class="material-symbols-outlined text-white text-xl">'+s.icon+'</span></div><span class="text-[11px] text-gray-400 font-medium">'+s.name+'</span></a>'});
         html+='</div></div>';
       }
     }
     $('contactContent').innerHTML=html;
-  }catch(e){$('contactContent').innerHTML='<p style="color:var(--red);padding:20px">Failed to load.</p>'}
+  }catch(e){$('contactContent').innerHTML='<p class="text-red-500 p-5">Failed to load.</p>'}
 }
 
 /* --- Legal page loader --- */
