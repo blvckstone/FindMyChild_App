@@ -111,7 +111,8 @@ app.get('/', (req, res) => {
 app.get('/admin', (req, res) => {
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
     res.set('Pragma', 'no-cache');
-    res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+    res.set('Expires', '0');
+    res.sendFile(path.join(__dirname, 'public', 'admin-v2.html'));
 });
 
 app.get('/api/health', async (req, res) => {
@@ -403,7 +404,7 @@ if (googleClientId && googleClientSecret) {
             }
             console.log('[ADMIN-GOOGLE-CB] Success! Redirecting to admin panel');
             res.cookie('fmc_admin_token', result.token, { httpOnly: false, maxAge: 7 * 24 * 60 * 60 * 1000, sameSite: 'lax' });
-            res.redirect('/admin?t=' + Date.now() + '&admin_token=' + result.token + '&admin_name=' + encodeURIComponent(result.admin.name || '') + '&admin_role=' + (result.admin.role || 'admin'));
+            res.redirect('/admin?v=37d37562&t=' + Date.now() + '&admin_token=' + result.token + '&admin_name=' + encodeURIComponent(result.admin.name || '') + '&admin_role=' + (result.admin.role || 'admin'));
         })(req, res, next);
     });
 }

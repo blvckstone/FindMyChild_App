@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>Admin — Gumshuda Bacho Ki Talash</title>
+<meta name="admin-version" content="37d37562"><title>Admin — Gumshuda Bacho Ki Talash</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -1199,8 +1199,22 @@ async function loadPages(){
   try{
     const r=await api('/api/admin/pages');const data=r.data||[];
     const slugs=['about-us','contact-us'];
-    let html='';
-    slugs.forEach(s=>{const p=data.find(x=>x.slug===s);const title=p?p.title:s.replace(/-/g,' ').replace(/\b\w/g,l=>l.toUpperCase());const sub=p?'Last updated: '+fmtDate(p.updatedAt):'<span style="color:var(--text3)">No content yet. Click to add.</span>';html+='<div class="card-section" style="margin-bottom:12px"><div class="item" style="cursor:pointer" onclick="editPage(\''+s+'\')"><div class="info" style="flex:1"><div class="top"><span class="name">'+esc(title)+'</span></div><div class="sub">'+sub+'</div></div><div class="acts"><button class="btn-sm btn-outline" onclick="event.stopPropagation();editPage(\''+s+'\')" style="padding:7px 12px;font-size:11px">'+iEdit+' Edit</button></div></div></div>'});
+    var html='';
+    for(var i=0;i<slugs.length;i++){
+      var s=slugs[i];
+      var p=data.find(function(x){return x.slug===s});
+      var title=p?p.title:s.replace(/-/g,' ').replace(/\b\w/g,function(l){return l.toUpperCase()});
+      var sub=p?'Last updated: '+fmtDate(p.updatedAt):'<span style="color:var(--text3)">No content yet. Click to add.</span>';
+      html+='<div class="card-section" style="margin-bottom:12px">';
+      html+='<div class="item" style="cursor:pointer" onclick="editPage(&quot;'+s+'&quot;)">';
+      html+='<div class="info" style="flex:1">';
+      html+='<div class="top"><span class="name">'+esc(title)+'</span></div>';
+      html+='<div class="sub">'+sub+'</div>';
+      html+='</div>';
+      html+='<div class="acts">';
+      html+='<button class="btn-sm btn-outline" onclick="event.stopPropagation();editPage(&quot;'+s+'&quot;)" style="padding:7px 12px;font-size:11px">'+iEdit+' Edit</button>';
+      html+='</div></div></div>';
+    }
     $('pagesList').innerHTML=html;
   }catch(e){toast(e.message,'err')}
 }
@@ -1226,8 +1240,25 @@ async function loadLegal(){
   try{
     const r=await api('/api/admin/legal');const data=r.data||[];
     if(!data.length){$('legalList').innerHTML='<div class="card-section"><div class="cs-body"><div class="empty">No legal pages yet. Click + to create one.</div></div></div>';return}
-    let html='';
-    data.forEach(d=>{html+='<div class="card-section" style="margin-bottom:10px"><div class="item" style="cursor:pointer" onclick="editLegalPage(\''+d.slug+'\')"><div class="info" style="flex:1"><div class="top"><span class="name">'+esc(d.title)+'</span> <span style="font-size:11px;color:var(--text3)">/'+esc(d.slug)+'</span></div><div class="sub">Effective: '+fmtDate(d.effectiveDate)+' · Updated: '+fmtDate(d.updatedAt)+'</div></div><div class="acts"><button class="btn-sm btn-outline" onclick="event.stopPropagation();editLegalPage(\''+d.slug+'\')" style="padding:7px 12px;font-size:11px">'+iEdit+' Edit</button> <button class="btn-sm btn-red" onclick="event.stopPropagation();deleteLegalPage(\''+d.slug+'\')" style="padding:7px 12px;font-size:11px">'+iDelete+' Del</button></div></div></div>'});
+    var html='';
+    for(var i=0;i<data.length;i++){
+      var d=data[i];
+      var slug=d.slug;
+      var title=esc(d.title);
+      var slugDisp=esc(d.slug);
+      var eff=fmtDate(d.effectiveDate);
+      var upd=fmtDate(d.updatedAt);
+      html+='<div class="card-section" style="margin-bottom:10px">';
+      html+='<div class="item" style="cursor:pointer" onclick="editLegalPage(&quot;'+slug+'&quot;)">';
+      html+='<div class="info" style="flex:1">';
+      html+='<div class="top"><span class="name">'+title+'</span> <span style="font-size:11px;color:var(--text3)">/'+slugDisp+'</span></div>';
+      html+='<div class="sub">Effective: '+eff+' \u00b7 Updated: '+upd+'</div>';
+      html+='</div>';
+      html+='<div class="acts">';
+      html+='<button class="btn-sm btn-outline" onclick="event.stopPropagation();editLegalPage(&quot;'+slug+'&quot;)" style="padding:7px 12px;font-size:11px">'+iEdit+' Edit</button> ';
+      html+='<button class="btn-sm btn-red" onclick="event.stopPropagation();deleteLegalPage(&quot;'+slug+'&quot;)" style="padding:7px 12px;font-size:11px">'+iDelete+' Del</button>';
+      html+='</div></div></div>';
+    }
     $('legalList').innerHTML=html;
   }catch(e){toast(e.message,'err')}
 }
@@ -1337,44 +1368,40 @@ async function saveProfile(){
 
 // === RICH TEXT EDITOR ===
 function openRichEditor(initialContent, onSave){
-  const editorId='re_'+Date.now();
-  $('modalBody').innerHTML='\r
-    <div style="padding:4px 0">\r
-      <div class="field"><label>Page Content</label>\r
-        <div style="border:1.5px solid var(--border);border-radius:var(--radius-xs);overflow:hidden">\r
-          <div id="'+editorId+'-toolbar" style="display:flex;flex-wrap:wrap;gap:2px;padding:8px 10px;background:var(--bg);border-bottom:1px solid var(--border)">\r
-            <button type="button" class="rte-btn" onclick="rteCmd(\''+editorId+'\',\'bold\')" title="Bold"><b>B</b></button>\r
-            <button type="button" class="rte-btn" onclick="rteCmd(\''+editorId+'\',\'italic\')" title="Italic"><i>I</i></button>\r
-            <button type="button" class="rte-btn" onclick="rteCmd(\''+editorId+'\',\'underline\')" title="Underline"><u>U</u></button>\r
-            <button type="button" class="rte-btn" onclick="rteCmd(\''+editorId+'\',\'strikeThrough\')" title="Strikethrough"><s>S</s></button>\r
-            <span style="width:1px;background:var(--border);margin:2px 4px"></span>\r
-            <button type="button" class="rte-btn" onclick="rteBlock(\''+editorId+'\',\'h1\')" title="Heading 1"><b>H1</b></button>\r
-            <button type="button" class="rte-btn" onclick="rteBlock(\''+editorId+'\',\'h2\')" title="Heading 2"><b>H2</b></button>\r
-            <button type="button" class="rte-btn" onclick="rteBlock(\''+editorId+'\',\'h3\')" title="Heading 3"><b>H3</b></button>\r
-            <button type="button" class="rte-btn" onclick="rteBlock(\''+editorId+'\',\'p\')" title="Paragraph">P</button>\r
-            <span style="width:1px;background:var(--border);margin:2px 4px"></span>\r
-            <button type="button" class="rte-btn" onclick="rteCmd(\''+editorId+'\',\'insertUnorderedList\')" title="Bullet List">• List</button>\r
-            <button type="button" class="rte-btn" onclick="rteCmd(\''+editorId+'\',\'insertOrderedList\')" title="Numbered List">1. List</button>\r
-            <span style="width:1px;background:var(--border);margin:2px 4px"></span>\r
-            <button type="button" class="rte-btn" onclick="rteLink(\''+editorId+'\')" title="Insert Link">🔗</button>\r
-            <button type="button" class="rte-btn" onclick="rteCmd(\''+editorId+'\',\'removeFormat\')" title="Clear Formatting">✕</button>\r
-            <span style="flex:1"></span>\r
-            <span style="font-size:11px;color:var(--text3);display:flex;align-items:center">HTML</span>\r
-            <button type="button" class="rte-btn" onclick="rteToggleSource(\''+editorId+'\')" id="'+editorId+'-src-btn" title="Toggle HTML Source">&lt;/&gt;</button>\r
-          </div>\r
-          <div id="'+editorId+'" contenteditable="true" style="min-height:300px;max-height:60vh;overflow-y:auto;padding:16px;font-size:14px;line-height:1.7;color:var(--text);outline:none"></div>\r
-          <textarea id="'+editorId+'-src" style="display:none;width:100%;min-height:300px;max-height:60vh;padding:16px;font-family:monospace;font-size:13px;border:none;outline:none;resize:vertical;background:var(--bg)"></textarea>\r
-        </div>\r
-      </div>\r
-      <div style="display:flex;gap:10px;margin-top:12px"><button class="btn" id="'+editorId+'-save" style="flex:1">Save</button><button class="btn btn-outline" onclick="closeModal()" style="flex:1">Cancel</button></div>\r
-    </div>';
-  const editor=document.getElementById(editorId);
-  const srcArea=document.getElementById(editorId+'-src');
-  editor.innerHTML=initialContent;
-  document.getElementById(editorId+'-save').addEventListener('click',function(){
-    const src=document.getElementById(editorId+'-src');
-    const content=src.style.display==='block'?src.value:editor.innerHTML;
-    onSave(content);
+  var eid='re_'+Date.now();
+  var tb='<button type="button" class="rte-btn" data-cmd="bold" title="Bold"><b>B</b></button>';
+  tb+='<button type="button" class="rte-btn" data-cmd="italic" title="Italic"><i>I</i></button>';
+  tb+='<button type="button" class="rte-btn" data-cmd="underline" title="Underline"><u>U</u></button>';
+  tb+='<button type="button" class="rte-btn" data-cmd="strikeThrough" title="Strikethrough"><s>S</s></button>';
+  tb+='<span style="width:1px;background:var(--border);margin:2px 4px"></span>';
+  tb+='<button type="button" class="rte-btn" data-block="h1" title="Heading 1"><b>H1</b></button>';
+  tb+='<button type="button" class="rte-btn" data-block="h2" title="Heading 2"><b>H2</b></button>';
+  tb+='<button type="button" class="rte-btn" data-block="h3" title="Heading 3"><b>H3</b></button>';
+  tb+='<button type="button" class="rte-btn" data-block="p" title="Paragraph">P</button>';
+  tb+='<span style="width:1px;background:var(--border);margin:2px 4px"></span>';
+  tb+='<button type="button" class="rte-btn" data-cmd="insertUnorderedList" title="Bullet List">\u2022 List</button>';
+  tb+='<button type="button" class="rte-btn" data-cmd="insertOrderedList" title="Numbered List">1. List</button>';
+  tb+='<span style="width:1px;background:var(--border);margin:2px 4px"></span>';
+  tb+='<button type="button" class="rte-btn" data-action="link" title="Insert Link">\ud83d\udd17</button>';
+  tb+='<button type="button" class="rte-btn" data-cmd="removeFormat" title="Clear Formatting">\u2715</button>';
+  tb+='<span style="flex:1"></span>';
+  tb+='<button type="button" class="rte-btn" data-action="src" title="Toggle HTML Source">&lt;/&gt;</button>';
+  $('modalBody').innerHTML='<div style="padding:4px 0"><div class="field"><label>Page Content</label><div style="border:1.5px solid var(--border);border-radius:var(--radius-xs);overflow:hidden"><div id="'+eid+'-tb" style="display:flex;flex-wrap:wrap;gap:2px;padding:8px 10px;background:var(--bg);border-bottom:1px solid var(--border)">'+tb+'</div><div id="'+eid+'" contenteditable="true" style="min-height:300px;max-height:60vh;overflow-y:auto;padding:16px;font-size:14px;line-height:1.7;color:var(--text);outline:none"></div><textarea id="'+eid+'-src" style="display:none;width:100%;min-height:300px;max-height:60vh;padding:16px;font-family:monospace;font-size:13px;border:none;outline:none;resize:vertical;background:var(--bg)"></textarea></div></div><div style="display:flex;gap:10px;margin-top:12px"><button class="btn" id="'+eid+'-save" style="flex:1">Save</button><button class="btn btn-outline" onclick="closeModal()" style="flex:1">Cancel</button></div></div>';
+  var ed=document.getElementById(eid);
+  var src=document.getElementById(eid+'-src');
+  ed.innerHTML=initialContent;
+  document.getElementById(eid+'-tb').addEventListener('click',function(e){
+    var b=e.target.closest('.rte-btn');if(!b)return;e.preventDefault();
+    if(b.dataset.cmd){document.execCommand(b.dataset.cmd,false,null);ed.focus()}
+    else if(b.dataset.block){document.execCommand('formatBlock',false,'<'+b.dataset.block+'>');ed.focus()}
+    else if(b.dataset.action==='link'){var u=prompt('Enter URL:');if(u){document.execCommand('createLink',false,u);ed.focus()}}
+    else if(b.dataset.action==='src'){
+      if(src.style.display==='block'){ed.innerHTML=src.value;src.style.display='none';ed.style.display='block';b.style.background=''}
+      else{src.value=ed.innerHTML;ed.style.display='none';src.style.display='block';b.style.background='var(--accent-light)'}
+    }
+  });
+  document.getElementById(eid+'-save').addEventListener('click',function(){
+    onSave(src.style.display==='block'?src.value:ed.innerHTML);
   });
   $('modalBg').classList.add('show');
 }
