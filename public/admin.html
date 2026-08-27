@@ -1220,12 +1220,74 @@ async function loadPages(){
 }
 async function editPage(slug){
   try{
-    let content='';
-    try{const r=await api('/api/admin/pages/'+slug);if(r.data)content=r.data.content||''}catch(e){}
+    let pageData=null;
+    try{const r=await api('/api/admin/pages/'+slug);if(r.data)pageData=r.data}catch(e){}
+    const content=pageData?pageData.content||'':'';
+    const extra=pageData?pageData.extra||{}:{};
     $('modalTitle').textContent='Edit: '+slug.replace(/-/g,' ').replace(/\b\w/g,l=>l.toUpperCase());
-    openRichEditor(content, function(newContent){
-      savePage(slug, newContent);
-    });
+    if(slug==='contact-us'){
+      // Show contact detail fields + content editor
+      let h='<div style="padding:4px 0">';
+      h+='<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px">Contact Details</div>';
+      const fields=[
+        {id:'ce_phone',label:'Phone',val:extra.phone||''},
+        {id:'ce_email',label:'Email',val:extra.email||''},
+        {id:'ce_whatsapp',label:'WhatsApp Number',val:extra.whatsapp||''},
+        {id:'ce_address',label:'Address',val:extra.address||''},
+        {id:'ce_hours',label:'Helpline Hours',val:extra.helplineHours||''},
+        {id:'ce_emergency',label:'Emergency Note',val:extra.emergencyNote||''}
+      ];
+      fields.forEach(f=>{h+='<div class="field"><label>'+f.label+'</label><input id="'+f.id+'" value="'+esc(f.val)+'" placeholder="'+f.label+'"></div>'});
+      h+='<div style="font-size:13px;font-weight:700;color:var(--text);margin:16px 0 12px">Social Media Links</div>';
+      const socials=[
+        {id:'ce_fb',label:'Facebook URL',val:(extra.socialMedia||{}).facebook||''},
+        {id:'ce_ig',label:'Instagram URL',val:(extra.socialMedia||{}).instagram||''},
+        {id:'ce_yt',label:'YouTube URL',val:(extra.socialMedia||{}).youtube||''},
+        {id:'ce_wa',label:'WhatsApp Channel URL',val:(extra.socialMedia||{}).whatsapp||''}
+      ];
+      socials.forEach(f=>{h+='<div class="field"><label>'+f.label+'</label><input id="'+f.id+'" value="'+esc(f.val)+'" placeholder="https://..."></div>'});
+      h+='<button class="btn" id="ce_save" style="width:100%;margin-top:8px">Save Contact Details</button>';
+      h+='<div style="font-size:13px;font-weight:700;color:var(--text);margin:20px 0 12px">Page Content (below header)</div>';
+      h+='</div>';
+      $('modalBody').innerHTML=h;
+      $('modalBg').classList.add('show');
+      // Add rich text editor for content after the fields
+      const rteDiv=document.createElement('div');
+      rteDiv.style.cssText='padding:0 4px 4px';
+      rteDiv.innerHTML='<div style="border:1.5px solid var(--border);border-radius:var(--radius-xs);overflow:hidden"><div id="ce_rte-tb" style="display:flex;flex-wrap:wrap;gap:2px;padding:8px 10px;background:var(--bg);border-bottom:1px solid var(--border)"></div><div id="ce_rte" contenteditable="true" style="min-height:120px;max-height:40vh;overflow-y:auto;padding:16px;font-size:14px;line-height:1.7;color:var(--text);outline:none"></div></div>';
+      $('modalBody').appendChild(rteDiv);
+      // Setup toolbar
+      const tb=document.getElementById('ce_rte-tb');
+      const rte=document.getElementById('ce_rte');
+      rte.innerHTML=content;
+      const cmds=[['<b>','bold'],['<i>','italic'],['<u>','underline'],['H1','formatBlock','<h1>'],['H2','formatBlock','<h2>'],['H3','formatBlock','<h3>'],['P','formatBlock','<p>'],['• ','insertUnorderedList'],['1. ','insertOrderedList']];
+      cmds.forEach(([lbl,cmd,arg])=>{const b=document.createElement('button');b.className='rte-btn';b.textContent=lbl;b.onclick=()=>{if(arg)document.execCommand(cmd,false,arg);else document.execCommand(cmd)};tb.appendChild(b)});
+      // Save handler
+      document.getElementById('ce_save').onclick=async function(){
+        try{
+          const newExtra={
+            phone:document.getElementById('ce_phone').value.trim(),
+            email:document.getElementById('ce_email').value.trim(),
+            whatsapp:document.getElementById('ce_whatsapp').value.trim(),
+            address:document.getElementById('ce_address').value.trim(),
+            helplineHours:document.getElementById('ce_hours').value.trim(),
+            emergencyNote:document.getElementById('ce_emergency').value.trim(),
+            socialMedia:{
+              facebook:document.getElementById('ce_fb').value.trim(),
+              instagram:document.getElementById('ce_ig').value.trim(),
+              youtube:document.getElementById('ce_yt').value.trim(),
+              whatsapp:document.getElementById('ce_wa').value.trim()
+            }
+          };
+          await api('/api/admin/pages/'+slug,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:'Contact Us',content:rte.innerHTML,extra:newExtra})});
+          toast('Contact page saved!');closeModal();loadPages()
+        }catch(e){toast(e.message,'err')}
+      };
+    }else{
+      openRichEditor(content, function(newContent){
+        savePage(slug, newContent);
+      });
+    }
   }catch(e){toast(e.message,'err')}
 }
 async function savePage(slug, content){

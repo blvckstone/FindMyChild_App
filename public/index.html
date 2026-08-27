@@ -6,6 +6,7 @@
 <title>Find My Child</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{height:auto;min-height:100%}
@@ -1045,9 +1046,9 @@ async function loadContactPage(){
     if(ex.socialMedia){
       const socials=Object.entries(ex.socialMedia).filter(([,v])=>v);
       if(socials.length){
-        const icons={facebook:'📘',instagram:'📸',twitter:'🐦',youtube:'▶️',linkedin:'💼'};
+        const socialConfig={facebook:{icon:'<span class=\"material-symbols-outlined\">facebook</span>',color:'#1877F2'},instagram:{icon:'<span class=\"material-symbols-outlined\">photo_camera</span>',color:'#E4405F'},youtube:{icon:'<span class=\"material-symbols-outlined\">smart_display</span>',color:'#FF0000'},whatsapp:{icon:'<span class=\"material-symbols-outlined\">chat</span>',color:'#25D366'},twitter:{icon:'<span class=\"material-symbols-outlined\">tag</span>',color:'#1DA1F2'},linkedin:{icon:'<span class=\"material-symbols-outlined\">work</span>',color:'#0A66C2'}};
         html+='<div style="margin-top:20px"><div style="font-size:13px;color:var(--text3);font-weight:700;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px">Follow Us</div><div class="cc-socials">';
-        socials.forEach(([k,v])=>{html+='<a href="'+esc(v)+'" target="_blank" class="cc-social-icon">'+(icons[k]||'🔗')+'</a>'});
+        socials.forEach(([k,v])=>{const s=socialConfig[k]||{icon:'<span class=\"material-symbols-outlined\">link</span>',color:'var(--accent)'};html+='<a href="'+esc(v)+'" target="_blank" class="cc-social-icon" style="color:'+s.color+'">'+s.icon+'</a>'});
         html+='</div></div>';
       }
     }

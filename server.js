@@ -1498,7 +1498,8 @@ fmcConnectMongoDB().then(async (res) => {
                     socialMedia: {
                         facebook: 'https://facebook.com/findmychild',
                         instagram: 'https://instagram.com/findmychild',
-                        twitter: 'https://twitter.com/findmychild'
+                        youtube: 'https://youtube.com/@findmychild',
+                        whatsapp: 'https://wa.me/919876543210'
                     },
                     helplineHours: '24/7 - We never stop looking',
                     emergencyNote: 'If a child is in immediate danger, please call 112 (Emergency) or 1098 (Child Helpline) immediately.'
