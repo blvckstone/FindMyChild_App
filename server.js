@@ -397,6 +397,23 @@ app.get('/api/admin/me', requireAdmin, (req, res) => {
     res.json({ success: true, admin: req.adminInfo });
 });
 
+// Debug endpoint - test admin auth without middleware
+app.get('/api/admin/debug', (req, res) => {
+    const header = req.headers.authorization || '';
+    const token = header.startsWith('Bearer ') ? header.slice(7) : '';
+    console.log('[DEBUG] /api/admin/debug called | token length:', token.length, '| token start:', token.substring(0, 30));
+    if (!token) return res.json({ ok: false, reason: 'no token in header', headers: Object.keys(req.headers) });
+    try {
+        const jwt = require('jsonwebtoken');
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'findmychild_jwt_secret_k4x9m2');
+        console.log('[DEBUG] JWT verified OK:', JSON.stringify(decoded));
+        res.json({ ok: true, decoded });
+    } catch (e) {
+        console.log('[DEBUG] JWT verification FAILED:', e.message);
+        res.json({ ok: false, reason: e.message });
+    }
+});
+
 app.post('/api/admin/logout', requireAdmin, (req, res) => {
     logout(req.token);
     res.json({ success: true });

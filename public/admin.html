@@ -1057,7 +1057,9 @@ const adminNameParam=adminUrlParams.get("admin_name");
 const adminRoleParam=adminUrlParams.get("admin_role");
 if(adminTokenParam){token=adminTokenParam;localStorage.setItem("fmc_admin_token",adminTokenParam);if(adminNameParam)localStorage.setItem("fmc_admin_name",decodeURIComponent(adminNameParam));if(adminRoleParam)localStorage.setItem("fmc_admin_role",adminRoleParam);window.history.replaceState({},'',window.location.pathname);}
 
-if(token){console.log('[ADMIN] Token found, showing app...');$('loginView').style.display='none';$('appView').style.display='block';loadDashboard().then(()=>{console.log('[ADMIN] Dashboard loaded OK')}).catch(e=>{console.error('[ADMIN] Dashboard load failed:',e);token='';showLogin()})}else{console.log('[ADMIN] No token, showing login');showLogin()}
+if(token){console.log('[ADMIN] Token found, showing app...');$('loginView').style.display='none';$('appView').style.display='block';
+// Test auth first with debug endpoint
+fetch('/api/admin/debug',{headers:{'Authorization':'Bearer '+token}}).then(r=>r.json()).then(d=>{console.log('[ADMIN] Debug result:',d);if(d.ok){loadDashboard().then(()=>{console.log('[ADMIN] Dashboard loaded OK')}).catch(e=>{console.error('[ADMIN] Dashboard load failed:',e);document.getElementById('dashRecent').innerHTML='<div style="padding:16px;color:red;font-weight:bold">Dashboard error: '+String(e.message||e)+'</div>';token='';showLogin()})}else{console.error('[ADMIN] Auth failed:',d.reason);document.getElementById('dashRecent').innerHTML='<div style="padding:16px;color:red;font-weight:bold">Auth failed: '+d.reason+'</div>';token='';showLogin()}}).catch(e=>{console.error('[ADMIN] Debug fetch failed:',e);document.getElementById('dashRecent').innerHTML='<div style="padding:16px;color:red;font-weight:bold">Network error: '+String(e.message||e)+'</div>';token='';showLogin()})}else{console.log('[ADMIN] No token, showing login');showLogin()}
 </script>
 </body>
 </html>
