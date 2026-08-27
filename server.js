@@ -19,7 +19,15 @@ app.use(cors());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(fileUpload());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'), {
+    setHeaders: (res, filePath) => {
+        if (filePath.endsWith('admin.html')) {
+            res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+            res.set('Pragma', 'no-cache');
+            res.set('Expires', '0');
+        }
+    }
+}));
 
 // Session for Passport
 app.use(require('express-session')({ secret: process.env.JWT_SECRET || 'session_secret', resave: false, saveUninitialized: false }));
@@ -389,6 +397,7 @@ if (googleClientId && googleClientSecret) {
                 return res.redirect('/admin?error=' + encodeURIComponent(err ? err.message : 'not_whitelisted'));
             }
             console.log('[ADMIN-GOOGLE-CB] Success! Redirecting to admin panel');
+            res.cookie('fmc_admin_token', result.token, { httpOnly: false, maxAge: 7 * 24 * 60 * 60 * 1000, sameSite: 'lax' });
             res.redirect('/admin?admin_token=' + result.token + '&admin_name=' + encodeURIComponent(result.admin.name || '') + '&admin_role=' + (result.admin.role || 'admin'));
         })(req, res, next);
     });

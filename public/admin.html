@@ -1058,7 +1058,11 @@ const adminUrlParams=new URLSearchParams(window.location.search);
 const adminTokenParam=adminUrlParams.get("admin_token");
 const adminNameParam=adminUrlParams.get("admin_name");
 const adminRoleParam=adminUrlParams.get("admin_role");
-if(adminTokenParam){token=adminTokenParam;localStorage.setItem("fmc_admin_token",adminTokenParam);if(adminNameParam)localStorage.setItem("fmc_admin_name",decodeURIComponent(adminNameParam));if(adminRoleParam)localStorage.setItem("fmc_admin_role",adminRoleParam);window.history.replaceState({},'',window.location.pathname);}
+// Read token from cookie as backup
+function getCookie(name){const v=document.cookie.match('(^|;) ?'+name+'=([^;]*)(;|$)');return v?v[2]:null;}
+const cookieToken=getCookie('fmc_admin_token');
+const finalToken=adminTokenParam||cookieToken||'';
+if(finalToken){token=finalToken;localStorage.setItem("fmc_admin_token",finalToken);if(adminNameParam)localStorage.setItem("fmc_admin_name",decodeURIComponent(adminNameParam));if(adminRoleParam)localStorage.setItem("fmc_admin_role",adminRoleParam);window.history.replaceState({},'',window.location.pathname);}
 
 if(token){console.log('[ADMIN] Token found, showing app...');$('loginView').style.display='none';$('appView').style.display='block';
 // Test auth first with debug endpoint
