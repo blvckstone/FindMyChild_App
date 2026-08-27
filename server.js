@@ -490,6 +490,7 @@ app.get('/api/admin/stats', requireAdmin, async (req, res) => {
 
 // ---- Admin: list all children (including pending/rejected) ----
 app.get('/api/admin/children', requireAdmin, async (req, res) => {
+    if (!hasPermission(req, 'children')) return res.status(403).json({ success: false, message: 'Permission denied: Children management.' });
     try {
         const db = await fmcConnectMongoDB();
         if (!db.success) return res.status(500).json({ success: false, message: "Database unavailable." });
@@ -509,6 +510,7 @@ app.get('/api/admin/children', requireAdmin, async (req, res) => {
 
 // ---- Admin: add a child directly ----
 app.post('/api/admin/children', requireAdmin, async (req, res) => {
+    if (!hasPermission(req, 'children')) return res.status(403).json({ success: false, message: 'Permission denied.' });
     try {
         const data = pickChildFields(req.body);
         if (!data.fullName || !String(data.fullName).trim()) {
@@ -537,6 +539,7 @@ app.post('/api/admin/children', requireAdmin, async (req, res) => {
 
 // ---- Admin: update / approve / reject a child ----
 app.put('/api/admin/children/:id', requireAdmin, async (req, res) => {
+    if (!hasPermission(req, 'children')) return res.status(403).json({ success: false, message: 'Permission denied.' });
     try {
         const db = await fmcConnectMongoDB();
         if (!db.success) return res.status(500).json({ success: false, message: "Database unavailable." });
@@ -574,6 +577,7 @@ app.put('/api/admin/children/:id', requireAdmin, async (req, res) => {
 
 // ---- Admin: delete a child ----
 app.delete('/api/admin/children/:id', requireAdmin, async (req, res) => {
+    if (!hasPermission(req, 'children')) return res.status(403).json({ success: false, message: 'Permission denied.' });
     try {
         const db = await fmcConnectMongoDB();
         if (!db.success) return res.status(500).json({ success: false, message: "Database unavailable." });
@@ -590,6 +594,7 @@ app.delete('/api/admin/children/:id', requireAdmin, async (req, res) => {
 
 // ---- Admin: found requests ----
 app.get('/api/admin/found-requests', requireAdmin, async (req, res) => {
+    if (!hasPermission(req, 'children')) return res.status(403).json({ success: false, message: 'Permission denied.' });
     try {
         const { FoundRequest, Child } = await getModels();
         const filter = {};
@@ -602,6 +607,7 @@ app.get('/api/admin/found-requests', requireAdmin, async (req, res) => {
 });
 
 app.put('/api/admin/found-requests/:id', requireAdmin, async (req, res) => {
+    if (!hasPermission(req, 'children')) return res.status(403).json({ success: false, message: 'Permission denied.' });
     try {
         const { FoundRequest, Child } = await getModels();
         const fr = await FoundRequest.findById(req.params.id);
@@ -633,6 +639,7 @@ app.put('/api/admin/found-requests/:id', requireAdmin, async (req, res) => {
 
 // ---- Admin: praises ----
 app.get('/api/admin/praise', requireAdmin, async (req, res) => {
+    if (!hasPermission(req, 'donations')) return res.status(403).json({ success: false, message: 'Permission denied.' });
     try {
         const { Praise } = await getModels();
         const filter = {};
@@ -645,6 +652,7 @@ app.get('/api/admin/praise', requireAdmin, async (req, res) => {
 });
 
 app.put('/api/admin/praise/:id', requireAdmin, async (req, res) => {
+    if (!hasPermission(req, 'donations')) return res.status(403).json({ success: false, message: 'Permission denied.' });
     try {
         const { Praise } = await getModels();
         const p = await Praise.findByIdAndUpdate(req.params.id, { status: req.body.status }, { new: true });
@@ -657,6 +665,7 @@ app.put('/api/admin/praise/:id', requireAdmin, async (req, res) => {
 });
 
 app.delete('/api/admin/praise/:id', requireAdmin, async (req, res) => {
+    if (!hasPermission(req, 'donations')) return res.status(403).json({ success: false, message: 'Permission denied.' });
     try {
         const { Praise } = await getModels();
         const p = await Praise.findByIdAndDelete(req.params.id);
@@ -669,6 +678,7 @@ app.delete('/api/admin/praise/:id', requireAdmin, async (req, res) => {
 
 // ---- Admin: gifts ----
 app.get('/api/admin/gifts', requireAdmin, async (req, res) => {
+    if (!hasPermission(req, 'donations')) return res.status(403).json({ success: false, message: 'Permission denied.' });
     try {
         const { Gift } = await getModels();
         const filter = {};
@@ -681,6 +691,7 @@ app.get('/api/admin/gifts', requireAdmin, async (req, res) => {
 });
 
 app.put('/api/admin/gifts/:id', requireAdmin, async (req, res) => {
+    if (!hasPermission(req, 'donations')) return res.status(403).json({ success: false, message: 'Permission denied.' });
     try {
         const { Gift } = await getModels();
         const g = await Gift.findByIdAndUpdate(req.params.id, { status: req.body.status }, { new: true });
@@ -693,6 +704,7 @@ app.put('/api/admin/gifts/:id', requireAdmin, async (req, res) => {
 });
 
 app.delete('/api/admin/gifts/:id', requireAdmin, async (req, res) => {
+    if (!hasPermission(req, 'donations')) return res.status(403).json({ success: false, message: 'Permission denied.' });
     try {
         const { Gift } = await getModels();
         const g = await Gift.findByIdAndDelete(req.params.id);
@@ -705,6 +717,7 @@ app.delete('/api/admin/gifts/:id', requireAdmin, async (req, res) => {
 
 // ---- Admin: donations ----
 app.get('/api/admin/donations', requireAdmin, async (req, res) => {
+    if (!hasPermission(req, 'donations')) return res.status(403).json({ success: false, message: 'Permission denied.' });
     try {
         const { Donation } = await getModels();
         const data = await Donation.find().sort({ createdAt: -1 });
@@ -716,6 +729,7 @@ app.get('/api/admin/donations', requireAdmin, async (req, res) => {
 });
 
 app.delete('/api/admin/donations/:id', requireAdmin, async (req, res) => {
+    if (!hasPermission(req, 'donations')) return res.status(403).json({ success: false, message: 'Permission denied.' });
     try {
         const { Donation } = await getModels();
         const d = await Donation.findByIdAndDelete(req.params.id);
@@ -812,6 +826,7 @@ app.get('/api/messages', async (req, res) => {
 
 // ---- Admin: analytics dashboard ----
 app.get('/api/admin/analytics', requireAdmin, async (req, res) => {
+    if (!hasPermission(req, 'analytics')) return res.status(403).json({ success: false, message: 'Permission denied.' });
     try {
         const { Analytics, User, Child, Donation, FoundRequest } = await getModels();
         const now = Date.now();
@@ -854,6 +869,7 @@ app.get('/api/admin/analytics', requireAdmin, async (req, res) => {
 
 // ---- Admin: advertisements ----
 app.get('/api/admin/ads', requireAdmin, async (req, res) => {
+    if (!hasPermission(req, 'ads')) return res.status(403).json({ success: false, message: 'Permission denied.' });
     try {
         const { Advertisement } = await getModels();
         const ads = await Advertisement.find().sort({ createdAt: -1 });
@@ -864,6 +880,7 @@ app.get('/api/admin/ads', requireAdmin, async (req, res) => {
 });
 
 app.post('/api/admin/ads', requireAdmin, async (req, res) => {
+    if (!hasPermission(req, 'ads')) return res.status(403).json({ success: false, message: 'Permission denied.' });
     try {
         const { Advertisement } = await getModels();
         const b = req.body;
@@ -906,6 +923,7 @@ app.post('/api/admin/ads', requireAdmin, async (req, res) => {
 });
 
 app.put('/api/admin/ads/:id', requireAdmin, async (req, res) => {
+    if (!hasPermission(req, 'ads')) return res.status(403).json({ success: false, message: 'Permission denied.' });
     try {
         const { Advertisement } = await getModels();
         const b = req.body;
@@ -950,6 +968,7 @@ app.put('/api/admin/ads/:id', requireAdmin, async (req, res) => {
 });
 
 app.delete('/api/admin/ads/:id', requireAdmin, async (req, res) => {
+    if (!hasPermission(req, 'ads')) return res.status(403).json({ success: false, message: 'Permission denied.' });
     try {
         const { Advertisement } = await getModels();
         const ad = await Advertisement.findByIdAndDelete(req.params.id);
@@ -1074,6 +1093,7 @@ app.get('/api/admin/ensure-super-admin', requireAdmin, requireSuperAdmin, async 
 
 // ---- Admin: user management ----
 app.get('/api/admin/users', requireAdmin, async (req, res) => {
+    if (!hasPermission(req, 'users')) return res.status(403).json({ success: false, message: 'Permission denied.' });
     try {
         const { User } = await getModels();
         const users = await User.find().sort({ createdAt: -1 }).select('-password').lean();
@@ -1084,6 +1104,7 @@ app.get('/api/admin/users', requireAdmin, async (req, res) => {
 });
 
 app.put('/api/admin/users/:id', requireAdmin, async (req, res) => {
+    if (!hasPermission(req, 'users')) return res.status(403).json({ success: false, message: 'Permission denied.' });
     try {
         const { User } = await getModels();
         const b = req.body;
@@ -1101,6 +1122,7 @@ app.put('/api/admin/users/:id', requireAdmin, async (req, res) => {
 });
 
 app.delete('/api/admin/users/:id', requireAdmin, async (req, res) => {
+    if (!hasPermission(req, 'users')) return res.status(403).json({ success: false, message: 'Permission denied.' });
     try {
         const { User } = await getModels();
         const user = await User.findByIdAndDelete(req.params.id);
@@ -1185,6 +1207,7 @@ app.post('/api/gifts', requireAuth, async (req, res) => {
 
 // ---- Admin: Revenue management ----
 app.get('/api/admin/revenue', requireAdmin, async (req, res) => {
+    if (!hasPermission(req, 'donations')) return res.status(403).json({ success: false, message: 'Permission denied.' });
     try {
         const { Revenue } = await getModels();
         const data = await Revenue.find().sort({ date: -1 }).lean();
@@ -1192,6 +1215,7 @@ app.get('/api/admin/revenue', requireAdmin, async (req, res) => {
     } catch (e) { res.status(500).json({ success: false, message: e.message }); }
 });
 app.post('/api/admin/revenue', requireAdmin, async (req, res) => {
+    if (!hasPermission(req, 'donations')) return res.status(403).json({ success: false, message: 'Permission denied.' });
     try {
         const { Revenue } = await getModels();
         const { source, type, amount, description, donorName, emailId, status, date } = req.body;
@@ -1201,6 +1225,7 @@ app.post('/api/admin/revenue', requireAdmin, async (req, res) => {
     } catch (e) { res.status(500).json({ success: false, message: e.message }); }
 });
 app.put('/api/admin/revenue/:id', requireAdmin, async (req, res) => {
+    if (!hasPermission(req, 'donations')) return res.status(403).json({ success: false, message: 'Permission denied.' });
     try {
         const { Revenue } = await getModels();
         const record = await Revenue.findByIdAndUpdate(req.params.id, req.body, { new: true });
@@ -1209,6 +1234,7 @@ app.put('/api/admin/revenue/:id', requireAdmin, async (req, res) => {
     } catch (e) { res.status(500).json({ success: false, message: e.message }); }
 });
 app.delete('/api/admin/revenue/:id', requireAdmin, async (req, res) => {
+    if (!hasPermission(req, 'donations')) return res.status(403).json({ success: false, message: 'Permission denied.' });
     try {
         const { Revenue } = await getModels();
         await Revenue.findByIdAndDelete(req.params.id);
@@ -1216,6 +1242,7 @@ app.delete('/api/admin/revenue/:id', requireAdmin, async (req, res) => {
     } catch (e) { res.status(500).json({ success: false, message: e.message }); }
 });
 app.get('/api/admin/revenue/summary', requireAdmin, async (req, res) => {
+    if (!hasPermission(req, 'donations')) return res.status(403).json({ success: false, message: 'Permission denied.' });
     try {
         const { Revenue } = await getModels();
         const all = await Revenue.find().lean();
@@ -1242,6 +1269,7 @@ app.get('/api/pages/:slug', async (req, res) => {
 
 // ---- Admin: page content CRUD ----
 app.get('/api/admin/pages', requireAdmin, async (req, res) => {
+    if (!hasPermission(req, 'children')) return res.status(403).json({ success: false, message: 'Permission denied.' });
     try {
         const { PageContent } = await getModels();
         const data = await PageContent.find().sort({ updatedAt: -1 }).lean();
@@ -1249,6 +1277,7 @@ app.get('/api/admin/pages', requireAdmin, async (req, res) => {
     } catch (e) { res.status(500).json({ success: false, message: e.message }); }
 });
 app.get('/api/admin/pages/:slug', requireAdmin, async (req, res) => {
+    if (!hasPermission(req, 'children')) return res.status(403).json({ success: false, message: 'Permission denied.' });
     try {
         const { PageContent } = await getModels();
         const page = await PageContent.findOne({ slug: req.params.slug }).lean();
@@ -1257,6 +1286,7 @@ app.get('/api/admin/pages/:slug', requireAdmin, async (req, res) => {
     } catch (e) { res.status(500).json({ success: false, message: e.message }); }
 });
 app.put('/api/admin/pages/:slug', requireAdmin, async (req, res) => {
+    if (!hasPermission(req, 'children')) return res.status(403).json({ success: false, message: 'Permission denied.' });
     try {
         const { PageContent } = await getModels();
         const { title, content, metaDescription, extra } = req.body;
@@ -1274,6 +1304,7 @@ app.put('/api/admin/pages/:slug', requireAdmin, async (req, res) => {
     } catch (e) { res.status(500).json({ success: false, message: e.message }); }
 });
 app.delete('/api/admin/pages/:slug', requireAdmin, async (req, res) => {
+    if (!hasPermission(req, 'children')) return res.status(403).json({ success: false, message: 'Permission denied.' });
     try {
         const { PageContent } = await getModels();
         await PageContent.findOneAndDelete({ slug: req.params.slug });
@@ -1300,6 +1331,7 @@ app.get('/api/legal', async (req, res) => {
 
 // ---- Admin: legal pages CRUD ----
 app.get('/api/admin/legal', requireAdmin, async (req, res) => {
+    if (!hasPermission(req, 'children')) return res.status(403).json({ success: false, message: 'Permission denied.' });
     try {
         const { LegalPage } = await getModels();
         const data = await LegalPage.find().sort({ updatedAt: -1 }).lean();
@@ -1307,6 +1339,7 @@ app.get('/api/admin/legal', requireAdmin, async (req, res) => {
     } catch (e) { res.status(500).json({ success: false, message: e.message }); }
 });
 app.get('/api/admin/legal/:slug', requireAdmin, async (req, res) => {
+    if (!hasPermission(req, 'children')) return res.status(403).json({ success: false, message: 'Permission denied.' });
     try {
         const { LegalPage } = await getModels();
         const page = await LegalPage.findOne({ slug: req.params.slug }).lean();
@@ -1315,6 +1348,7 @@ app.get('/api/admin/legal/:slug', requireAdmin, async (req, res) => {
     } catch (e) { res.status(500).json({ success: false, message: e.message }); }
 });
 app.put('/api/admin/legal/:slug', requireAdmin, async (req, res) => {
+    if (!hasPermission(req, 'children')) return res.status(403).json({ success: false, message: 'Permission denied.' });
     try {
         const { LegalPage } = await getModels();
         const { title, content, effectiveDate } = req.body;
@@ -1331,6 +1365,7 @@ app.put('/api/admin/legal/:slug', requireAdmin, async (req, res) => {
     } catch (e) { res.status(500).json({ success: false, message: e.message }); }
 });
 app.delete('/api/admin/legal/:slug', requireAdmin, async (req, res) => {
+    if (!hasPermission(req, 'children')) return res.status(403).json({ success: false, message: 'Permission denied.' });
     try {
         const { LegalPage } = await getModels();
         await LegalPage.findOneAndDelete({ slug: req.params.slug });
