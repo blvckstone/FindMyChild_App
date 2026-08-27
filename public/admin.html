@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="admin-version" content="37d37562"><title>Admin — Gumshuda Bacho Ki Talash</title>
+<meta name="admin-version" content="a8f2e7c1"><title>Admin — Gumshuda Bacho Ki Talash</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -1264,11 +1264,7 @@ async function loadLegal(){
 }
 function showAddLegalModal(){
   $('modalTitle').textContent='Add Legal Page';
-  $('modalBody').innerHTML='<div style="padding:4px 0">
-    <div class="field"><label>Page Title *</label><input id="lp_title" placeholder="e.g. Privacy Policy"></div>
-    <div class="field"><label>Slug (URL-friendly) *</label><input id="lp_slug" placeholder="e.g. privacy-policy"></div>
-    <button class="btn" onclick="createLegalPage()" style="margin-top:4px">Create Page</button>
-  </div>';
+  $('modalBody').innerHTML='<div style="padding:4px 0"><div class="field"><label>Page Title *</label><input id="lp_title" placeholder="e.g. Privacy Policy"></div><div class="field"><label>Slug (URL-friendly) *</label><input id="lp_slug" placeholder="e.g. privacy-policy"></div><button class="btn" onclick="createLegalPage()" style="margin-top:4px">Create Page</button></div>';
   $('modalBg').classList.add('show');
 }
 async function createLegalPage(){

@@ -404,7 +404,7 @@ if (googleClientId && googleClientSecret) {
             }
             console.log('[ADMIN-GOOGLE-CB] Success! Redirecting to admin panel');
             res.cookie('fmc_admin_token', result.token, { httpOnly: false, maxAge: 7 * 24 * 60 * 60 * 1000, sameSite: 'lax' });
-            res.redirect('/admin?v=37d37562&t=' + Date.now() + '&admin_token=' + result.token + '&admin_name=' + encodeURIComponent(result.admin.name || '') + '&admin_role=' + (result.admin.role || 'admin'));
+            res.redirect('/admin?v=a8f2e7c1&t=' + Date.now() + '&admin_token=' + result.token + '&admin_name=' + encodeURIComponent(result.admin.name || '') + '&admin_role=' + (result.admin.role || 'admin'));
         })(req, res, next);
     });
 }
