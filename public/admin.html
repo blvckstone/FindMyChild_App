@@ -1053,9 +1053,11 @@ async function deleteAdmin(id){
 /* Handle Google OAuth redirect for admin */
 const adminUrlParams=new URLSearchParams(window.location.search);
 const adminTokenParam=adminUrlParams.get("admin_token");
-if(adminTokenParam){token=adminTokenParam;localStorage.setItem("fmc_admin_token",adminTokenParam);window.history.replaceState({},window.location.pathname);}
+const adminNameParam=adminUrlParams.get("admin_name");
+const adminRoleParam=adminUrlParams.get("admin_role");
+if(adminTokenParam){token=adminTokenParam;localStorage.setItem("fmc_admin_token",adminTokenParam);if(adminNameParam)localStorage.setItem("fmc_admin_name",decodeURIComponent(adminNameParam));if(adminRoleParam)localStorage.setItem("fmc_admin_role",adminRoleParam);window.history.replaceState({},'',window.location.pathname);}
 
-if(token){console.log('[ADMIN] Token found, showing app...');$('loginView').style.display='none';$('appView').style.display='block';loadDashboard().catch(e=>{console.error('[ADMIN] Dashboard load failed:',e);token='';showLogin()})}else{console.log('[ADMIN] No token, showing login');showLogin()}
+if(token){console.log('[ADMIN] Token found, showing app...');$('loginView').style.display='none';$('appView').style.display='block';loadDashboard().then(()=>{console.log('[ADMIN] Dashboard loaded OK')}).catch(e=>{console.error('[ADMIN] Dashboard load failed:',e);token='';showLogin()})}else{console.log('[ADMIN] No token, showing login');showLogin()}
 </script>
 </body>
 </html>

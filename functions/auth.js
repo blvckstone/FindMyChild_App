@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const jwt = require('jsonwebtoken');
 const { hashPassword, verifyPassword } = require('./passwords');
 const getModels = require('./dbModels');
 
@@ -13,9 +14,27 @@ if (!process.env.ADMIN_USERNAME || !process.env.ADMIN_PASS) {
 // Super admin email - cannot be removed or demoted
 const SUPER_ADMIN_EMAIL = 'iblvckstone@gmail.com';
 
-// Admin tokens: token -> { email, role, permissions }
+// JWT config for admin tokens (persistent - survives server restarts)
+const JWT_SECRET = process.env.JWT_SECRET || 'findmychild_jwt_secret_k4x9m2';
+const JWT_EXPIRES = process.env.JWT_EXPIRES_IN || '7d';
+
+// Admin tokens: token -> { email, role, permissions } (kept as cache, but JWT is primary)
 const adminTokens = new Map();
 const userTokens = new Map();
+
+// Create admin JWT token
+function signAdminToken(payload) {
+    return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES });
+}
+
+// Verify admin JWT token
+function verifyAdminToken(token) {
+    try {
+        return jwt.verify(token, JWT_SECRET);
+    } catch (e) {
+        return null;
+    }
+}
 
 const safeEqual = (a, b) => {
     const ba = Buffer.from(String(a));
@@ -27,12 +46,14 @@ const safeEqual = (a, b) => {
 // Legacy admin login (username/password)
 const loginAdmin = (username, password) => {
     if (safeEqual(username, ADMIN_USERNAME) && safeEqual(password, ADMIN_PASS)) {
-        const token = crypto.randomBytes(24).toString('hex');
-        adminTokens.set(token, {
+        const adminPayload = {
             email: SUPER_ADMIN_EMAIL,
             role: 'super_admin',
             permissions: { all: true }
-        });
+        };
+        const token = signAdminToken(adminPayload);
+        // Also cache in Map for backward compat
+        adminTokens.set(token, adminPayload);
         return { token, role: 'super_admin', email: SUPER_ADMIN_EMAIL, name: 'Admin' };
     }
     return null;
@@ -71,12 +92,9 @@ const loginAdminGoogle = async (profile) => {
             if (name) admin.name = name;
             await admin.save();
         }
-        const token = crypto.randomBytes(24).toString('hex');
-        adminTokens.set(token, {
-            email,
-            role: 'super_admin',
-            permissions: { all: true }
-        });
+        const adminPayload = { email, role: 'super_admin', permissions: { all: true } };
+        const token = signAdminToken(adminPayload);
+        adminTokens.set(token, adminPayload);
         return { token, admin: { email, name: admin.name, photo: admin.photo, role: 'super_admin', permissions: { all: true } } };
     }
 
@@ -103,12 +121,9 @@ const loginAdminGoogle = async (profile) => {
         canManageAdmins: admin.canManageAdmins
     };
 
-    const token = crypto.randomBytes(24).toString('hex');
-    adminTokens.set(token, {
-        email,
-        role: admin.role,
-        permissions
-    });
+    const adminPayload = { email, role: admin.role, permissions };
+    const token = signAdminToken(adminPayload);
+    adminTokens.set(token, adminPayload);
 
     return { token, admin: { email, name: admin.name, photo: admin.photo, role: admin.role, permissions } };
 };
@@ -169,7 +184,24 @@ const requireAuth = (req, res, next) => {
 const requireAdmin = (req, res, next) => {
     const header = req.headers.authorization || '';
     const token = header.startsWith('Bearer ') ? header.slice(7) : '';
-    const adminInfo = adminTokens.get(token);
+    if (!token) {
+        return res.status(401).json({ success: false, message: "Unauthorized. Please log in as admin." });
+    }
+    // Try in-memory cache first (fast path)
+    let adminInfo = adminTokens.get(token);
+    if (!adminInfo) {
+        // Fall back to JWT verification (survives server restarts)
+        const decoded = verifyAdminToken(token);
+        if (decoded && decoded.email) {
+            adminInfo = {
+                email: decoded.email,
+                role: decoded.role,
+                permissions: decoded.permissions
+            };
+            // Re-cache for future requests
+            adminTokens.set(token, adminInfo);
+        }
+    }
     if (adminInfo) {
         req.token = token;
         req.adminInfo = adminInfo;
