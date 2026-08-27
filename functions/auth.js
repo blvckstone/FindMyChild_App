@@ -184,13 +184,16 @@ const requireAuth = (req, res, next) => {
 const requireAdmin = (req, res, next) => {
     const header = req.headers.authorization || '';
     const token = header.startsWith('Bearer ') ? header.slice(7) : '';
+    console.log('[AUTH] requireAdmin called for', req.path, '| token length:', token.length, '| token starts:', token.substring(0, 20));
     if (!token) {
+        console.log('[AUTH] No token provided');
         return res.status(401).json({ success: false, message: "Unauthorized. Please log in as admin." });
     }
     // Try in-memory cache first (fast path)
     let adminInfo = adminTokens.get(token);
     if (!adminInfo) {
         // Fall back to JWT verification (survives server restarts)
+        console.log('[AUTH] Token not in cache, trying JWT verification...');
         const decoded = verifyAdminToken(token);
         if (decoded && decoded.email) {
             adminInfo = {
@@ -200,13 +203,19 @@ const requireAdmin = (req, res, next) => {
             };
             // Re-cache for future requests
             adminTokens.set(token, adminInfo);
+            console.log('[AUTH] JWT verified OK for', decoded.email, '| role:', decoded.role);
+        } else {
+            console.log('[AUTH] JWT verification FAILED');
         }
+    } else {
+        console.log('[AUTH] Token found in cache for', adminInfo.email);
     }
     if (adminInfo) {
         req.token = token;
         req.adminInfo = adminInfo;
         return next();
     }
+    console.log('[AUTH] 401 — token invalid');
     return res.status(401).json({ success: false, message: "Unauthorized. Please log in as admin." });
 };
 
