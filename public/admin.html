@@ -903,7 +903,7 @@ async function toggleAd(id,active){try{await api('/api/admin/ads/'+id,{method:'P
 async function deleteAd(id){if(!confirm('Delete this ad?'))return;try{await api('/api/admin/ads/'+id,{method:'DELETE'});toast('Ad deleted.');loadAds()}catch(e){toast(e.message,'err')}}
 
 const adTypes=['carousel','fullscreen','banner','small_banner','header','popup','interstitial'];
-const adPositions=['home','search','found','report',none];
+const adPositions=['home','search','found','report','none'];
 let editingAdId=null;
 function showAddAdModal(a){
   const isEdit=!!a;
