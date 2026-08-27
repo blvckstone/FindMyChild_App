@@ -478,6 +478,17 @@ function sbadge(s){var v=esc(s||'unknown');return '<span class="sbadge '+v+'">'+
 function miniBtn(cls,icon,label,onclick){return`<button class="btn-sm ${cls}" onclick="${onclick}" style="padding:7px 12px;font-size:11px;display:inline-flex;align-items:center;gap:4px">${icon} ${label}</button>`}
 
 // Navigation
+const pagePermMap={children:['pending','children','add','found'],users:['users'],ads:['ads'],analytics:['analytics'],donations:['donations','revenue'],admins:['whitelist']};
+function canAccess(page){
+  if(adminPerms.all) return true;
+  if(['dashboard','profile','pages','legal','praise'].includes(page)) return true;
+  for(const[perm,pages]of Object.entries(pagePermMap)){if(pages.includes(page)&&adminPerms[perm])return true}
+  return false;
+}
+function showNoAccess(page){
+  const pg=$('pg-'+page);
+  if(pg) pg.querySelector('.page-head').insertAdjacentHTML('afterend','<div style="text-align:center;padding:48px 20px"><div style="width:56px;height:56px;background:#f3f4f6;border-radius:16px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px"><svg viewBox=\"0 0 24 24\" width=28 height=28 fill=\"#9ca3af\"><path d=\"M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z\"/></svg></div><div style=\"font-size:16px;font-weight:700;color:#111;margin-bottom:6px\">Access Restricted</div><div style=\"font-size:13px;color:#6b7280\">You don\'t have permission to access this page.</div></div>');
+}
 function navigateTo(page){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('#sideNav a').forEach(a=>a.classList.remove('active'));
@@ -485,6 +496,7 @@ function navigateTo(page){
   const pg=$('pg-'+page);if(pg)pg.classList.add('active');
   const sa=document.querySelector(`#sideNav a[data-page="${page}"]`);if(sa)sa.classList.add('active');
   const mb=document.querySelector(`#mobNav button[data-page="${page}"]`);if(mb)mb.classList.add('active');
+  if(!canAccess(page)){showNoAccess(page);return}
   if(page==='dashboard')loadDashboard();
   if(page==='pending')renderPending();
   if(page==='children')renderChildren();
@@ -553,12 +565,23 @@ let adminPerms={all:true}; // Default: show everything (safe fallback)
 async function applyPermissions(){
   try{
     const r=await api('/api/admin/me');
-    if(!r.admin) return; // Can't determine perms, keep default (show all)
+    if(!r.admin) return;
     const a=r.admin;
-    // Super admin or missing permissions = show everything
-    if(a.role==='super_admin'||!a.permissions){adminPerms={all:true};return}
-    adminPerms=a.permissions;
-    // If adminPerms.all is true, show everything
+    // Super admin always has full access
+    if(a.role==='super_admin'){adminPerms={all:true};return}
+    // Build permissions from DB fields (canManage*) OR from permissions object
+    adminPerms=a.permissions||{};
+    // If no permissions object, build from individual fields
+    if(!a.permissions&&(a.canManageChildren!==undefined||a.canManageUsers!==undefined)){
+      adminPerms={
+        children:!!a.canManageChildren,
+        users:!!a.canManageUsers,
+        ads:!!a.canManageAds,
+        analytics:!!a.canManageAnalytics,
+        donations:!!a.canManageDonations,
+        admins:!!a.canManageAdmins
+      };
+    }
     if(adminPerms.all) return;
     // Map permission keys to nav data-page values
     const permMap={
@@ -569,20 +592,18 @@ async function applyPermissions(){
       donations:['donations','revenue'],
       admins:['whitelist']
     };
-    // ONLY hide nav items we are CERTAIN the admin can't access
+    // Hide nav items the admin can't access
     document.querySelectorAll('.sidebar nav a[data-page],.mob-nav button[data-page]').forEach(el=>{
       const page=el.getAttribute('data-page');
       if(!page) return;
-      // Always visible pages
       if(['dashboard','profile','pages','legal','praise'].includes(page)) return;
-      // Check if admin has permission for this page
       let hasAccess=false;
       for(const[perm,pages]of Object.entries(permMap)){
         if(pages.includes(page)&&adminPerms[perm]){hasAccess=true;break}
       }
       if(!hasAccess) el.style.display='none';
     });
-  }catch(e){console.warn('Permission load failed, showing all:',e.message);adminPerms={all:true}}
+  }catch(e){console.warn('Permission load failed:',e.message)}
 }
 
 // Pending
