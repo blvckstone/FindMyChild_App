@@ -501,6 +501,27 @@ main{scroll-padding-top:10px}
 .emergency-card .elink:active{background:var(--border)}
 .emergency-card .elink svg{width:18px;height:18px;fill:var(--accent);flex-shrink:0}
 
+
+/* Page content styling */
+.page-content h1{font-size:24px;font-weight:800;margin:20px 0 12px;color:var(--text);line-height:1.3}
+.page-content h2{font-size:20px;font-weight:700;margin:20px 0 10px;color:var(--text);line-height:1.3}
+.page-content h3{font-size:17px;font-weight:700;margin:18px 0 8px;color:var(--text);line-height:1.3}
+.page-content p{font-size:14px;line-height:1.8;margin:10px 0;color:var(--text2)}
+.page-content ul,.page-content ol{margin:10px 0 10px 20px;font-size:14px;line-height:1.8;color:var(--text2)}
+.page-content li{margin-bottom:4px}
+.page-content a{color:var(--accent);text-decoration:underline}
+.page-content strong{font-weight:700;color:var(--text)}
+.page-content blockquote{border-left:3px solid var(--accent);padding:10px 16px;margin:12px 0;background:var(--accent-light);border-radius:0 8px 8px 0;font-style:italic}
+#aboutContent,#contactContent,#legalContent{font-family:'Inter',sans-serif}
+#aboutContent h1,#contactContent h1,#legalContent h1{font-size:24px;font-weight:800;margin:20px 0 12px;color:var(--text);line-height:1.3}
+#aboutContent h2,#contactContent h2,#legalContent h2{font-size:20px;font-weight:700;margin:20px 0 10px;color:var(--text);line-height:1.3}
+#aboutContent h3,#contactContent h3,#legalContent h3{font-size:17px;font-weight:700;margin:18px 0 8px;color:var(--text);line-height:1.3}
+#aboutContent p,#contactContent p,#legalContent p{font-size:14px;line-height:1.8;margin:10px 0;color:var(--text2)}
+#aboutContent ul,#contactContent ul,#legalContent ul,#aboutContent ol,#contactContent ol,#legalContent ol{margin:10px 0 10px 20px;font-size:14px;line-height:1.8;color:var(--text2)}
+#aboutContent li,#contactContent li,#legalContent li{margin-bottom:4px}
+#aboutContent a,#contactContent a,#legalContent a{color:var(--accent);text-decoration:underline}
+#aboutContent strong,#contactContent strong,#legalContent strong{font-weight:700;color:var(--text)}
+#aboutContent blockquote,#contactContent blockquote,#legalContent blockquote{border-left:3px solid var(--accent);padding:10px 16px;margin:12px 0;background:var(--accent-light);border-radius:0 8px 8px 0;font-style:italic}
 </style>
 </head>
 <body>
@@ -898,7 +919,7 @@ $('reportBtn').addEventListener('click',async()=>{
 
 /* --- Navigation --- */
 function showView(name){['home','search','found','report','me','donate','about','contact','legal'].forEach(v=>{var el=$('view-'+v);if(el)el.classList.toggle('active',v===name)});['navHome','navSearch','navFound','navReport','navMe'].forEach(n=>$(n).classList.toggle('active',n==='nav'+name.charAt(0).toUpperCase()+name.slice(1)));
-  if($('desktopNav')){$('desktopNav').querySelectorAll('.desktop-nav-btn').forEach(b=>b.classList.toggle('active',b.getAttribute('data-page')===name));}if(name==='me')renderMe();if(name==='donate')loadDonations();if(name==='found')renderFound();trackSection(name);window.scrollTo(0,0)}
+  if($('desktopNav')){$('desktopNav').querySelectorAll('.desktop-nav-btn').forEach(b=>b.classList.toggle('active',b.getAttribute('data-page')===name));}if(name==='me')renderMe();if(name==='donate')loadDonations();if(name==='found')renderFound();if(name==='about')loadAboutPage();if(name==='contact')loadContactPage();trackSection(name);window.scrollTo(0,0)}
 $('heroSearch').addEventListener('click',()=>{showView('search');setTimeout(()=>$('q').focus(),300)})
 $('navHome').addEventListener('click',()=>showView('home'));
 $('navSearch').addEventListener('click',()=>showView('search'));
@@ -971,7 +992,7 @@ async function loadAboutPage(){
   try{
     const r=await fetch('/api/pages/about-us');const j=await r.json();
     if(!j.success||!j.data){$('aboutContent').innerHTML='<p style="text-align:center;padding:40px;color:var(--text3)">Content coming soon.</p>';return}
-    const p=j.data;let html='<div style="padding:0 0 20px">'+p.content+'</div>';
+    const p=j.data;let html='<div class="page-content" style="padding:0 0 20px">'+p.content+'</div>';
     if(p.extra){
       if(p.extra.mission)html+='<div style="background:var(--accent-light);border-radius:16px;padding:20px;margin-bottom:16px"><h3 style="font-size:16px;font-weight:800;margin-bottom:8px;color:var(--accent)">Our Mission</h3><p style="font-size:14px;color:var(--text2);line-height:1.6">'+esc(p.extra.mission)+'</p></div>';
       if(p.extra.vision)html+='<div style="background:var(--green-light);border-radius:16px;padding:20px;margin-bottom:16px"><h3 style="font-size:16px;font-weight:800;margin-bottom:8px;color:var(--green)">Our Vision</h3><p style="font-size:14px;color:var(--text2);line-height:1.6">'+esc(p.extra.vision)+'</p></div>';
@@ -991,7 +1012,7 @@ async function loadContactPage(){
   try{
     const r=await fetch('/api/pages/contact-us');const j=await r.json();
     if(!j.success||!j.data){$('contactContent').innerHTML='<p style="text-align:center;padding:40px;color:var(--text3)">Content coming soon.</p>';return}
-    const p=j.data;const ex=p.extra||{};let html=p.content?'<div style="padding:0 0 16px">'+p.content+'</div>':'';
+    const p=j.data;const ex=p.extra||{};let html=p.content?'<div class="page-content" style="padding:0 0 16px">'+p.content+'</div>':'';
     html+='<div style="background:var(--red-light);border-radius:12px;padding:16px;margin-bottom:16px;font-size:13px;color:var(--red);font-weight:600">'+esc(ex.emergencyNote||'In emergency call 112 or 1098 immediately.')+'</div>';
     const items=[
       {icon:'📞',label:'Phone',value:ex.phone,href:ex.phone?'tel:'+ex.phone.replace(/[^0-9+]/g,''):null},
@@ -1025,7 +1046,7 @@ async function showLegal(slug){
     const r=await fetch('/api/legal/'+slug);const j=await r.json();
     if(!j.success||!j.data){$('legalContent').innerHTML='<p style="text-align:center;padding:40px;color:var(--text3)">Page not found.</p>';return}
     $('legalTitle').textContent=j.data.title||'Legal';
-    let html='<div style="padding:0 0 16px">'+j.data.content+'</div>';
+    let html='<div class="page-content" style="padding:0 0 16px">'+j.data.content+'</div>';
     if(j.data.effectiveDate)html+='<div style="font-size:12px;color:var(--text3);padding:12px 0;border-top:1px solid var(--border)">Effective: '+fmtDate(j.data.effectiveDate)+'</div>';
     html+='<div style="margin-top:16px;display:flex;flex-wrap:wrap;gap:8px">';
     html+='<button class="pill" onclick="showLegal(\'privacy-policy\')">Privacy Policy</button>';
