@@ -26,6 +26,11 @@ app.use(express.static(path.join(__dirname, 'public'), {
             res.set('Pragma', 'no-cache');
             res.set('Expires', '0');
         }
+        if (filePath.endsWith('.html')) {
+            res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+            res.set('Pragma', 'no-cache');
+            res.set('Expires', '0');
+        }
     }
 }));
 
