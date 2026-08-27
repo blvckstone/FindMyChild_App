@@ -549,34 +549,40 @@ async function loadDashboard(){
 }
 
 // Permission enforcement
-let adminPerms={};
+let adminPerms={all:true}; // Default: show everything (safe fallback)
 async function applyPermissions(){
   try{
     const r=await api('/api/admin/me');
-    if(r.admin){
-      const a=r.admin;
-      adminPerms=a.role==='super_admin'?{all:true}:a.permissions||{};
-      // Map permission keys to nav data-page values
-      const permMap={
-        children:['pending','children','add','found'],
-        users:['users'],
-        ads:['ads'],
-        analytics:['analytics'],
-        donations:['donations','revenue'],
-        admins:['whitelist']
-      };
-      // Hide nav items for unauthorized pages
-      document.querySelectorAll('.sidebar nav a[data-page],.mob-nav button[data-page]').forEach(el=>{
-        const page=el.getAttribute('data-page');
-        if(!page||page==='dashboard'||page==='profile'||page==='pages'||page==='legal'||page==='praise')return;
-        let allowed=false;
-        for(const[perm,pages]of Object.entries(permMap)){
-          if(pages.includes(page)&&(adminPerms.all||adminPerms[perm])){allowed=true;break}
-        }
-        if(!allowed){el.style.display='none'}
-      });
-    }
-  }catch(e){console.warn('Permission load failed:',e.message)}
+    if(!r.admin) return; // Can't determine perms, keep default (show all)
+    const a=r.admin;
+    // Super admin or missing permissions = show everything
+    if(a.role==='super_admin'||!a.permissions){adminPerms={all:true};return}
+    adminPerms=a.permissions;
+    // If adminPerms.all is true, show everything
+    if(adminPerms.all) return;
+    // Map permission keys to nav data-page values
+    const permMap={
+      children:['pending','children','add','found'],
+      users:['users'],
+      ads:['ads'],
+      analytics:['analytics'],
+      donations:['donations','revenue'],
+      admins:['whitelist']
+    };
+    // ONLY hide nav items we are CERTAIN the admin can't access
+    document.querySelectorAll('.sidebar nav a[data-page],.mob-nav button[data-page]').forEach(el=>{
+      const page=el.getAttribute('data-page');
+      if(!page) return;
+      // Always visible pages
+      if(['dashboard','profile','pages','legal','praise'].includes(page)) return;
+      // Check if admin has permission for this page
+      let hasAccess=false;
+      for(const[perm,pages]of Object.entries(permMap)){
+        if(pages.includes(page)&&adminPerms[perm]){hasAccess=true;break}
+      }
+      if(!hasAccess) el.style.display='none';
+    });
+  }catch(e){console.warn('Permission load failed, showing all:',e.message);adminPerms={all:true}}
 }
 
 // Pending
