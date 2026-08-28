@@ -481,7 +481,7 @@ function miniBtn(cls,icon,label,onclick){return`<button class="btn-sm ${cls}" on
 const pagePermMap={children:['pending','children','add','found'],users:['users'],ads:['ads'],analytics:['analytics'],donations:['donations','revenue'],admins:['whitelist']};
 function canAccess(page){
   if(adminPerms.all) return true;
-  if(['dashboard','profile','pages','legal','praise'].includes(page)) return true;
+  if(['dashboard','profile','pages','legal','praise','more'].includes(page)) return true;
   for(const[perm,pages]of Object.entries(pagePermMap)){if(pages.includes(page)&&adminPerms[perm])return true}
   return false;
 }
@@ -601,8 +601,8 @@ function applyNavVisibility(){
   document.querySelectorAll('#sideNav a[data-page],#mobNav button[data-page]').forEach(el=>{
     const page=el.getAttribute('data-page');
     if(!page) return;
-    // Always visible pages
-    if(['dashboard','profile','pages','legal','praise'].includes(page)){el.style.display='';return}
+    // Always visible pages (including 'more' button for mobile)
+    if(['dashboard','profile','pages','legal','praise','more'].includes(page)){el.style.display='';return}
     let hasAccess=false;
     for(const[perm,pages]of Object.entries(permMap)){
       if(pages.includes(page)&&adminPerms[perm]){hasAccess=true;break}
@@ -1557,17 +1557,20 @@ if(token){console.log('[ADMIN] Token found, showing app...');$('loginView').styl
 // Verify token via /api/admin/me (also loads permissions)
 applyPermissions().then(()=>{
   console.log('[ADMIN] Permissions loaded, adminPerms:',adminPerms);
-  // Auto-landing: if admin can't access dashboard, navigate to first permitted section
-  if(!canAccess('dashboard')){
-    var fallbackPages=['pending','children','add','found','praise','donations','users','analytics','ads','revenue','pages','legal','profile'];
-    var landing=fallbackPages.find(p=>canAccess(p))||'dashboard';
-    console.log('[ADMIN] Dashboard not accessible, landing on:',landing);
-    navigateTo(landing);
-    return;
+  // Auto-landing: if admin is sub-admin without children permission, skip empty dashboard
+  // and land on first section where they have actual data
+  if(!adminPerms.all && !adminPerms.children){
+    var dataPages=['ads','analytics','donations','revenue','praise','users','pages','legal','profile','pending','children','add','found','whitelist'];
+    var landing=dataPages.find(p=>canAccess(p));
+    if(landing){
+      console.log('[ADMIN] Sub-admin without children data, landing on:',landing);
+      navigateTo(landing);
+      return;
+    }
   }
   return loadDashboard();
 }).then(()=>{
-  console.log('[ADMIN] Dashboard loaded OK');
+  console.log('[ADMIN] Init complete');
 }).catch(e=>{
   console.error('[ADMIN] Init failed:',e);
   if(String(e.message)==='unauthorized'){token='';localStorage.removeItem('fmc_admin_token');showLogin();return}
