@@ -454,6 +454,7 @@ app.put('/api/admin/me', requireAdmin, async (req, res) => {
         // Re-sign token with updated info (normalized permission keys)
         const isSuperAdmin = admin.role === 'super_admin';
         const newPerms = isSuperAdmin ? { all: true } : {
+            all: false,
             children: !!admin.canManageChildren,
             users: !!admin.canManageUsers,
             ads: !!admin.canManageAds,
@@ -1511,7 +1512,7 @@ fmcConnectMongoDB().then(async (res) => {
         console.error("WARNING: Database connection failed at startup:", res.data && res.data.message);
         return;
     }
-    // Auto-create super admin whitelist entry if it doesn't exist
+    // Auto-create and enforce super admin whitelist entry
     try {
         const { AdminUser } = await getModels();
         const superEmail = 'iblvckstone@gmail.com';
@@ -1530,6 +1531,21 @@ fmcConnectMongoDB().then(async (res) => {
                 canManageAdmins: true
             });
             console.log('Super admin auto-created:', superEmail);
+        } else {
+            // Enforce super admin always has full access
+            const needsUpdate = superAdmin.role !== 'super_admin' || !superAdmin.active ||
+                !superAdmin.canManageChildren || !superAdmin.canManageUsers ||
+                !superAdmin.canManageAds || !superAdmin.canManageAnalytics ||
+                !superAdmin.canManageDonations || !superAdmin.canManageAdmins;
+            if (needsUpdate) {
+                await AdminUser.updateOne({ email: superEmail }, { $set: {
+                    role: 'super_admin', active: true,
+                    canManageChildren: true, canManageUsers: true,
+                    canManageAds: true, canManageAnalytics: true,
+                    canManageDonations: true, canManageAdmins: true
+                }});
+                console.log('Super admin permissions enforced:', superEmail);
+            }
         }
     } catch (e) { console.error('Super admin init error:', e.message); }
 

@@ -516,7 +516,8 @@ function navigateTo(page){
 document.querySelectorAll('#sideNav a[data-page]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();navigateTo(a.dataset.page)}));
 document.querySelectorAll('#mobNav button[data-page]').forEach(b=>b.addEventListener('click',()=>{if(b.dataset.page==='more'){showMoreMenu();return}navigateTo(b.dataset.page)}));
 function showMoreMenu(){
-  const pages=[{id:'analytics',label:'Analytics',icon:'📊'},{id:'ads',label:'Ads',icon:'📺'},{id:'donations',label:'Donations',icon:'💰'},{id:'revenue',label:'Revenue',icon:'💵'},{id:'pages',label:'Pages',icon:'📄'},{id:'legal',label:'Legal Pages',icon:'⚖️'},{id:'praise',label:'Praise & Gifts',icon:'⭐'},{id:'users',label:'Users',icon:'👥'},{id:'whitelist',label:'Admin Whitelist',icon:'🔐'},{id:'add',label:'Add New',icon:'➕'},{id:'profile',label:'My Profile',icon:'👤'}];
+  const allPages=[{id:'analytics',label:'Analytics',icon:'📊'},{id:'ads',label:'Ads',icon:'📺'},{id:'donations',label:'Donations',icon:'💰'},{id:'revenue',label:'Revenue',icon:'💵'},{id:'pages',label:'Pages',icon:'📄'},{id:'legal',label:'Legal Pages',icon:'⚖️'},{id:'praise',label:'Praise & Gifts',icon:'⭐'},{id:'users',label:'Users',icon:'👥'},{id:'whitelist',label:'Admin Whitelist',icon:'🔐'},{id:'add',label:'Add New',icon:'➕'},{id:'profile',label:'My Profile',icon:'👤'}];
+  const pages=allPages.filter(p=>canAccess(p.id));
   $('modalTitle').textContent='More';
   const items=pages.map(p=>`<div onclick="closeModal();navigateTo('${p.id}')" style="display:flex;align-items:center;gap:14px;padding:16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background=''"><span style="font-size:20px">${p.icon}</span><span style="font-size:15px;font-weight:600;color:var(--text)">${p.label}</span><span style="margin-left:auto;color:var(--text3)">›</span></div>`).join('');
   const logoutBtn=`<div onclick="closeModal();$('logoutBtn').click()" style="display:flex;align-items:center;gap:14px;padding:16px;cursor:pointer;transition:background .15s;color:var(--red)" onmouseover="this.style.background='var(--red-light)'" onmouseout="this.style.background=''"><span style="font-size:20px">🚪</span><span style="font-size:15px;font-weight:600">Logout</span></div>`;
@@ -1556,6 +1557,14 @@ if(token){console.log('[ADMIN] Token found, showing app...');$('loginView').styl
 // Verify token via /api/admin/me (also loads permissions)
 applyPermissions().then(()=>{
   console.log('[ADMIN] Permissions loaded, adminPerms:',adminPerms);
+  // Auto-landing: if admin can't access dashboard, navigate to first permitted section
+  if(!canAccess('dashboard')){
+    var fallbackPages=['pending','children','add','found','praise','donations','users','analytics','ads','revenue','pages','legal','profile'];
+    var landing=fallbackPages.find(p=>canAccess(p))||'dashboard';
+    console.log('[ADMIN] Dashboard not accessible, landing on:',landing);
+    navigateTo(landing);
+    return;
+  }
   return loadDashboard();
 }).then(()=>{
   console.log('[ADMIN] Dashboard loaded OK');
