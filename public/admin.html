@@ -562,48 +562,52 @@ async function loadDashboard(){
 
 // Permission enforcement
 let adminPerms={all:true}; // Default: show everything (safe fallback)
+let adminInfo={}; // Full admin info from /api/admin/me
+
+// Permission-to-page mapping
+const permMap={
+  children:['pending','children','add','found'],
+  users:['users'],
+  ads:['ads'],
+  analytics:['analytics'],
+  donations:['donations','revenue'],
+  admins:['whitelist']
+};
+
 async function applyPermissions(){
   try{
     const r=await api('/api/admin/me');
     if(!r.admin) return;
     const a=r.admin;
+    adminInfo=a; // Store globally
     // Super admin always has full access
-    if(a.role==='super_admin'){adminPerms={all:true};return}
-    // Build permissions from DB fields (canManage*) OR from permissions object
-    adminPerms=a.permissions||{};
-    // If no permissions object, build from individual fields
-    if(!a.permissions&&(a.canManageChildren!==undefined||a.canManageUsers!==undefined)){
-      adminPerms={
-        children:!!a.canManageChildren,
-        users:!!a.canManageUsers,
-        ads:!!a.canManageAds,
-        analytics:!!a.canManageAnalytics,
-        donations:!!a.canManageDonations,
-        admins:!!a.canManageAdmins
-      };
+    if(a.role==='super_admin'||(a.permissions&&a.permissions.all)){adminPerms={all:true};showAllNav();return}
+    // Use permissions from the decoded JWT (normalized keys: children, users, etc.)
+    if(a.permissions&&typeof a.permissions==='object'&&!a.permissions.all){
+      adminPerms=a.permissions;
     }
-    if(adminPerms.all) return;
-    // Map permission keys to nav data-page values
-    const permMap={
-      children:['pending','children','add','found'],
-      users:['users'],
-      ads:['ads'],
-      analytics:['analytics'],
-      donations:['donations','revenue'],
-      admins:['whitelist']
-    };
-    // Hide nav items the admin can't access
-    document.querySelectorAll('.sidebar nav a[data-page],.mob-nav button[data-page]').forEach(el=>{
-      const page=el.getAttribute('data-page');
-      if(!page) return;
-      if(['dashboard','profile','pages','legal','praise'].includes(page)) return;
-      let hasAccess=false;
-      for(const[perm,pages]of Object.entries(permMap)){
-        if(pages.includes(page)&&adminPerms[perm]){hasAccess=true;break}
-      }
-      if(!hasAccess) el.style.display='none';
-    });
-  }catch(e){console.warn('Permission load failed:',e.message)}
+    // Apply nav visibility based on permissions
+    applyNavVisibility();
+  }catch(e){console.warn('Permission load failed:',e.message);showAllNav()}
+}
+
+function showAllNav(){
+  document.querySelectorAll('#sideNav a[data-page],#mobNav button[data-page]').forEach(el=>{el.style.display=''});
+}
+
+function applyNavVisibility(){
+  if(adminPerms.all){showAllNav();return}
+  document.querySelectorAll('#sideNav a[data-page],#mobNav button[data-page]').forEach(el=>{
+    const page=el.getAttribute('data-page');
+    if(!page) return;
+    // Always visible pages
+    if(['dashboard','profile','pages','legal','praise'].includes(page)){el.style.display='';return}
+    let hasAccess=false;
+    for(const[perm,pages]of Object.entries(permMap)){
+      if(pages.includes(page)&&adminPerms[perm]){hasAccess=true;break}
+    }
+    el.style.display=hasAccess?'':'none';
+  });
 }
 
 // Pending
@@ -1549,8 +1553,19 @@ const finalToken=adminTokenParam||cookieToken||'';
 if(finalToken){token=finalToken;localStorage.setItem("fmc_admin_token",finalToken);if(adminNameParam)localStorage.setItem("fmc_admin_name",decodeURIComponent(adminNameParam));if(adminRoleParam)localStorage.setItem("fmc_admin_role",adminRoleParam);window.history.replaceState({},'',window.location.pathname);}
 
 if(token){console.log('[ADMIN] Token found, showing app...');$('loginView').style.display='none';$('appView').style.display='block';
-// Test auth first with debug endpoint
-fetch('/api/admin/debug',{headers:{'Authorization':'Bearer '+token}}).then(r=>r.json()).then(d=>{console.log('[ADMIN] Debug result:',d);if(d.ok){applyPermissions().then(()=>loadDashboard()).then(()=>{console.log('[ADMIN] Dashboard loaded OK')}).catch(e=>{console.error('[ADMIN] Dashboard load failed:',e);document.getElementById('dashRecent').innerHTML='<div style="padding:16px;color:red;font-weight:bold">Dashboard error: '+String(e.message||e)+'</div>';token='';showLogin()})}else{console.error('[ADMIN] Auth failed:',d.reason);document.getElementById('dashRecent').innerHTML='<div style="padding:16px;color:red;font-weight:bold">Auth failed: '+d.reason+'</div>';token='';showLogin()}}).catch(e=>{console.error('[ADMIN] Debug fetch failed:',e);document.getElementById('dashRecent').innerHTML='<div style="padding:16px;color:red;font-weight:bold">Network error: '+String(e.message||e)+'</div>';token='';showLogin()})}else{console.log('[ADMIN] No token, showing login');showLogin()}
+// Verify token via /api/admin/me (also loads permissions)
+applyPermissions().then(()=>{
+  console.log('[ADMIN] Permissions loaded, adminPerms:',adminPerms);
+  return loadDashboard();
+}).then(()=>{
+  console.log('[ADMIN] Dashboard loaded OK');
+}).catch(e=>{
+  console.error('[ADMIN] Init failed:',e);
+  if(String(e.message)==='unauthorized'){token='';localStorage.removeItem('fmc_admin_token');showLogin();return}
+  // Non-fatal: show error in dashboard but keep app visible
+  var dr=document.getElementById('dashRecent');if(dr) dr.innerHTML='<div style="padding:16px;color:#ef4444;font-weight:600;font-size:14px">Load error: '+String(e.message||e)+'</div>';
+});
+}else{console.log('[ADMIN] No token, showing login');showLogin()}
 </script>
 </body>
 </html>

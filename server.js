@@ -412,10 +412,26 @@ if (googleClientId && googleClientSecret) {
 // Get current admin info
 app.get('/api/admin/me', requireAdmin, async (req, res) => {
     try {
-        const { AdminUser } = await getModels();
-        const admin = await AdminUser.findOne({ email: req.adminInfo.email }).lean();
-        if (!admin) return res.json({ success: true, admin: req.adminInfo });
-        res.json({ success: true, admin });
+        // Return the decoded JWT payload with normalized permissions (children, users, etc.)
+        // This ensures frontend receives the SAME permission keys used in hasPermission checks
+        const tokenAdmin = {
+            id: req.adminInfo.id || null,
+            email: req.adminInfo.email,
+            role: req.adminInfo.role,
+            permissions: req.adminInfo.permissions || {}
+        };
+        // Also fetch DB record for display fields (name, photo, etc.)
+        try {
+            const { AdminUser } = await getModels();
+            const admin = await AdminUser.findOne({ email: req.adminInfo.email }).lean();
+            if (admin) {
+                tokenAdmin.name = admin.name || '';
+                tokenAdmin.photo = admin.photo || '';
+                tokenAdmin.createdAt = admin.createdAt;
+                tokenAdmin.id = admin._id;
+            }
+        } catch (e) { /* use token payload only */ }
+        res.json({ success: true, admin: tokenAdmin });
     } catch (e) {
         res.json({ success: true, admin: req.adminInfo });
     }
@@ -435,13 +451,23 @@ app.put('/api/admin/me', requireAdmin, async (req, res) => {
             { new: true }
         ).lean();
         if (!admin) return res.status(404).json({ success: false, message: 'Admin not found in whitelist.' });
-        // Re-sign token with updated info
+        // Re-sign token with updated info (normalized permission keys)
+        const isSuperAdmin = admin.role === 'super_admin';
+        const newPerms = isSuperAdmin ? { all: true } : {
+            children: !!admin.canManageChildren,
+            users: !!admin.canManageUsers,
+            ads: !!admin.canManageAds,
+            analytics: !!admin.canManageAnalytics,
+            donations: !!admin.canManageDonations,
+            admins: !!admin.canManageAdmins
+        };
         const newToken = signAdminToken({
+            id: admin._id,
             email: admin.email,
             role: admin.role,
-            permissions: { all: admin.role === 'super_admin', children: admin.canManageChildren, users: admin.canManageUsers, ads: admin.canManageAds, analytics: admin.canManageAnalytics, donations: admin.canManageDonations, admins: admin.canManageAdmins }
+            permissions: newPerms
         });
-        adminTokens.set(newToken, { email: admin.email, role: admin.role, permissions: { all: admin.role === 'super_admin' } });
+        adminTokens.set(newToken, { id: admin._id, email: admin.email, role: admin.role, permissions: newPerms });
         res.json({ success: true, admin, token: newToken });
     } catch (e) {
         res.status(500).json({ success: false, message: e.message });

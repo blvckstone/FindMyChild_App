@@ -47,6 +47,7 @@ const safeEqual = (a, b) => {
 const loginAdmin = (username, password) => {
     if (safeEqual(username, ADMIN_USERNAME) && safeEqual(password, ADMIN_PASS)) {
         const adminPayload = {
+            id: 'super_admin_legacy',
             email: SUPER_ADMIN_EMAIL,
             role: 'super_admin',
             permissions: { all: true }
@@ -92,10 +93,10 @@ const loginAdminGoogle = async (profile) => {
             if (name) admin.name = name;
             await admin.save();
         }
-        const adminPayload = { email, role: 'super_admin', permissions: { all: true } };
+        const adminPayload = { id: admin._id, email, role: 'super_admin', permissions: { all: true } };
         const token = signAdminToken(adminPayload);
         adminTokens.set(token, adminPayload);
-        return { token, admin: { email, name: admin.name, photo: admin.photo, role: 'super_admin', permissions: { all: true } } };
+        return { token, admin: { id: admin._id, email, name: admin.name, photo: admin.photo, role: 'super_admin', permissions: { all: true } } };
     }
 
     // Check whitelist for other emails
@@ -112,20 +113,21 @@ const loginAdminGoogle = async (profile) => {
         await admin.save();
     }
 
+    // Build normalized permissions for JWT (use short keys: children, users, ads, etc.)
     const permissions = {
-        canManageChildren: admin.canManageChildren,
-        canManageUsers: admin.canManageUsers,
-        canManageAds: admin.canManageAds,
-        canManageAnalytics: admin.canManageAnalytics,
-        canManageDonations: admin.canManageDonations,
-        canManageAdmins: admin.canManageAdmins
+        children: !!admin.canManageChildren,
+        users: !!admin.canManageUsers,
+        ads: !!admin.canManageAds,
+        analytics: !!admin.canManageAnalytics,
+        donations: !!admin.canManageDonations,
+        admins: !!admin.canManageAdmins
     };
 
-    const adminPayload = { email, role: admin.role, permissions };
+    const adminPayload = { id: admin._id, email, role: admin.role, permissions };
     const token = signAdminToken(adminPayload);
     adminTokens.set(token, adminPayload);
 
-    return { token, admin: { email, name: admin.name, photo: admin.photo, role: admin.role, permissions } };
+    return { token, admin: { id: admin._id, email, name: admin.name, photo: admin.photo, role: admin.role, permissions } };
 };
 
 const signupUser = async ({ fullName, contactNumber, emailId, password } = {}) => {
@@ -227,9 +229,11 @@ const requireSuperAdmin = (req, res, next) => {
     return res.status(403).json({ success: false, message: "Super admin access required." });
 };
 
-// Check specific permission
+// Check specific permission (perm key: 'children', 'users', 'ads', 'analytics', 'donations', 'admins')
 const hasPermission = (req, perm) => {
     if (!req.adminInfo) return false;
+    // Super admin has all permissions
+    if (req.adminInfo.role === 'super_admin') return true;
     if (req.adminInfo.permissions && req.adminInfo.permissions.all) return true;
     if (req.adminInfo.permissions && req.adminInfo.permissions[perm]) return true;
     return false;
