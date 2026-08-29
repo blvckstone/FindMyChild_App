@@ -478,10 +478,10 @@ function sbadge(s){var v=esc(s||'unknown');return '<span class="sbadge '+v+'">'+
 function miniBtn(cls,icon,label,onclick){return`<button class="btn-sm ${cls}" onclick="${onclick}" style="padding:7px 12px;font-size:11px;display:inline-flex;align-items:center;gap:4px">${icon} ${label}</button>`}
 
 // Navigation
-const pagePermMap={children:['pending','children','add','found'],users:['users'],ads:['ads'],analytics:['analytics'],donations:['donations','revenue'],admins:['whitelist']};
+const pagePermMap={children:['pending','children','add','found','pages','legal'],users:['users'],ads:['ads'],analytics:['analytics'],donations:['donations','revenue','praise'],admins:['whitelist']};
 function canAccess(page){
   if(adminPerms.all) return true;
-  if(['dashboard','profile','pages','legal','praise','more'].includes(page)) return true;
+  if(['dashboard','profile','more'].includes(page)) return true;
   for(const[perm,pages]of Object.entries(pagePermMap)){if(pages.includes(page)&&adminPerms[perm])return true}
   return false;
 }
@@ -567,11 +567,11 @@ let adminInfo={}; // Full admin info from /api/admin/me
 
 // Permission-to-page mapping
 const permMap={
-  children:['pending','children','add','found'],
+  children:['pending','children','add','found','pages','legal'],
   users:['users'],
   ads:['ads'],
   analytics:['analytics'],
-  donations:['donations','revenue'],
+  donations:['donations','revenue','praise'],
   admins:['whitelist']
 };
 
@@ -602,7 +602,7 @@ function applyNavVisibility(){
     const page=el.getAttribute('data-page');
     if(!page) return;
     // Always visible pages (including 'more' button for mobile)
-    if(['dashboard','profile','pages','legal','praise','more'].includes(page)){el.style.display='';return}
+    if(['dashboard','profile','more'].includes(page)){el.style.display='';return}
     let hasAccess=false;
     for(const[perm,pages]of Object.entries(permMap)){
       if(pages.includes(page)&&adminPerms[perm]){hasAccess=true;break}
