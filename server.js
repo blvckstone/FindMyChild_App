@@ -494,6 +494,7 @@ app.get('/api/admin/debug', (req, res) => {
 
 app.post('/api/admin/logout', requireAdmin, (req, res) => {
     logout(req.token);
+    res.clearCookie('fmc_admin_token', { path: '/' });
     res.json({ success: true });
 });
 

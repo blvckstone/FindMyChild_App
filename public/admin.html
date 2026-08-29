@@ -530,7 +530,7 @@ function showLogin(){$('loginView').style.display='flex';$('appView').style.disp
 function showApp(){$('loginView').style.display='none';$('appView').style.display='block'}
 $('loginBtn').addEventListener('click',async()=>{try{const r=await api('/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:$('loginUser').value,password:$('loginPass').value})});token=r.token;localStorage.setItem('fmc_admin_token',token);showApp();loadDashboard()}catch(e){toast(e.message,'err')}});
 $('loginPass').addEventListener('keydown',e=>{if(e.key==='Enter')$('loginBtn').click()});
-$('logoutBtn').addEventListener('click',async()=>{try{await api('/api/admin/logout',{method:'POST'})}catch(e){}localStorage.removeItem('fmc_admin_token');token='';showLogin()});
+$('logoutBtn').addEventListener('click',async()=>{try{await api('/api/admin/logout',{method:'POST'})}catch(e){}localStorage.removeItem('fmc_admin_token');localStorage.removeItem('fmc_admin_name');localStorage.removeItem('fmc_admin_role');document.cookie='fmc_admin_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';token='';showLogin()});
 
 // Dashboard
 async function loadDashboard(){
