@@ -478,7 +478,7 @@ function sbadge(s){var v=esc(s||'unknown');return '<span class="sbadge '+v+'">'+
 function miniBtn(cls,icon,label,onclick){return`<button class="btn-sm ${cls}" onclick="${onclick}" style="padding:7px 12px;font-size:11px;display:inline-flex;align-items:center;gap:4px">${icon} ${label}</button>`}
 
 // Navigation
-const pagePermMap={children:['pending','children','add','found','pages','legal'],users:['users'],ads:['ads'],analytics:['analytics'],donations:['donations','revenue','praise'],admins:['whitelist']};
+const pagePermMap={children:['pending','children','add','found'],users:['users'],ads:['ads'],analytics:['analytics'],donations:['donations','revenue','praise'],admins:['whitelist']};
 function canAccess(page){
   if(adminPerms.all) return true;
   if(['dashboard','profile','more'].includes(page)) return true;
@@ -530,7 +530,7 @@ function showLogin(){$('loginView').style.display='flex';$('appView').style.disp
 function showApp(){$('loginView').style.display='none';$('appView').style.display='block'}
 $('loginBtn').addEventListener('click',async()=>{try{const r=await api('/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:$('loginUser').value,password:$('loginPass').value})});token=r.token;localStorage.setItem('fmc_admin_token',token);showApp();loadDashboard()}catch(e){toast(e.message,'err')}});
 $('loginPass').addEventListener('keydown',e=>{if(e.key==='Enter')$('loginBtn').click()});
-$('logoutBtn').addEventListener('click',async()=>{try{await api('/api/admin/logout',{method:'POST'})}catch(e){}localStorage.removeItem('fmc_admin_token');localStorage.removeItem('fmc_admin_name');localStorage.removeItem('fmc_admin_role');document.cookie='fmc_admin_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';token='';showLogin()});
+$('logoutBtn').addEventListener('click',async()=>{try{await api('/api/admin/logout',{method:'POST'})}catch(e){}localStorage.removeItem('fmc_admin_token');localStorage.removeItem('fmc_admin_name');localStorage.removeItem('fmc_admin_role');document.cookie='fmc_admin_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';document.cookie='fmc_admin_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/api/admin/auth/google/callback;';token='';showLogin()});
 
 // Dashboard
 async function loadDashboard(){
@@ -567,7 +567,7 @@ let adminInfo={}; // Full admin info from /api/admin/me
 
 // Permission-to-page mapping
 const permMap={
-  children:['pending','children','add','found','pages','legal'],
+  children:['pending','children','add','found'],
   users:['users'],
   ads:['ads'],
   analytics:['analytics'],

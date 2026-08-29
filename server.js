@@ -403,7 +403,7 @@ if (googleClientId && googleClientSecret) {
                 return res.redirect('/admin?error=' + encodeURIComponent(err ? err.message : 'not_whitelisted'));
             }
             console.log('[ADMIN-GOOGLE-CB] Success! Redirecting to admin panel');
-            res.cookie('fmc_admin_token', result.token, { httpOnly: false, maxAge: 7 * 24 * 60 * 60 * 1000, sameSite: 'lax' });
+            res.cookie('fmc_admin_token', result.token, { httpOnly: false, maxAge: 7 * 24 * 60 * 60 * 1000, sameSite: 'lax', path: '/' });
             res.redirect('/admin?v=a8f2e7c1&t=' + Date.now() + '&admin_token=' + result.token + '&admin_name=' + encodeURIComponent(result.admin.name || '') + '&admin_role=' + (result.admin.role || 'admin'));
         })(req, res, next);
     });
@@ -1303,16 +1303,14 @@ app.get('/api/pages/:slug', async (req, res) => {
 });
 
 // ---- Admin: page content CRUD ----
-app.get('/api/admin/pages', requireAdmin, async (req, res) => {
-    if (!hasPermission(req, 'children')) return res.status(403).json({ success: false, message: 'Permission denied.' });
+app.get('/api/admin/pages', requireAdmin, requireSuperAdmin, async (req, res) => {
     try {
         const { PageContent } = await getModels();
         const data = await PageContent.find().sort({ updatedAt: -1 }).lean();
         res.json({ success: true, data });
     } catch (e) { res.status(500).json({ success: false, message: e.message }); }
 });
-app.get('/api/admin/pages/:slug', requireAdmin, async (req, res) => {
-    if (!hasPermission(req, 'children')) return res.status(403).json({ success: false, message: 'Permission denied.' });
+app.get('/api/admin/pages/:slug', requireAdmin, requireSuperAdmin, async (req, res) => {
     try {
         const { PageContent } = await getModels();
         const page = await PageContent.findOne({ slug: req.params.slug }).lean();
@@ -1320,8 +1318,7 @@ app.get('/api/admin/pages/:slug', requireAdmin, async (req, res) => {
         res.json({ success: true, data: page });
     } catch (e) { res.status(500).json({ success: false, message: e.message }); }
 });
-app.put('/api/admin/pages/:slug', requireAdmin, async (req, res) => {
-    if (!hasPermission(req, 'children')) return res.status(403).json({ success: false, message: 'Permission denied.' });
+app.put('/api/admin/pages/:slug', requireAdmin, requireSuperAdmin, async (req, res) => {
     try {
         const { PageContent } = await getModels();
         const { title, content, metaDescription, extra } = req.body;
@@ -1338,8 +1335,7 @@ app.put('/api/admin/pages/:slug', requireAdmin, async (req, res) => {
         res.json({ success: true, data: page });
     } catch (e) { res.status(500).json({ success: false, message: e.message }); }
 });
-app.delete('/api/admin/pages/:slug', requireAdmin, async (req, res) => {
-    if (!hasPermission(req, 'children')) return res.status(403).json({ success: false, message: 'Permission denied.' });
+app.delete('/api/admin/pages/:slug', requireAdmin, requireSuperAdmin, async (req, res) => {
     try {
         const { PageContent } = await getModels();
         await PageContent.findOneAndDelete({ slug: req.params.slug });
@@ -1365,16 +1361,14 @@ app.get('/api/legal', async (req, res) => {
 });
 
 // ---- Admin: legal pages CRUD ----
-app.get('/api/admin/legal', requireAdmin, async (req, res) => {
-    if (!hasPermission(req, 'children')) return res.status(403).json({ success: false, message: 'Permission denied.' });
+app.get('/api/admin/legal', requireAdmin, requireSuperAdmin, async (req, res) => {
     try {
         const { LegalPage } = await getModels();
         const data = await LegalPage.find().sort({ updatedAt: -1 }).lean();
         res.json({ success: true, data });
     } catch (e) { res.status(500).json({ success: false, message: e.message }); }
 });
-app.get('/api/admin/legal/:slug', requireAdmin, async (req, res) => {
-    if (!hasPermission(req, 'children')) return res.status(403).json({ success: false, message: 'Permission denied.' });
+app.get('/api/admin/legal/:slug', requireAdmin, requireSuperAdmin, async (req, res) => {
     try {
         const { LegalPage } = await getModels();
         const page = await LegalPage.findOne({ slug: req.params.slug }).lean();
@@ -1382,8 +1376,7 @@ app.get('/api/admin/legal/:slug', requireAdmin, async (req, res) => {
         res.json({ success: true, data: page });
     } catch (e) { res.status(500).json({ success: false, message: e.message }); }
 });
-app.put('/api/admin/legal/:slug', requireAdmin, async (req, res) => {
-    if (!hasPermission(req, 'children')) return res.status(403).json({ success: false, message: 'Permission denied.' });
+app.put('/api/admin/legal/:slug', requireAdmin, requireSuperAdmin, async (req, res) => {
     try {
         const { LegalPage } = await getModels();
         const { title, content, effectiveDate } = req.body;
@@ -1399,8 +1392,7 @@ app.put('/api/admin/legal/:slug', requireAdmin, async (req, res) => {
         res.json({ success: true, data: page });
     } catch (e) { res.status(500).json({ success: false, message: e.message }); }
 });
-app.delete('/api/admin/legal/:slug', requireAdmin, async (req, res) => {
-    if (!hasPermission(req, 'children')) return res.status(403).json({ success: false, message: 'Permission denied.' });
+app.delete('/api/admin/legal/:slug', requireAdmin, requireSuperAdmin, async (req, res) => {
     try {
         const { LegalPage } = await getModels();
         await LegalPage.findOneAndDelete({ slug: req.params.slug });
