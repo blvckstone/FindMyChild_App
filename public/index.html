@@ -532,7 +532,7 @@ main{scroll-padding-top:10px}
 #aboutContent blockquote,#contactContent blockquote,#legalContent blockquote{border-left:3px solid #ddd;padding:10px 16px;margin:12px 0;background:#f9f9f9;border-radius:0 8px 8px 0;font-style:italic;color:#555}
 
 /* === SAFECHILD === */
-.scanner-card{margin:0 20px 16px;padding:24px 20px;background:linear-gradient(135deg,#0071e3 0%,#0a84ff 100%);border-radius:var(--radius);position:relative;overflow:hidden;cursor:pointer;box-shadow:0 8px 32px rgba(0,113,227,.25),0 2px 8px rgba(0,113,227,.15);transition:transform .2s}
+.scanner-card{margin:16px 20px;padding:24px 20px;background:linear-gradient(135deg,#0071e3 0%,#0a84ff 100%);border-radius:var(--radius);position:relative;overflow:hidden;cursor:pointer;box-shadow:0 8px 32px rgba(0,113,227,.25),0 2px 8px rgba(0,113,227,.15);transition:transform .2s}
 .scanner-card:active{transform:scale(.98)}
 .scanner-card .sc-icon{width:56px;height:56px;background:rgba(255,255,255,.2);border-radius:16px;display:flex;align-items:center;justify-content:center;margin-bottom:14px;backdrop-filter:blur(8px)}
 .scanner-card .sc-icon svg{width:28px;height:28px;fill:#fff}
@@ -1605,9 +1605,34 @@ async function loadMyRegisteredChildren(){
     if(!j.success||!j.data||!j.data.length){box.innerHTML='<p style="font-size:13px;color:var(--text3);text-align:center;padding:16px">No children registered yet.</p>';return}
     box.innerHTML=j.data.map(c=>{
       const imgHtml=c.photoUrl?'<img src="'+esc(c.photoUrl)+'" style="width:44px;height:44px;border-radius:12px;object-fit:cover">':'<div style="width:44px;height:44px;border-radius:12px;background:var(--bg);display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" style="width:22px;height:22px;fill:var(--text3)"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.26-5.33-4-8-4z"/></svg></div>';
-      return '<div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--bg);border-radius:12px;margin-bottom:8px">'+imgHtml+'<div style="flex:1"><div style="font-size:14px;font-weight:700;color:var(--text)">'+esc(c.childName)+'</div><div style="font-size:12px;color:var(--text3)">'+(c.age?esc(String(c.age))+' yrs · ':'')+(c.gender?esc(c.gender):'')+'</div></div><button onclick="deleteRegisteredChild(\''+esc(c._id)+'\')" style="width:32px;height:32px;border:none;background:rgba(255,59,48,.1);border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:var(--red)"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></button></div>';
+      return '<div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--bg);border-radius:12px;margin-bottom:8px">'+imgHtml+'<div style="flex:1"><div style="font-size:14px;font-weight:700;color:var(--text)">'+esc(c.childName)+'</div><div style="font-size:12px;color:var(--text3)">'+(c.age?esc(String(c.age))+' yrs · ':'')+(c.gender?esc(c.gender):'')+'</div></div><div style="display:flex;gap:6px"><button onclick="openSafeChildEdit(\''+esc(c._id)+'\',\''+esc(c.childName)+'\','+(c.age||'null')+',\''+esc(c.gender)+'\',\''+esc(c.address)+'\',\''+esc(c.parentContact)+'\',\''+esc(c.medicalInfo)+'\')" style="width:30px;height:30px;border:none;background:rgba(0,113,227,.1);border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:var(--accent)"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></button><button onclick="deleteRegisteredChild(\''+esc(c._id)+'\')" style="width:30px;height:30px;border:none;background:rgba(255,59,48,.1);border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:var(--red)"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></button></div></div>';
     }).join('');
   }catch(e){box.innerHTML='<p style="font-size:12px;color:var(--red);text-align:center">Failed to load.</p>'}
+}
+
+function openSafeChildEdit(id,name,age,gender,address,contact,medical){
+  openModal('Edit Child',
+    '<div class="reg-form" style="padding:0">'+
+    '<div class="field"><label>Child Name</label><input id="editName" type="text" value="'+esc(name)+'"></div>'+
+    '<div style="display:flex;gap:12px">'+
+    '<div class="field" style="flex:1"><label>Age</label><input id="editAge" type="number" min="0" value="'+(age||'')+'"></div>'+
+    '<div class="field" style="flex:1"><label>Gender</label><select id="editGender"><option value="">Select</option><option value="Male"'+(gender==='Male'?' selected':'')+'>Male</option><option value="Female"'+(gender==='Female'?' selected':'')+'>Female</option><option value="Other"'+(gender==='Other'?' selected':'')+'>Other</option></select></div>'+
+    '</div>'+
+    '<div class="field"><label>Address</label><input id="editAddress" type="text" value="'+esc(address)+'"></div>'+
+    '<div class="field"><label>Parent Contact</label><input id="editContact" type="tel" value="'+esc(contact)+'"></div>'+
+    '<div class="field"><label>Medical Info</label><textarea id="editMedical" rows="2">'+esc(medical)+'</textarea></div>'+
+    '<div class="actions"><button class="btn" style="margin:0" onclick="submitSafeChildEdit(\''+esc(id)+'\')">Save Changes</button><button class="btn-ghost" onclick="closeModal()">Cancel</button></div>'+
+    '</div>'
+  );
+}
+
+async function submitSafeChildEdit(id){
+  try{
+    const r=await fetch('/api/safechild/children/'+id,{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+userToken},body:JSON.stringify({childName:$('editName').value.trim(),age:$('editAge').value,gender:$('editGender').value,address:$('editAddress').value.trim(),parentContact:$('editContact').value.trim(),medicalInfo:$('editMedical').value.trim()})});
+    const j=await r.json().catch(()=>({}));
+    if(!r.ok||!j.success)throw new Error(j.message||'Update failed');
+    closeModal();toast('Child details updated!','ok');loadMyRegisteredChildren();
+  }catch(e){toast(e.message,'err')}
 }
 
 async function deleteRegisteredChild(id){

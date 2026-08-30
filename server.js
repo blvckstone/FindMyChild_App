@@ -492,6 +492,29 @@ app.get('/api/safechild/children', requireAuth, async (req, res) => {
 });
 
 // Delete a pre-registered child
+app.put('/api/safechild/children/:id', requireAuth, async (req, res) => {
+    try {
+        const { childName, age, gender, address, parentContact, medicalInfo } = req.body;
+        const { PreRegisteredChild } = await getModels();
+        const updateData = {};
+        if (childName !== undefined) updateData.childName = String(childName).trim();
+        if (age !== undefined) updateData.age = age === '' || age === null ? undefined : Number(age);
+        if (gender !== undefined) updateData.gender = String(gender).trim();
+        if (address !== undefined) updateData.address = String(address).trim();
+        if (parentContact !== undefined) updateData.parentContact = String(parentContact).trim();
+        if (medicalInfo !== undefined) updateData.medicalInfo = String(medicalInfo).trim();
+        const child = await PreRegisteredChild.findOneAndUpdate(
+            { _id: req.params.id, parentId: req.userId },
+            { $set: updateData },
+            { new: true }
+        );
+        if (!child) return res.status(404).json({ success: false, message: 'Child not found or access denied.' });
+        res.json({ success: true, message: 'Child details updated.', data: { id: child._id, childName: child.childName } });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
 app.delete('/api/safechild/children/:id', requireAuth, async (req, res) => {
     try {
         const { PreRegisteredChild } = await getModels();
