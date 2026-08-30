@@ -154,7 +154,8 @@ const saveImage = async (file) => {
 const childFields = [
     'fullName', 'address', 'contactNumber', 'uploadedBy', 'state', 'found',
     'image', 'missingDate', 'missingTime', 'gender', 'age', 'info',
-    'disability', 'missingLocation', 'missingDateTime', 'foundLocation', 'disabilityInfo', 'status'
+    'disability', 'missingLocation', 'missingDateTime', 'foundLocation', 'disabilityInfo', 'status',
+    'faceDescriptor'
 ];
 
 const pickChildFields = (body) => {
@@ -182,6 +183,14 @@ app.post('/api/children', requireAuth, async (req, res) => {
             if (data.age < 0) {
                 return res.status(400).json({ success: false, message: "Age cannot be negative." });
             }
+        }
+
+        // Parse face descriptor if provided (from AI face detection)
+        if (data.faceDescriptor) {
+            const parsed = parseFaceDescriptor(data.faceDescriptor);
+            data.faceDescriptor = parsed || [];
+        } else {
+            data.faceDescriptor = [];
         }
 
         const imagePath = await saveImage(req.files && req.files.image);
@@ -536,16 +545,43 @@ app.post('/api/safechild/match', async (req, res) => {
             return res.status(400).json({ success: false, message: 'A valid face descriptor (128 numbers) is required.' });
         }
         const { PreRegisteredChild } = await getModels();
-        const allChildren = await PreRegisteredChild.find({}).select('childName age gender address parentContact medicalInfo photoUrl faceDescriptor parentId');
-        if (!allChildren.length) {
-            return res.json({ success: true, matched: false, message: 'No pre-registered children in the database yet.' });
+        const db = await fmcConnectMongoDB();
+        const Child = db.success ? db.data : null;
+
+        // 1. Fetch pre-registered children
+        const preReg = await PreRegisteredChild.find({}).lean();
+
+        // 2. Fetch standard missing children (not yet found, with valid face data)
+        let missing = [];
+        if (Child) {
+            missing = await Child.find({ found: false, faceDescriptor: { $exists: true, $ne: [] } }).lean();
         }
-        // Euclidean distance matching
+
+        // 3. Normalize into a single combined pool
+        const combinedList = [
+            ...preReg.map(c => ({ ...c, source: 'safechild' })),
+            ...missing.map(c => ({
+                _id: c._id,
+                childName: c.fullName,
+                age: c.age,
+                gender: c.gender,
+                address: c.address,
+                parentContact: c.contactNumber,
+                medicalInfo: c.info || '',
+                photoUrl: c.image,
+                faceDescriptor: c.faceDescriptor,
+                source: 'missing_report'
+            }))
+        ];
+        if (!combinedList.length) {
+            return res.json({ success: true, matched: false, message: 'No records available for matching.' });
+        }
+        // Euclidean distance matching across both pools
         let bestMatch = null;
         let bestDistance = Infinity;
-        const THRESHOLD = 0.6; // Lower = stricter match
+        const THRESHOLD = 0.6;
         const uploaded = parsedDescriptor;
-        for (const child of allChildren) {
+        for (const child of combinedList) {
             if (!child.faceDescriptor || child.faceDescriptor.length !== 128) continue;
             let sumSq = 0;
             for (let i = 0; i < 128; i++) {
@@ -571,11 +607,12 @@ app.post('/api/safechild/match', async (req, res) => {
                     parentContact: bestMatch.parentContact,
                     medicalInfo: bestMatch.medicalInfo,
                     photoUrl: bestMatch.photoUrl,
-                    confidence: Math.round((1 - bestDistance) * 100)
+                    confidence: Math.round((1 - bestDistance) * 100),
+                    source: bestMatch.source || 'safechild'
                 }
             });
         } else {
-            res.json({ success: true, matched: false, message: 'No matching child found in the SafeChild registry.', bestDistance: bestDistance ? Math.round(bestDistance * 1000) / 1000 : null });
+            res.json({ success: true, matched: false, message: 'No matching child found.', bestDistance: bestDistance ? Math.round(bestDistance * 1000) / 1000 : null });
         }
     } catch (error) {
         console.error('SafeChild match error:', error.message);
@@ -792,6 +829,11 @@ app.put('/api/admin/children/:id', requireAdmin, async (req, res) => {
         if (data.found !== undefined && typeof data.found === 'string') data.found = data.found === 'true';
         if (data.status !== undefined && !['pending', 'approved', 'rejected'].includes(data.status)) {
             delete data.status;
+        }
+        // Parse face descriptor if provided by admin
+        if (data.faceDescriptor) {
+            const parsed = parseFaceDescriptor(data.faceDescriptor);
+            data.faceDescriptor = parsed || [];
         }
 
         // Handle image replacement: upload new, delete old from Cloudinary

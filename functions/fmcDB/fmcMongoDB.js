@@ -22,6 +22,7 @@ const dataSchema = mongoose.Schema({
     finderUserId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     foundDate: Date,
     disabilityInfo: String,
+    faceDescriptor: { type: [Number], default: [] },
     // pending = waiting for admin approval, approved = visible publicly, rejected = denied
     status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' }
 });
