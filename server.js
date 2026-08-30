@@ -429,6 +429,125 @@ app.put('/api/admin/payment-settings', requireAdmin, requireSuperAdmin, async (r
     }
 });
 
+// ---- SafeChild: Pre-Registration & AI Face Matching ----
+// Public: no auth needed for matching
+app.get('/api/safechild/config', async (req, res) => {
+    res.json({ success: true, message: 'SafeChild AI is active', version: '1.0' });
+});
+
+// Register a child with face descriptor (requires auth)
+app.post('/api/safechild/register', requireAuth, async (req, res) => {
+    try {
+        const { childName, age, gender, address, parentContact, medicalInfo, faceDescriptor, photoUrl } = req.body;
+        if (!childName || !String(childName).trim()) {
+            return res.status(400).json({ success: false, message: "Child's name is required." });
+        }
+        if (!faceDescriptor || !Array.isArray(faceDescriptor) || faceDescriptor.length !== 128) {
+            return res.status(400).json({ success: false, message: 'A valid face descriptor (128 numbers) is required.' });
+        }
+        // Upload photo to Cloudinary if provided as base64 or file
+        let finalPhotoUrl = photoUrl || '';
+        if (req.files && req.files.photo) {
+            finalPhotoUrl = await saveImage(req.files.photo);
+        }
+        const { PreRegisteredChild } = await getModels();
+        const child = await PreRegisteredChild.create({
+            parentId: req.userId,
+            childName: String(childName).trim(),
+            age: age ? Number(age) : undefined,
+            gender: gender || '',
+            address: address || '',
+            parentContact: parentContact || '',
+            medicalInfo: medicalInfo || '',
+            photoUrl: finalPhotoUrl,
+            faceDescriptor: faceDescriptor.map(Number)
+        });
+        res.status(201).json({ success: true, message: 'Child pre-registered successfully!', data: { id: child._id, childName: child.childName } });
+    } catch (error) {
+        console.error('SafeChild register error:', error.message);
+        res.status(500).json({ success: false, message: error.message || 'Registration failed.' });
+    }
+});
+
+// Get all pre-registered children for the logged-in parent
+app.get('/api/safechild/children', requireAuth, async (req, res) => {
+    try {
+        const { PreRegisteredChild } = await getModels();
+        const children = await PreRegisteredChild.find({ parentId: req.userId }).select('-faceDescriptor').sort({ createdAt: -1 });
+        res.json({ success: true, data: children });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// Delete a pre-registered child
+app.delete('/api/safechild/children/:id', requireAuth, async (req, res) => {
+    try {
+        const { PreRegisteredChild } = await getModels();
+        const child = await PreRegisteredChild.findOne({ _id: req.params.id, parentId: req.userId });
+        if (!child) return res.status(404).json({ success: false, message: 'Child not found.' });
+        await PreRegisteredChild.deleteOne({ _id: child._id });
+        res.json({ success: true, message: 'Child removed from SafeChild registry.' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// AI Face Match — PUBLIC, no auth required
+app.post('/api/safechild/match', async (req, res) => {
+    try {
+        const { faceDescriptor } = req.body;
+        if (!faceDescriptor || !Array.isArray(faceDescriptor) || faceDescriptor.length !== 128) {
+            return res.status(400).json({ success: false, message: 'A valid face descriptor (128 numbers) is required.' });
+        }
+        const { PreRegisteredChild } = await getModels();
+        const allChildren = await PreRegisteredChild.find({}).select('childName age gender address parentContact medicalInfo photoUrl faceDescriptor parentId');
+        if (!allChildren.length) {
+            return res.json({ success: true, matched: false, message: 'No pre-registered children in the database yet.' });
+        }
+        // Euclidean distance matching
+        let bestMatch = null;
+        let bestDistance = Infinity;
+        const THRESHOLD = 0.6; // Lower = stricter match
+        const uploaded = faceDescriptor;
+        for (const child of allChildren) {
+            if (!child.faceDescriptor || child.faceDescriptor.length !== 128) continue;
+            let sumSq = 0;
+            for (let i = 0; i < 128; i++) {
+                const diff = uploaded[i] - child.faceDescriptor[i];
+                sumSq += diff * diff;
+            }
+            const dist = Math.sqrt(sumSq);
+            if (dist < bestDistance) {
+                bestDistance = dist;
+                bestMatch = child;
+            }
+        }
+        if (bestMatch && bestDistance < THRESHOLD) {
+            res.json({
+                success: true,
+                matched: true,
+                distance: Math.round(bestDistance * 1000) / 1000,
+                data: {
+                    childName: bestMatch.childName,
+                    age: bestMatch.age,
+                    gender: bestMatch.gender,
+                    address: bestMatch.address,
+                    parentContact: bestMatch.parentContact,
+                    medicalInfo: bestMatch.medicalInfo,
+                    photoUrl: bestMatch.photoUrl,
+                    confidence: Math.round((1 - bestDistance) * 100)
+                }
+            });
+        } else {
+            res.json({ success: true, matched: false, message: 'No matching child found in the SafeChild registry.', bestDistance: bestDistance ? Math.round(bestDistance * 1000) / 1000 : null });
+        }
+    } catch (error) {
+        console.error('SafeChild match error:', error.message);
+        res.status(500).json({ success: false, message: 'Matching failed. Please try again.' });
+    }
+});
+
 // ---- Admin: login / logout ----
 app.post('/api/admin/login', (req, res) => {
     const result = loginAdmin(req.body.username, req.body.password);

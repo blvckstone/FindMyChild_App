@@ -148,6 +148,20 @@ const paymentSettingsSchema = mongoose.Schema({
     updatedAt: { type: Date, default: Date.now }
 });
 
+// SafeChild — pre-registered children with AI face descriptors
+const preRegisteredChildSchema = mongoose.Schema({
+    parentId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    childName: { type: String, required: true },
+    age: { type: Number },
+    gender: { type: String, default: '' },
+    address: { type: String, default: '' },
+    parentContact: { type: String, default: '' },
+    medicalInfo: { type: String, default: '' },
+    photoUrl: { type: String, default: '' },
+    faceDescriptor: { type: [Number], required: true }, // 128D face descriptor array
+    createdAt: { type: Date, default: Date.now }
+});
+
 let modelsPromise = null;
 
 const getModels = async () => {
@@ -167,12 +181,13 @@ const getModels = async () => {
             const LegalPage = mongoose.models.LegalPage || mongoose.model('LegalPage', legalPageSchema);
             const Revenue = mongoose.models.Revenue || mongoose.model('Revenue', revenueSchema);
             const PaymentSettings = mongoose.models.PaymentSettings || mongoose.model('PaymentSettings', paymentSettingsSchema);
+            const PreRegisteredChild = mongoose.models.PreRegisteredChild || mongoose.model('PreRegisteredChild', preRegisteredChildSchema);
             // Seed default payment settings if none exist
             const psCount = await PaymentSettings.countDocuments();
             if (psCount === 0) {
                 await PaymentSettings.create({});
             }
-            return { Child: db.data, User, FoundRequest, Praise, Gift, Donation, Analytics, Advertisement, AdminUser, PageContent, LegalPage, Revenue, PaymentSettings };
+            return { Child: db.data, User, FoundRequest, Praise, Gift, Donation, Analytics, Advertisement, AdminUser, PageContent, LegalPage, Revenue, PaymentSettings, PreRegisteredChild };
         })();
     }
     return modelsPromise;

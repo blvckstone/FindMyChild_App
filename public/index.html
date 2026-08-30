@@ -8,6 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
+<script src="/js/face-api.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{height:auto;min-height:100%}
@@ -529,6 +530,60 @@ main{scroll-padding-top:10px}
 #contactContent a{color:inherit;text-decoration:none}
 #aboutContent strong,#contactContent strong,#legalContent strong{font-weight:700;color:#111}
 #aboutContent blockquote,#contactContent blockquote,#legalContent blockquote{border-left:3px solid #ddd;padding:10px 16px;margin:12px 0;background:#f9f9f9;border-radius:0 8px 8px 0;font-style:italic;color:#555}
+
+/* === SAFECHILD === */
+.scanner-card{margin:0 20px 16px;padding:24px 20px;background:linear-gradient(135deg,#0071e3 0%,#0a84ff 100%);border-radius:var(--radius);position:relative;overflow:hidden;cursor:pointer;box-shadow:0 8px 32px rgba(0,113,227,.25),0 2px 8px rgba(0,113,227,.15);transition:transform .2s}
+.scanner-card:active{transform:scale(.98)}
+.scanner-card .sc-icon{width:56px;height:56px;background:rgba(255,255,255,.2);border-radius:16px;display:flex;align-items:center;justify-content:center;margin-bottom:14px;backdrop-filter:blur(8px)}
+.scanner-card .sc-icon svg{width:28px;height:28px;fill:#fff}
+.scanner-card h3{font-size:18px;font-weight:800;color:#fff;margin-bottom:6px;line-height:1.3}
+.scanner-card p{font-size:13px;color:rgba(255,255,255,.8);line-height:1.5}
+.scanner-card .sc-badge{position:absolute;top:16px;right:16px;background:rgba(255,255,255,.2);color:#fff;padding:4px 12px;border-radius:20px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;backdrop-filter:blur(8px)}
+.scanner-card::after{content:'';position:absolute;top:-50%;right:-30%;width:200px;height:200px;background:rgba(255,255,255,.06);border-radius:50%}
+
+.pre-register-banner{margin:0 20px 16px;padding:20px;background:var(--card);border:1.5px solid var(--border);border-radius:var(--radius);position:relative;overflow:hidden}
+.pre-register-banner .pr-icon{width:48px;height:48px;background:linear-gradient(135deg,#34c759,#30d158);border-radius:14px;display:flex;align-items:center;justify-content:center;margin-bottom:12px}
+.pre-register-banner .pr-icon svg{width:24px;height:24px;fill:#fff}
+.pre-register-banner h3{font-size:16px;font-weight:800;color:var(--text);margin-bottom:4px}
+.pre-register-banner p{font-size:13px;color:var(--text2);line-height:1.5;margin-bottom:12px}
+.pre-register-banner .pr-btn{display:inline-flex;align-items:center;gap:6px;padding:10px 20px;background:var(--dark);color:#fff;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:700;cursor:pointer;transition:transform .12s}
+.pre-register-banner .pr-btn:active{transform:scale(.97)}
+
+.sc-loading{display:none;text-align:center;padding:32px 20px}
+.sc-loading .spinner{width:48px;height:48px;border:4px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.sc-loading p{font-size:14px;color:var(--text2);font-weight:500}
+
+.sc-result{text-align:center;padding:24px 20px}
+.sc-result .match-avatar{width:80px;height:80px;border-radius:24px;overflow:hidden;margin:0 auto 14px;border:3px solid var(--green);box-shadow:0 4px 16px rgba(52,199,89,.3)}
+.sc-result .match-avatar img{width:100%;height:100%;object-fit:cover}
+.sc-result .match-avatar .ph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--bg)}
+.sc-result .match-avatar .ph svg{width:40px;height:40px;fill:var(--text3)}
+.sc-result h3{font-size:18px;font-weight:800;color:var(--text);margin-bottom:4px}
+.sc-result .conf{font-size:13px;color:var(--green);font-weight:700;margin-bottom:14px}
+.sc-result .info-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px}
+.sc-result .info-row .lbl{color:var(--text3);font-weight:600}
+.sc-result .info-row .val{color:var(--text);font-weight:600;text-align:right;max-width:60%}
+.sc-result .contact-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px;background:var(--green);color:#fff;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:700;cursor:pointer;margin-top:16px;transition:transform .12s}
+.sc-result .contact-btn:active{transform:scale(.97)}
+
+.no-match{text-align:center;padding:32px 20px}
+.no-match .nm-icon{font-size:48px;margin-bottom:12px}
+.no-match h3{font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px}
+.no-match p{font-size:13px;color:var(--text3);line-height:1.5}
+
+/* Registration form */
+.reg-form{padding:0 20px 24px}
+.reg-form .field{margin-bottom:14px}
+.reg-form .field label{display:block;font-size:12px;font-weight:700;color:var(--text2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px}
+.reg-form .field input,.reg-form .field select,.reg-form .field textarea{width:100%;padding:12px 14px;background:var(--card);border:1.5px solid var(--border);border-radius:var(--radius-xs);font-size:14px;color:var(--text);transition:border-color .2s}
+.reg-form .field input:focus,.reg-form .field select:focus,.reg-form .field textarea:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 3px rgba(0,113,227,.1)}
+.reg-form .photo-upload{border:2px dashed var(--border);border-radius:var(--radius);padding:32px 20px;text-align:center;cursor:pointer;transition:border-color .2s;background:var(--bg)}
+.reg-form .photo-upload:hover,.reg-form .photo-upload.dragover{border-color:var(--accent);background:rgba(0,113,227,.03)}
+.reg-form .photo-upload svg{width:40px;height:40px;fill:var(--text3);margin-bottom:8px}
+.reg-form .photo-upload p{font-size:13px;color:var(--text3)}
+.reg-form .photo-preview{width:120px;height:120px;border-radius:16px;overflow:hidden;margin:12px auto;border:2px solid var(--accent)}
+.reg-form .photo-preview img{width:100%;height:100%;object-fit:cover}
 </style>
 </head>
 <body>
@@ -599,6 +654,21 @@ main{scroll-padding-top:10px}
       <div class="action-card report" onclick="showView('report')"><div class="aicon"><svg viewBox="0 0 24 24"><path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6z"/></svg></div><div class="atitle">Report<br>Missing</div></div>
       <div class="action-card search" onclick="showView('search')"><div class="aicon"><svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg></div><div class="atitle">Search<br>Child</div></div>
       <div class="action-card donate" onclick="showView('donate')"><div class="aicon"><svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg></div><div class="atitle">Donate<br>Now</div></div>
+    </div>
+
+    <!-- SafeChild: AI Face Scan -->
+    <div class="scanner-card" id="scannerCard" onclick="startFaceScan()">
+      <div class="sc-badge">AI Powered</div>
+      <div class="sc-icon"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/><circle cx="12" cy="8" r="3"/></svg></div>
+      <h3>Found a lost child? 📸</h3>
+      <p>Tap to scan their face. Our AI instantly identifies pre-registered children and retrieves parent contact details.</p>
+    </div>
+n    <!-- SafeChild: Pre-Registration Banner -->
+    <div class="pre-register-banner" id="preRegisterBanner">
+      <div class="pr-icon"><svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg></div>
+      <h3>Secure Your Child's Future 🛡️</h3>
+      <p>Pre-register your child with our AI face recognition database. If they ever get lost, our network will instantly identify them.</p>
+      <button class="pr-btn" onclick="event.stopPropagation();showView('safechild-register')">Pre-Register Now →</button>
     </div>
 
     <!-- How It Works -->
@@ -847,7 +917,65 @@ main{scroll-padding-top:10px}
     <div class="form-group" id="legalContent"><p style="text-align:center;padding:40px;color:var(--text3)">Loading...</p></div>
   </section>
 
+  <!-- SAFECHILD: Pre-Registration Form -->
+  <section class="view" id="view-safechild-register">
+    <div class="page-top"><button class="back-btn" onclick="showView('home')"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button><h2>SafeChild Register</h2></div>
+    <div class="search-head"><p>Pre-register your child with our AI face recognition database for instant identification.</p></div>
+    <div class="reg-form" id="regForm">
+      <div class="photo-upload" id="photoUpload" onclick="document.getElementById('regPhoto').click()">
+        <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+        <p>Tap to upload a clear face photo</p>
+        <p style="font-size:11px;color:var(--text3);margin-top:4px">JPG, PNG or WEBP — Max 5MB</p>
+      </div>
+      <div class="photo-preview" id="photoPreview" style="display:none"><img id="previewImg" src=""></div>
+      <input type="file" id="regPhoto" accept="image/*" style="display:none" onchange="previewRegPhoto(this)">
+      <div class="field"><label>Child's Full Name *</label><input id="regName" type="text" placeholder="Enter child's name"></div>
+      <div style="display:flex;gap:12px">
+        <div class="field" style="flex:1"><label>Age</label><input id="regAge" type="number" min="0" placeholder="Age"></div>
+        <div class="field" style="flex:1"><label>Gender</label><select id="regGender"><option value="">Select</option><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option></select></div>
+      </div>
+      <div class="field"><label>Address</label><input id="regAddress" type="text" placeholder="Home address"></div>
+      <div class="field"><label>Parent Contact *</label><input id="regContact" type="tel" placeholder="Phone number"></div>
+      <div class="field"><label>Medical Info</label><textarea id="regMedical" rows="2" placeholder="Allergies, conditions, blood group..."></textarea></div>
+      <div id="regStatus" style="font-size:13px;text-align:center;margin:8px 0"></div>
+      <button class="btn" id="regSubmitBtn" onclick="submitRegistration()" style="width:100%">Register with AI</button>
+      <div style="margin-top:20px;border-top:1px solid var(--border);padding-top:16px">
+        <div class="section-head"><h3>My Registered Children</h3></div>
+        <div id="myRegisteredChildren"><p style="font-size:13px;color:var(--text3);text-align:center;padding:16px">Loading...</p></div>
+      </div>
+    </div>
+  </section>
+
 </main>
+
+<!-- SAFECHILD: Face Scan Modal -->
+<div class="modal-bg" id="scanModal" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.5);align-items:center;justify-content:center">
+  <div style="background:var(--card);border-radius:var(--radius);width:90%;max-width:400px;max-height:85vh;overflow-y:auto;padding:0;position:relative">
+    <div style="padding:20px 20px 0;display:flex;justify-content:space-between;align-items:center">
+      <h3 style="font-size:18px;font-weight:800;color:var(--text)" id="scanModalTitle">AI Face Scan</h3>
+      <button onclick="closeScanModal()" style="width:32px;height:32px;border-radius:10px;border:none;background:var(--bg);cursor:pointer;display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:var(--text2)"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
+    </div>
+    <div id="scanContent" style="padding:20px">
+      <div id="scanUploadStep">
+        <div class="photo-upload" id="scanPhotoUpload" onclick="document.getElementById('scanPhoto').click()" style="margin-bottom:12px">
+          <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+          <p>Tap to upload or take a photo of the child</p>
+          <p style="font-size:11px;color:var(--text3);margin-top:4px">Clear, well-lit face photos work best</p>
+        </div>
+        <input type="file" id="scanPhoto" accept="image/*" capture="environment" style="display:none" onchange="previewScanPhoto(this)">
+        <div class="photo-preview" id="scanPreview" style="display:none"><img id="scanPreviewImg" src=""></div>
+        <button class="btn" id="scanBtn" onclick="submitFaceScan()" style="width:100%;display:none">Identify Child</button>
+      </div>
+      <div class="sc-loading" id="scanLoading">
+        <div class="spinner"></div>
+        <p>Analyzing facial features...</p>
+        <p style="font-size:11px;color:var(--text3);margin-top:4px">Comparing against SafeChild database</p>
+      </div>
+      <div class="sc-result" id="scanResult" style="display:none"></div>
+      <div class="no-match" id="scanNoMatch" style="display:none"></div>
+    </div>
+  </div>
+</div>
 
 <!-- DEVELOPER CREDIT -->
 <div class="dev-footer">
@@ -1036,8 +1164,8 @@ $('reportBtn').addEventListener('click',async()=>{
   const name=$('r_name').value.trim(),contact=$('r_contact').value.trim(),msg=$('reportMsg');if(!name){msg.textContent='Enter the child\'s full name.';return}if(!contact){msg.textContent='Enter a contact number.';return}const fd=new FormData();fd.append('fullName',name);fd.append('gender',$('r_gender').value);fd.append('age',$('r_age').value);fd.append('address',$('r_address').value.trim());fd.append('state',$('r_state').value.trim());fd.append('contactNumber',contact);fd.append('missingDate',$('r_date').value);fd.append('missingTime',$('r_time').value);fd.append('missingLocation',$('r_location').value.trim());fd.append('info',$('r_info').value.trim());const file=$('r_photo').files[0];if(file)fd.append('image',file);const btn=$('reportBtn');btn.disabled=true;btn.textContent='Submitting...';msg.textContent='';try{const r=await fetch('/api/children',{method:'POST',headers:{'Authorization':'Bearer '+userToken},body:fd});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.message||'Failed');msg.textContent=j.message;$('r_name').value='';$('r_gender').value='';$('r_age').value='';$('r_address').value='';$('r_state').value='';$('r_contact').value='';$('r_date').value='';$('r_time').value='';$('r_location').value='';$('r_info').value='';$('r_photo').value=''}catch(e){msg.textContent=e.message}finally{btn.disabled=false;btn.textContent='Submit for review'}});
 
 /* --- Navigation --- */
-function showView(name){['home','search','found','report','me','donate','about','contact','legal'].forEach(v=>{var el=$('view-'+v);if(el)el.classList.toggle('active',v===name)});['navHome','navSearch','navFound','navReport','navMe'].forEach(n=>$(n).classList.toggle('active',n==='nav'+name.charAt(0).toUpperCase()+name.slice(1)));
-  if($('desktopNav')){$('desktopNav').querySelectorAll('.desktop-nav-btn').forEach(b=>b.classList.toggle('active',b.getAttribute('data-page')===name));}if(name==='me')renderMe();if(name==='donate'){loadPaymentConfig();loadDonations()}if(name==='found')renderFound();if(name==='about')loadAboutPage();if(name==='contact')loadContactPage();trackSection(name);window.scrollTo(0,0)}
+function showView(name){['home','search','found','report','me','donate','about','contact','legal','safechild-register'].forEach(v=>{var el=$('view-'+v);if(el)el.classList.toggle('active',v===name)});['navHome','navSearch','navFound','navReport','navMe'].forEach(n=>$(n).classList.toggle('active',n==='nav'+name.charAt(0).toUpperCase()+name.slice(1)));
+  if($('desktopNav')){$('desktopNav').querySelectorAll('.desktop-nav-btn').forEach(b=>b.classList.toggle('active',b.getAttribute('data-page')===name));}if(name==='me')renderMe();if(name==='donate'){loadPaymentConfig();loadDonations()}if(name==='found')renderFound();if(name==='about')loadAboutPage();if(name==='contact')loadContactPage();if(name==='safechild-register')loadMyRegisteredChildren();trackSection(name);window.scrollTo(0,0)}
 $('heroSearch').addEventListener('click',()=>{showView('search');setTimeout(()=>$('q').focus(),300)})
 $('navHome').addEventListener('click',()=>showView('home'));
 $('navSearch').addEventListener('click',()=>showView('search'));
@@ -1380,6 +1508,204 @@ function showAdOverlay(a){
   box.innerHTML='<a onclick="adClick(activeAds.find(function(x){return x._id==\''+a._id+'\'}));closeAdOverlay()" style="display:block;text-decoration:none;border-radius:16px;overflow:hidden;background:var(--card);box-shadow:0 8px 40px rgba(0,0,0,.4)"><img src="'+esc(a.imageUrl)+'" style="width:100%;'+imgH+';display:block"><div style="padding:16px;text-align:center"><div style="font-size:18px;font-weight:800;color:var(--text);margin-bottom:6px">'+esc(a.title||'Advertisement')+'</div>'+(a.advertiserName?'<div style="font-size:13px;color:var(--text2)">By '+esc(a.advertiserName)+'</div>':'')+'<div style="margin-top:12px;padding:10px;background:var(--accent);color:#fff;border-radius:10px;font-size:14px;font-weight:700">Visit Now</div></div></a>';
   $('adOverlay').style.display='flex';
 }
+/* === SAFECHILD: AI Face Detection & Matching === */
+let faceApiLoaded=false;let faceApiLoading=false;
+async function loadFaceApi(){
+  if(faceApiLoaded)return true;
+  if(faceApiLoading)return false;
+  faceApiLoading=true;
+  try{
+    await faceapi.nets.ssdMobilenetv1.loadFromUri('/models');
+    await faceapi.nets.faceLandmark68Net.loadFromUri('/models');
+    await faceapi.nets.faceRecognitionNet.loadFromUri('/models');
+    faceApiLoaded=true;faceApiLoading=false;
+    console.log('[SAFECHILD] Face API models loaded');
+    return true;
+  }catch(e){console.error('[SAFECHILD] Model load failed:',e);faceApiLoading=false;return false}
+}
+
+async function getFaceDescriptor(imgElement){
+  const detection=await faceapi.detectSingleFace(imgElement).withFaceLandmarks().withFaceDescriptor();
+  if(!detection)return null;
+  return Array.from(detection.descriptor);
+}
+
+/* --- Registration Flow --- */
+let regPhotoFile=null;
+function previewRegPhoto(input){
+  const file=input.files[0];if(!file)return;
+  if(file.size>5*1024*1024){$('regStatus').textContent='Image must be under 5MB';$('regStatus').style.color='var(--red)';return}
+  regPhotoFile=file;
+  const reader=new FileReader();
+  reader.onload=function(e){
+    $('previewImg').src=e.target.result;
+    $('photoPreview').style.display='block';
+    $('photoUpload').style.display='none';
+  };
+  reader.readAsDataURL(file);
+}
+
+async function submitRegistration(){
+  const name=$('regName').value.trim();
+  const contact=$('regContact').value.trim();
+  if(!name){$('regStatus').textContent='Child name is required';$('regStatus').style.color='var(--red)';return}
+  if(!contact){$('regStatus').textContent='Parent contact is required';$('regStatus').style.color='var(--red)';return}
+  if(!regPhotoFile){$('regStatus').textContent='Please upload a face photo';$('regStatus').style.color='var(--red)';return}
+  if(!userToken){toast('Please log in first','err');showView('me');return}
+  
+  const btn=$('regSubmitBtn');btn.disabled=true;btn.textContent='Processing face...';
+  $('regStatus').textContent='Loading AI models...';$('regStatus').style.color='var(--accent)';
+  
+  const loaded=await loadFaceApi();
+  if(!loaded){btn.disabled=false;btn.textContent='Register with AI';$('regStatus').textContent='Failed to load AI. Check your connection.';$('regStatus').style.color='var(--red)';return}
+  
+  $('regStatus').textContent='Detecting face...';
+  const img=new Image();img.crossOrigin='anonymous';
+  img.src=URL.createObjectURL(regPhotoFile);
+  await new Promise(r=>img.onload=r);
+  
+  const descriptor=await getFaceDescriptor(img);
+  URL.revokeObjectURL(img.src);
+  if(!descriptor){btn.disabled=false;btn.textContent='Register with AI';$('regStatus').textContent='No face detected. Please use a clear photo with one visible face.';$('regStatus').style.color='var(--red)';return}
+  
+  $('regStatus').textContent='Registering child...';
+  try{
+    const fd=new FormData();
+    fd.append('childName',name);
+    fd.append('age',$('regAge').value);
+    fd.append('gender',$('regGender').value);
+    fd.append('address',$('regAddress').value.trim());
+    fd.append('parentContact',contact);
+    fd.append('medicalInfo',$('regMedical').value.trim());
+    fd.append('faceDescriptor',JSON.stringify(descriptor));
+    fd.append('photo',regPhotoFile);
+    const r=await fetch('/api/safechild/register',{method:'POST',headers:{'Authorization':'Bearer '+userToken},body:fd});
+    const j=await r.json().catch(()=>({}));
+    if(!r.ok||!j.success)throw new Error(j.message||'Registration failed');
+    $('regStatus').textContent='✅ '+j.message;$('regStatus').style.color='var(--green)';
+    $('regName').value='';$('regAge').value='';$('regGender').value='';$('regAddress').value='';$('regContact').value='';$('regMedical').value='';
+    regPhotoFile=null;$('photoPreview').style.display='none';$('photoUpload').style.display='block';
+    loadMyRegisteredChildren();
+  }catch(e){$('regStatus').textContent=e.message;$('regStatus').style.color='var(--red)'}
+  finally{btn.disabled=false;btn.textContent='Register with AI'}
+}
+
+async function loadMyRegisteredChildren(){
+  const box=$('myRegisteredChildren');if(!box||!userToken)return;
+  try{
+    const r=await fetch('/api/safechild/children',{headers:{'Authorization':'Bearer '+userToken}});
+    const j=await r.json().catch(()=>({}));
+    if(!j.success||!j.data||!j.data.length){box.innerHTML='<p style="font-size:13px;color:var(--text3);text-align:center;padding:16px">No children registered yet.</p>';return}
+    box.innerHTML=j.data.map(c=>{
+      const imgHtml=c.photoUrl?'<img src="'+esc(c.photoUrl)+'" style="width:44px;height:44px;border-radius:12px;object-fit:cover">':'<div style="width:44px;height:44px;border-radius:12px;background:var(--bg);display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" style="width:22px;height:22px;fill:var(--text3)"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.26-5.33-4-8-4z"/></svg></div>';
+      return '<div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--bg);border-radius:12px;margin-bottom:8px">'+imgHtml+'<div style="flex:1"><div style="font-size:14px;font-weight:700;color:var(--text)">'+esc(c.childName)+'</div><div style="font-size:12px;color:var(--text3)">'+(c.age?esc(String(c.age))+' yrs · ':'')+(c.gender?esc(c.gender):'')+'</div></div><button onclick="deleteRegisteredChild(\''+esc(c._id)+'\')" style="width:32px;height:32px;border:none;background:rgba(255,59,48,.1);border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:var(--red)"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></button></div>';
+    }).join('');
+  }catch(e){box.innerHTML='<p style="font-size:12px;color:var(--red);text-align:center">Failed to load.</p>'}
+}
+
+async function deleteRegisteredChild(id){
+  if(!confirm('Remove this child from SafeChild registry?'))return;
+  try{
+    await fetch('/api/safechild/children/'+id,{method:'DELETE',headers:{'Authorization':'Bearer '+userToken}});
+    loadMyRegisteredChildren();
+  }catch(e){toast('Failed to delete','err')}
+}
+
+/* --- Face Scan (Finder) --- */
+let scanPhotoFile=null;
+function startFaceScan(){
+  scanPhotoFile=null;
+  $('scanModal').style.display='flex';
+  $('scanUploadStep').style.display='block';
+  $('scanLoading').style.display='none';
+  $('scanResult').style.display='none';
+  $('scanNoMatch').style.display='none';
+  $('scanPreview').style.display='none';
+  $('scanBtn').style.display='none';
+  $('scanPhoto').value='';
+  $('scanModalTitle').textContent='AI Face Scan';
+}
+function closeScanModal(){$('scanModal').style.display='none';scanPhotoFile=null}
+$('scanModal').addEventListener('click',function(e){if(e.target===$('scanModal'))closeScanModal()});
+
+function previewScanPhoto(input){
+  const file=input.files[0];if(!file)return;
+  scanPhotoFile=file;
+  const reader=new FileReader();
+  reader.onload=function(e){
+    $('scanPreviewImg').src=e.target.result;
+    $('scanPreview').style.display='block';
+    $('scanBtn').style.display='block';
+  };
+  reader.readAsDataURL(file);
+}
+
+async function submitFaceScan(){
+  if(!scanPhotoFile)return;
+  $('scanUploadStep').style.display='none';
+  $('scanLoading').style.display='block';
+  
+  const loaded=await loadFaceApi();
+  if(!loaded){
+    $('scanLoading').style.display='none';
+    $('scanUploadStep').style.display='block';
+    toast('Failed to load AI. Check your connection.','err');
+    return;
+  }
+  
+  const img=new Image();img.crossOrigin='anonymous';
+  img.src=URL.createObjectURL(scanPhotoFile);
+  await new Promise(r=>img.onload=r);
+  
+  const descriptor=await getFaceDescriptor(img);
+  URL.revokeObjectURL(img.src);
+  
+  if(!descriptor){
+    $('scanLoading').style.display='none';
+    $('scanUploadStep').style.display='block';
+    $('scanPreview').style.display='block';$('scanBtn').style.display='block';
+    toast('No face detected. Please use a clear photo.','err');
+    return;
+  }
+  
+  $('scanLoading').querySelector('p').textContent='Matching against database...';
+  
+  try{
+    const r=await fetch('/api/safechild/match',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({faceDescriptor:descriptor})});
+    const j=await r.json().catch(()=>({}));
+    $('scanLoading').style.display='none';
+    
+    if(j.matched&&j.data){
+      const d=j.data;
+      const imgHtml=d.photoUrl?'<img src="'+esc(d.photoUrl)+'" alt="'+esc(d.childName)+'">':'<div class="ph"><svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.26-5.33-4-8-4z"/></svg></div>';
+      let infoRows='';
+      if(d.age)infoRows+='<div class="info-row"><span class="lbl">Age</span><span class="val">'+esc(String(d.age))+' years</span></div>';
+      if(d.gender)infoRows+='<div class="info-row"><span class="lbl">Gender</span><span class="val">'+esc(d.gender)+'</span></div>';
+      if(d.address)infoRows+='<div class="info-row"><span class="lbl">Address</span><span class="val">'+esc(d.address)+'</span></div>';
+      if(d.medicalInfo)infoRows+='<div class="info-row"><span class="lbl">Medical</span><span class="val">'+esc(d.medicalInfo)+'</span></div>';
+      $('scanResult').innerHTML='<div class="match-avatar">'+imgHtml+'</div>'+
+        '<h3>'+esc(d.childName)+'</h3>'+
+        '<div class="conf">✅ Child Identified — '+j.confidence+'% confidence</div>'+
+        infoRows+
+        (d.parentContact?'<a class="contact-btn" href="tel:'+esc(d.parentContact.replace(/[^0-9+]/g,''))+'" style="text-decoration:none">📞 Call Parent: '+esc(d.parentContact)+'</a>':'')+
+        '<button class="btn-ghost" style="width:100%;margin-top:10px" onclick="closeScanModal()">Close</button>';
+      $('scanResult').style.display='block';
+    }else{
+      $('scanNoMatch').innerHTML='<div class="nm-icon">🔍</div>'+
+        '<h3>No Match Found</h3>'+
+        '<p>This child is not yet registered in the SafeChild AI database. You can help by reporting them as a missing child.</p>'+
+        '<button class="btn" style="width:100%;margin-top:16px" onclick="closeScanModal();showView(\'report\')">Report Missing Child</button>'+
+        '<button class="btn-ghost" style="width:100%;margin-top:8px" onclick="closeScanModal()">Close</button>';
+      $('scanNoMatch').style.display='block';
+    }
+  }catch(e){
+    $('scanLoading').style.display='none';
+    $('scanUploadStep').style.display='block';
+    $('scanPreview').style.display='block';$('scanBtn').style.display='block';
+    toast('Matching failed: '+e.message,'err');
+  }
+}
+
 /* --- Boot --- */
 $('backdrop').addEventListener('click',closeDetail);
 $('sheetClose').addEventListener('click',closeDetail);
