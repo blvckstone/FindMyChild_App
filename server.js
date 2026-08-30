@@ -593,7 +593,7 @@ app.post('/api/safechild/match', async (req, res) => {
         // Euclidean distance matching across both pools
         let bestMatch = null;
         let bestDistance = Infinity;
-        const THRESHOLD = 0.6;
+        const THRESHOLD = 0.65;
         const uploaded = parsedDescriptor;
         for (const child of combinedList) {
             if (!child.faceDescriptor || child.faceDescriptor.length !== 128) continue;
