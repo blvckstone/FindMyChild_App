@@ -367,19 +367,42 @@ button{font-family:inherit;cursor:pointer}input,select,textarea{font-family:inhe
   </div>
   <div id="donList"></div>
 
-  <!-- Payment Settings -->
-  <div class="card-section" style="margin-top:18px">
-    <div class="cs-head"><h3>Payment Settings</h3><button class="btn-sm" onclick="savePaymentSettings()">Save Changes</button></div>
-    <div class="cs-body" id="paymentSettingsForm">
-      <div class="field"><label>UPI ID</label><input id="ps_upiId" type="text" placeholder="e.g. zii1@ybl"></div>
-      <div class="field"><label>Payee Name</label><input id="ps_payeeName" type="text" placeholder="e.g. MOHAMMAD SHOEB ABBAS"></div>
-      <div class="field"><label>Bank Account Name</label><input id="ps_bankAccountName" type="text" placeholder="e.g. FindMyChild Foundation"></div>
-      <div class="field"><label>Bank Account Number</label><input id="ps_bankAccountNumber" type="text" placeholder="Account number"></div>
-      <div class="field"><label>Bank IFSC Code</label><input id="ps_bankIfscCode" type="text" placeholder="e.g. SBIN0001234"></div>
-      <div class="field"><label>Bank Name</label><input id="ps_bankName" type="text" placeholder="e.g. State Bank of India"></div>
-      <div class="field"><label>Admin WhatsApp Number</label><input id="ps_adminPhone" type="text" placeholder="e.g. 919999999999"></div>
-      <div class="field"><label>Custom QR Image URL (optional)</label><input id="ps_qrImageUrl" type="text" placeholder="Leave empty for auto-generated QR"></div>
-      <div id="psMsg" style="font-size:12px;margin-top:8px"></div>
+  <!-- Payment Settings (Super Admin Only) -->
+  <div id="paymentSettingsCard" style="margin-top:18px;background:#fff;border:1px solid #e2e8f0;border-radius:18px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06)">
+    <!-- Header -->
+    <div style="padding:20px 24px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="width:40px;height:40px;border-radius:12px;background:#eff6ff;display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg viewBox="0 0 24 24" style="width:20px;height:20px;fill:#2563eb"><path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg></div>
+        <div><div style="font-size:16px;font-weight:700;color:#0f172a">Payment Settings</div><div style="font-size:12px;color:#64748b;margin-top:2px">Configure live UPI VPA and bank transfer fallback details</div></div>
+      </div>
+      <button onclick="savePaymentSettings()" style="padding:10px 20px;background:#2563eb;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .15s" onmouseover="this.style.opacity='.9'" onmouseout="this.style.opacity='1'">Save Changes</button>
+    </div>
+    <!-- Form -->
+    <div style="padding:24px" id="paymentSettingsForm">
+      <!-- Section: UPI Configuration -->
+      <div style="margin-bottom:24px">
+        <div style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:.5px;text-transform:uppercase;margin-bottom:12px">UPI Configuration</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div><label style="display:block;font-size:11px;font-weight:700;color:#64748b;letter-spacing:.5px;margin-bottom:6px">UPI ID</label><input id="ps_upiId" type="text" placeholder="e.g. zii1@ybl" style="width:100%;border:1.5px solid #e2e8f0;border-radius:10px;padding:10px 14px;font-size:14px;transition:border-color .2s;outline:none" onfocus="this.style.borderColor='#2563eb';this.style.boxShadow='0 0 0 3px rgba(37,99,235,.1)'" onblur="this.style.borderColor='#e2e8f0';this.style.boxShadow='none'"></div>
+          <div><label style="display:block;font-size:11px;font-weight:700;color:#64748b;letter-spacing:.5px;margin-bottom:6px">Payee Name</label><input id="ps_payeeName" type="text" placeholder="e.g. MOHAMMAD SHOEB ABBAS" style="width:100%;border:1.5px solid #e2e8f0;border-radius:10px;padding:10px 14px;font-size:14px;transition:border-color .2s;outline:none" onfocus="this.style.borderColor='#2563eb';this.style.boxShadow='0 0 0 3px rgba(37,99,235,.1)'" onblur="this.style.borderColor='#e2e8f0';this.style.boxShadow='none'"></div>
+        </div>
+      </div>
+      <!-- Section: Bank Transfer Fallback -->
+      <div style="margin-bottom:24px">
+        <div style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:.5px;text-transform:uppercase;margin-bottom:12px">Bank Transfer Fallback (After 3 Failed UPI Attempts)</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div><label style="display:block;font-size:11px;font-weight:700;color:#64748b;letter-spacing:.5px;margin-bottom:6px">Account Name</label><input id="ps_bankAccountName" type="text" placeholder="e.g. FindMyChild Foundation" style="width:100%;border:1.5px solid #e2e8f0;border-radius:10px;padding:10px 14px;font-size:14px;transition:border-color .2s;outline:none" onfocus="this.style.borderColor='#2563eb';this.style.boxShadow='0 0 0 3px rgba(37,99,235,.1)'" onblur="this.style.borderColor='#e2e8f0';this.style.boxShadow='none'"></div>
+          <div><label style="display:block;font-size:11px;font-weight:700;color:#64748b;letter-spacing:.5px;margin-bottom:6px">Account Number</label><input id="ps_bankAccountNumber" type="text" placeholder="Account number" style="width:100%;border:1.5px solid #e2e8f0;border-radius:10px;padding:10px 14px;font-size:14px;transition:border-color .2s;outline:none" onfocus="this.style.borderColor='#2563eb';this.style.boxShadow='0 0 0 3px rgba(37,99,235,.1)'" onblur="this.style.borderColor='#e2e8f0';this.style.boxShadow='none'"></div>
+          <div><label style="display:block;font-size:11px;font-weight:700;color:#64748b;letter-spacing:.5px;margin-bottom:6px">IFSC Code</label><input id="ps_bankIfscCode" type="text" placeholder="e.g. SBIN0001234" style="width:100%;border:1.5px solid #e2e8f0;border-radius:10px;padding:10px 14px;font-size:14px;transition:border-color .2s;outline:none" onfocus="this.style.borderColor='#2563eb';this.style.boxShadow='0 0 0 3px rgba(37,99,235,.1)'" onblur="this.style.borderColor='#e2e8f0';this.style.boxShadow='none'"></div>
+          <div><label style="display:block;font-size:11px;font-weight:700;color:#64748b;letter-spacing:.5px;margin-bottom:6px">Bank Name</label><input id="ps_bankName" type="text" placeholder="e.g. State Bank of India" style="width:100%;border:1.5px solid #e2e8f0;border-radius:10px;padding:10px 14px;font-size:14px;transition:border-color .2s;outline:none" onfocus="this.style.borderColor='#2563eb';this.style.boxShadow='0 0 0 3px rgba(37,99,235,.1)'" onblur="this.style.borderColor='#e2e8f0';this.style.boxShadow='none'"></div>
+        </div>
+      </div>
+      <!-- Section: Admin Support -->
+      <div style="margin-bottom:16px">
+        <div style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:.5px;text-transform:uppercase;margin-bottom:12px">Direct Admin Support</div>
+        <div style="max-width:400px"><label style="display:block;font-size:11px;font-weight:700;color:#64748b;letter-spacing:.5px;margin-bottom:6px">WhatsApp / Phone Number</label><input id="ps_adminPhone" type="text" placeholder="e.g. 919999999999" style="width:100%;border:1.5px solid #e2e8f0;border-radius:10px;padding:10px 14px;font-size:14px;transition:border-color .2s;outline:none" onfocus="this.style.borderColor='#2563eb';this.style.boxShadow='0 0 0 3px rgba(37,99,235,.1)'" onblur="this.style.borderColor='#e2e8f0';this.style.boxShadow='none'"></div>
+      </div>
+      <div id="psMsg" style="font-size:13px;margin-top:4px"></div>
     </div>
   </div>
 </div>
@@ -818,8 +841,8 @@ async function loadDonations(){try{const j=await api('/api/admin/donations');all
 async function delDonation(id){if(!confirm('Delete?'))return;try{await api('/api/admin/donations/'+id,{method:'DELETE'});toast('Deleted.');loadDonations()}catch(e){toast(e.message,'err')}}
 
 // Payment Settings
-async function loadPaymentSettings(){try{const j=await api('/api/admin/payment-settings');if(j.success&&j.data){const d=j.data;$('ps_upiId').value=d.upiId||'';$('ps_payeeName').value=d.payeeName||'';$('ps_bankAccountName').value=d.bankAccountName||'';$('ps_bankAccountNumber').value=d.bankAccountNumber||'';$('ps_bankIfscCode').value=d.bankIfscCode||'';$('ps_bankName').value=d.bankName||'';$('ps_adminPhone').value=d.adminPhone||'';$('ps_qrImageUrl').value=d.qrImageUrl||''}}catch(e){}}
-async function savePaymentSettings(){const msg=$('psMsg');try{await api('/api/admin/payment-settings',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({upiId:$('ps_upiId').value.trim(),payeeName:$('ps_payeeName').value.trim(),bankAccountName:$('ps_bankAccountName').value.trim(),bankAccountNumber:$('ps_bankAccountNumber').value.trim(),bankIfscCode:$('ps_bankIfscCode').value.trim(),bankName:$('ps_bankName').value.trim(),adminPhone:$('ps_adminPhone').value.trim(),qrImageUrl:$('ps_qrImageUrl').value.trim()})});msg.style.color='var(--green)';msg.textContent='Settings saved!';toast('Payment settings saved.');setTimeout(()=>msg.textContent='',3000)}catch(e){msg.style.color='var(--red)';msg.textContent=e.message;toast(e.message,'err')}}
+async function loadPaymentSettings(){const card=$('paymentSettingsCard');if(!adminPerms.all&&adminPerms.all!==undefined){if(card)card.style.display='none';return}if(card)card.style.display='';try{const j=await api('/api/admin/payment-settings');if(j.success&&j.data){const d=j.data;$('ps_upiId').value=d.upiId||'';$('ps_payeeName').value=d.payeeName||'';$('ps_bankAccountName').value=d.bankAccountName||'';$('ps_bankAccountNumber').value=d.bankAccountNumber||'';$('ps_bankIfscCode').value=d.bankIfscCode||'';$('ps_bankName').value=d.bankName||'';$('ps_adminPhone').value=d.adminPhone||''}}catch(e){}}
+async function savePaymentSettings(){const msg=$('psMsg');try{await api('/api/admin/payment-settings',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({upiId:$('ps_upiId').value.trim(),payeeName:$('ps_payeeName').value.trim(),bankAccountName:$('ps_bankAccountName').value.trim(),bankAccountNumber:$('ps_bankAccountNumber').value.trim(),bankIfscCode:$('ps_bankIfscCode').value.trim(),bankName:$('ps_bankName').value.trim(),adminPhone:$('ps_adminPhone').value.trim()})});msg.style.color='var(--green)';msg.textContent='Settings saved!';toast('Payment settings saved.');setTimeout(()=>msg.textContent='',3000)}catch(e){msg.style.color='var(--red)';msg.textContent=e.message;toast(e.message,'err')}}
 
 // Users
 async function loadUsers(){
