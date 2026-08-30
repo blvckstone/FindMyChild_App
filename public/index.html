@@ -1621,18 +1621,40 @@ function openSafeChildEdit(id,name,age,gender,address,contact,medical){
     '<div class="field"><label>Address</label><input id="editAddress" type="text" value="'+esc(address)+'"></div>'+
     '<div class="field"><label>Parent Contact</label><input id="editContact" type="tel" value="'+esc(contact)+'"></div>'+
     '<div class="field"><label>Medical Info</label><textarea id="editMedical" rows="2">'+esc(medical)+'</textarea></div>'+
-    '<div class="actions"><button class="btn" style="margin:0" onclick="submitSafeChildEdit(\''+esc(id)+'\')">Save Changes</button><button class="btn-ghost" onclick="closeModal()">Cancel</button></div>'+
+    '<div class="field"><label>Update Photo (Optional)</label><input id="editPhoto" type="file" accept="image/*" style="padding:10px 14px;background:var(--card);border:1.5px solid var(--border);border-radius:var(--radius-xs);font-size:13px;width:100%"></div>'+
+    '<div id="editStatus" style="font-size:13px;text-align:center;margin:4px 0"></div>'+
+    '<div class="actions"><button class="btn" style="margin:0" id="editSaveBtn" onclick="submitSafeChildEdit(\''+esc(id)+'\')">Save Changes</button><button class="btn-ghost" onclick="closeModal()">Cancel</button></div>'+
     '</div>'
   );
 }
 
 async function submitSafeChildEdit(id){
+  const btn=$('editSaveBtn');const status=$('editStatus');if(btn)btn.disabled=true;
   try{
-    const r=await fetch('/api/safechild/children/'+id,{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+userToken},body:JSON.stringify({childName:$('editName').value.trim(),age:$('editAge').value,gender:$('editGender').value,address:$('editAddress').value.trim(),parentContact:$('editContact').value.trim(),medicalInfo:$('editMedical').value.trim()})});
+    const fd=new FormData();
+    fd.append('childName',$('editName').value.trim());
+    fd.append('age',$('editAge').value);
+    fd.append('gender',$('editGender').value);
+    fd.append('address',$('editAddress').value.trim());
+    fd.append('parentContact',$('editContact').value.trim());
+    fd.append('medicalInfo',$('editMedical').value.trim());
+    const fileInput=$('editPhoto');
+    if(fileInput&&fileInput.files.length>0){
+      const file=fileInput.files[0];
+      if(faceApiLoaded){
+        status.textContent='Detecting face in new photo...';status.style.color='var(--accent)';
+        const desc=await extractFaceDescriptor(file);
+        if(!desc){if(btn)btn.disabled=false;status.textContent='No face detected. Use a clear face photo.';status.style.color='var(--red)';return}
+        fd.append('faceDescriptor',JSON.stringify(desc));
+      }
+      fd.append('photo',file);
+    }
+    const r=await fetch('/api/safechild/children/'+id,{method:'PUT',headers:{'Authorization':'Bearer '+userToken},body:fd});
     const j=await r.json().catch(()=>({}));
     if(!r.ok||!j.success)throw new Error(j.message||'Update failed');
     closeModal();toast('Child details updated!','ok');loadMyRegisteredChildren();
-  }catch(e){toast(e.message,'err')}
+  }catch(e){if(status){status.textContent=e.message;status.style.color='var(--red)'}else{toast(e.message,'err')}}
+  finally{if(btn)btn.disabled=false}
 }
 
 async function deleteRegisteredChild(id){

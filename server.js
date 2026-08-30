@@ -503,7 +503,7 @@ app.get('/api/safechild/children', requireAuth, async (req, res) => {
 // Delete a pre-registered child
 app.put('/api/safechild/children/:id', requireAuth, async (req, res) => {
     try {
-        const { childName, age, gender, address, parentContact, medicalInfo } = req.body;
+        const { childName, age, gender, address, parentContact, medicalInfo, faceDescriptor } = req.body;
         const { PreRegisteredChild } = await getModels();
         const updateData = {};
         if (childName !== undefined) updateData.childName = String(childName).trim();
@@ -512,6 +512,20 @@ app.put('/api/safechild/children/:id', requireAuth, async (req, res) => {
         if (address !== undefined) updateData.address = String(address).trim();
         if (parentContact !== undefined) updateData.parentContact = String(parentContact).trim();
         if (medicalInfo !== undefined) updateData.medicalInfo = String(medicalInfo).trim();
+        // Handle new AI descriptor if a new photo was processed
+        if (faceDescriptor) {
+            const parsedDescriptor = parseFaceDescriptor(faceDescriptor);
+            if (parsedDescriptor) updateData.faceDescriptor = parsedDescriptor;
+        }
+        // Handle new photo upload
+        if (req.files && req.files.photo) {
+            const existingChild = await PreRegisteredChild.findOne({ _id: req.params.id, parentId: req.userId });
+            if (existingChild && existingChild.photoUrl) {
+                await deleteImage(existingChild.photoUrl);
+            }
+            const imagePath = await saveImage(req.files.photo);
+            if (imagePath) updateData.photoUrl = imagePath;
+        }
         const child = await PreRegisteredChild.findOneAndUpdate(
             { _id: req.params.id, parentId: req.userId },
             { $set: updateData },
@@ -554,7 +568,7 @@ app.post('/api/safechild/match', async (req, res) => {
         // 2. Fetch standard missing children (not yet found, with valid face data)
         let missing = [];
         if (Child) {
-            missing = await Child.find({ found: false, faceDescriptor: { $exists: true, $ne: [] } }).lean();
+            missing = await Child.find({ faceDescriptor: { $exists: true, $ne: [] } }).lean();
         }
 
         // 3. Normalize into a single combined pool
