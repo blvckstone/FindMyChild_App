@@ -177,7 +177,12 @@ app.post('/api/children', requireAuth, async (req, res) => {
         }
         data.fullName = String(data.fullName).trim();
         data.contactNumber = String(data.contactNumber).trim();
-        if (data.age !== undefined && data.age !== '') data.age = Number(data.age);
+        if (data.age !== undefined && data.age !== '') {
+            data.age = Number(data.age);
+            if (data.age < 0 || data.age > 18) {
+                return res.status(400).json({ success: false, message: "Age must be between 0 and 18." });
+            }
+        }
 
         const imagePath = await saveImage(req.files && req.files.image);
         if (imagePath) data.image = imagePath;
@@ -1254,6 +1259,9 @@ app.post('/api/praise', requireAuth, async (req, res) => {
         const child = await Child.findById(req.body.childId);
         if (!child) return res.status(404).json({ success: false, message: "Child not found." });
         if (!child.found) return res.status(400).json({ success: false, message: "This child is not marked as found yet." });
+        if (child.finderUserId && child.finderUserId.toString() === req.userId) {
+            return res.status(400).json({ success: false, message: "You cannot praise yourself." });
+        }
         const text = req.body.text ? String(req.body.text).trim() : '';
         if (!text) return res.status(400).json({ success: false, message: "Write something to praise the hero." });
         const praise = await Praise.create({
@@ -1276,14 +1284,19 @@ app.post('/api/gifts', requireAuth, async (req, res) => {
         const child = await Child.findById(req.body.childId);
         if (!child) return res.status(404).json({ success: false, message: "Child not found." });
         if (!child.found) return res.status(400).json({ success: false, message: "This child is not marked as found yet." });
+        if (child.finderUserId && child.finderUserId.toString() === req.userId) {
+            return res.status(400).json({ success: false, message: "You cannot send a gift to yourself." });
+        }
         const message = req.body.message ? String(req.body.message).trim() : '';
         if (!message) return res.status(400).json({ success: false, message: "Add a short message with your gift." });
+        const amount = Number(req.body.amount);
+        if (amount && amount <= 0) return res.status(400).json({ success: false, message: "Gift amount must be greater than zero." });
         const gift = await Gift.create({
             childId: child._id,
             userId: req.userId,
             giverName: String(req.body.giverName || 'Anonymous').trim().slice(0, 60),
             message: message.slice(0, 500),
-            amount: Number(req.body.amount) || 0,
+            amount: amount || 0,
             status: 'pending'
         });
         io.emit('dataChanged'); clearDataCache();

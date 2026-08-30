@@ -485,9 +485,11 @@ button{font-family:inherit;cursor:pointer}input,select,textarea{font-family:inhe
 </div>
 <div id="toast"></div>
 
+<script src="/socket.io/socket.io.js"></script>
 <script>
 window.onerror=function(msg,src,line,col,err){document.body.insertAdjacentHTML('afterbegin','<div style="position:fixed;top:0;left:0;right:0;background:red;color:#fff;z-index:99999;padding:12px;text-align:center;font:14px monospace">JS ERROR: '+msg+' (line '+line+')</div>');return false};
 console.log('[ADMIN-SCRIPT] Script started at',new Date().toISOString());
+const socket=typeof io!=='undefined'?io():null;
 let token=localStorage.getItem('fmc_admin_token')||'',allChildren=[],allUsers=[],allFoundReqs=[],allPraise=[],allGifts=[],allDonations=[];
 let currentFoundFilter='',currentPraiseFilter='';
 const $=id=>document.getElementById(id);
@@ -1621,6 +1623,20 @@ applyPermissions().then(()=>{
   var dr=document.getElementById('dashRecent');if(dr) dr.innerHTML='<div style="padding:16px;color:#ef4444;font-weight:600;font-size:14px">Load error: '+String(e.message||e)+'</div>';
 });
 }else{console.log('[ADMIN] No token, showing login');showLogin()}
+
+// Real-time badge updates via Socket.io
+if(socket){socket.on('dataChanged',async()=>{try{
+  const statsRes=await api('/api/admin/stats');
+  if(statsRes&&statsRes.data){
+    if($('badgePending'))$('badgePending').textContent=statsRes.data.pending||0;
+  }
+  try{const foundRes=await api('/api/admin/found-requests');
+    if(foundRes&&foundRes.data&&$('badgeFound'))$('badgeFound').textContent=foundRes.data.filter(x=>x.status==='pending').length;
+  }catch(e){}
+  try{const praiseRes=await api('/api/admin/praise');const giftRes=await api('/api/admin/gifts');
+    if(praiseRes&&praiseRes.data&&giftRes&&giftRes.data&&$('badgePraise'))$('badgePraise').textContent=[...praiseRes.data,...giftRes.data].filter(x=>x.status==='pending').length;
+  }catch(e){}
+}catch(e){console.warn('Silent badge update failed:',e)}})}
 </script>
 </body>
 </html>
