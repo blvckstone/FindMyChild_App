@@ -905,7 +905,7 @@ async function openUserDetail(id){
 function formFields(c){
   return`<div class="grid2">
     <div class="field"><label>Full Name *</label><input id="f_fullName" value="${esc(c.fullName)}" placeholder="Child's full name"></div>
-    <div class="field"><label>Age</label><input id="f_age" type="number" min="0" max="25" value="${esc(c.age)}" placeholder="Age in years"></div>
+    <div class="field"><label>Age</label><input id="f_age" type="number" min="0" value="${esc(c.age)}" placeholder="Age in years"></div>
     <div class="field"><label>Gender</label><select id="f_gender"><option value="">Select</option><option ${c.gender==='Male'?'selected':''}>Male</option><option ${c.gender==='Female'?'selected':''}>Female</option></select></div>
     <div class="field"><label>State</label><input id="f_state" value="${esc(c.state)}" placeholder="State"></div>
     <div class="field" style="grid-column:1/-1"><label>Address</label><input id="f_address" value="${esc(c.address)}" placeholder="Full address"></div>

@@ -179,8 +179,8 @@ app.post('/api/children', requireAuth, async (req, res) => {
         data.contactNumber = String(data.contactNumber).trim();
         if (data.age !== undefined && data.age !== '') {
             data.age = Number(data.age);
-            if (data.age < 0 || data.age > 18) {
-                return res.status(400).json({ success: false, message: "Age must be between 0 and 18." });
+            if (data.age < 0) {
+                return res.status(400).json({ success: false, message: "Age cannot be negative." });
             }
         }
 
