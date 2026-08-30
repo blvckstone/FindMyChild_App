@@ -398,7 +398,8 @@ app.get('/api/payment-config', async (req, res) => {
 });
 
 // ---- Admin: payment settings ----
-app.get('/api/admin/payment-settings', requireAdmin, hasPermission('donations'), async (req, res) => {
+app.get('/api/admin/payment-settings', requireAdmin, async (req, res) => {
+    if (!hasPermission(req, 'donations')) return res.status(403).json({ success: false, message: 'Permission denied' });
     try {
         const { PaymentSettings } = await getModels();
         const settings = await PaymentSettings.findOne() || await PaymentSettings.create({});
@@ -408,7 +409,8 @@ app.get('/api/admin/payment-settings', requireAdmin, hasPermission('donations'),
     }
 });
 
-app.put('/api/admin/payment-settings', requireAdmin, hasPermission('donations'), async (req, res) => {
+app.put('/api/admin/payment-settings', requireAdmin, async (req, res) => {
+    if (!hasPermission(req, 'donations')) return res.status(403).json({ success: false, message: 'Permission denied' });
     try {
         const { PaymentSettings } = await getModels();
         const allowed = ['upiId', 'payeeName', 'bankAccountName', 'bankAccountNumber', 'bankIfscCode', 'bankName', 'adminPhone', 'qrImageUrl'];
