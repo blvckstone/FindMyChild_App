@@ -741,12 +741,15 @@ main{scroll-padding-top:10px}
             <div style="text-align:left"><div style="font-weight:700">Other UPI App</div><div style="font-size:11px;color:var(--text3);font-weight:400">Any UPI app installed</div></div>
           </button>
         </div>
-        <!-- QR Code for Desktop -->
-        <div style="padding:0 20px 20px;display:none" id="donQRSection">
+        <!-- Fallback: QR + Copy UPI ID -->
+        <div style="padding:0 20px 20px" id="donQRSection">
           <div style="border-top:1px solid var(--border);padding-top:16px;text-align:center">
-            <div style="font-size:12px;color:var(--text3);margin-bottom:10px">Or scan this QR code with any UPI app</div>
+            <div style="font-size:12px;color:var(--text3);margin-bottom:12px">Scan QR or copy UPI ID to pay</div>
             <div style="display:inline-block;padding:12px;background:#fff;border:1.5px solid var(--border);border-radius:14px"><img id="donQRImg" src="" alt="UPI QR Code" style="width:180px;height:180px;display:block;border-radius:8px"></div>
-            <div style="font-size:11px;color:var(--text3);margin-top:8px">UPI ID: zii1@ybl</div>
+            <div style="font-size:12px;color:var(--text);margin-top:10px;font-weight:600">UPI ID: <span id="donUpiId">zii1@ybl</span></div>
+            <button id="donCopyUpi" onclick="copyUpiId()" style="display:inline-flex;align-items:center;gap:6px;margin-top:10px;padding:10px 20px;background:var(--dark);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;transition:transform .12s">📋 Copy UPI ID</button>
+            <div id="donCopyToast" style="display:none;margin-top:8px;font-size:12px;color:var(--green);font-weight:600">✅ Copied! Open your UPI app and pay</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:12px;line-height:1.5;max-width:300px;margin-left:auto;margin-right:auto">If payment is declined by your app, copy the UPI ID or scan the QR code directly inside Google Pay / PhonePe.</div>
           </div>
         </div>
       </div>
@@ -1096,7 +1099,8 @@ async function loadMyRequests(){const box=$('myReqs');if(!box)return;try{const j
 let donRetry=0;let donData={};const UPI_ID='zii1@ybl';
 function showDonStep(n){['donStep1','donStep2','donStep3','donStep4','donError'].forEach((id,i)=>{const el=$(id);if(el)el.style.display=(i===(n-1))?'block':'none'});window.scrollTo({top:0,behavior:'smooth'})}
 function genUpiRef(){return 'FMC'+Date.now().toString(36).toUpperCase()+Math.random().toString(36).slice(2,6).toUpperCase()}
-function buildUpiUri(method){const ref=genUpiRef();const name=esc($('d_name').value.trim());const amt=$('d_amount').value;const params='pa='+UPI_ID+'&pn=FindMyChild&am='+amt+'&cu=INR&tn=Donation+by+'+encodeURIComponent(name)+'&tr='+ref;donData={name:name,email:$('d_email').value.trim(),amount:amt,message:$('d_msg').value.trim(),ref:ref};if(method==='gpay')return 'tez://upi/pay?'+params;if(method==='phonepe')return 'phonepe://pay?'+params;return 'upi://pay?'+params}
+function buildUpiUri(method){const ref=genUpiRef();const name=esc($('d_name').value.trim());const amt=$('d_amount').value;const payee='MOHAMMAD SHOEB ABBAS';const tn='Donation from '+name;const params='pa='+UPI_ID+'&pn='+encodeURIComponent(payee)+'&am='+amt+'&cu=INR&tn='+encodeURIComponent(tn)+'&tr='+ref;donData={name:name,email:$('d_email').value.trim(),amount:amt,message:$('d_msg').value.trim(),ref:ref};if(method==='gpay')return 'tez://upi/pay?'+params;if(method==='phonepe')return 'phonepe://pay?'+params;return 'upi://pay?'+params}
+function copyUpiId(){navigator.clipboard.writeText(UPI_ID).then(()=>{const t=$('donCopyToast');const b=$('donCopyUpi');t.style.display='block';b.textContent='✅ Copied!';setTimeout(()=>{t.style.display='none';b.textContent='📋 Copy UPI ID'},3000)}).catch(()=>{const inp=document.createElement('input');inp.value=UPI_ID;document.body.appendChild(inp);inp.select();document.execCommand('copy');document.body.removeChild(inp);const t=$('donCopyToast');t.style.display='block';setTimeout(()=>t.style.display='none',3000)})}
 $('donateBtn').addEventListener('click',async()=>{
   const msg=$('donateMsg');const name=$('d_name').value.trim();const amt=Number($('d_amount').value);
   if(!name){msg.textContent='Please enter your name.';return}
@@ -1104,12 +1108,13 @@ $('donateBtn').addEventListener('click',async()=>{
   msg.textContent='';$('donPayAmt').textContent=amt;
   const upiUri=buildUpiUri('generic');
   $('donQRImg').src='https://api.qrserver.com/v1/create-qr-code/?size=180x180&data='+encodeURIComponent(upiUri)+'&margin=8';
-  $('donQRSection').style.display=(navigator.userAgent.includes('Mobile')||navigator.userAgent.includes('Android'))?'none':'block';
+  $('donCopyToast').style.display='none';
+  $('donCopyUpi').textContent='📋 Copy UPI ID';
   showDonStep(2)
 });
-$('donPayGpay').addEventListener('click',()=>{window.location.href=buildUpiUri('gpay');setTimeout(()=>$('donQRSection').style.display='block',2000)});
-$('donPayPhonepe').addEventListener('click',()=>{window.location.href=buildUpiUri('phonepe');setTimeout(()=>$('donQRSection').style.display='block',2000)});
-$('donPayGeneric').addEventListener('click',()=>{window.location.href=buildUpiUri('generic');setTimeout(()=>$('donQRSection').style.display='block',2000)});
+$('donPayGpay').addEventListener('click',()=>{window.location.href=buildUpiUri('gpay')});
+$('donPayPhonepe').addEventListener('click',()=>{window.location.href=buildUpiUri('phonepe')});
+$('donPayGeneric').addEventListener('click',()=>{window.location.href=buildUpiUri('generic')});
 function showUTRStep(){donRetry=0;$('donRetrySection').style.display='none';$('donBankFallback').style.display='none';$('donBackToPay').style.display='block';showDonStep(3)}
 async function submitDonation(){
   const utr=$('d_utr').value.trim();const btn=$('donVerifyBtn');
