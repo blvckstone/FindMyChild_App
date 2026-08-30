@@ -1624,19 +1624,38 @@ applyPermissions().then(()=>{
 });
 }else{console.log('[ADMIN] No token, showing login');showLogin()}
 
-// Real-time badge updates via Socket.io
+// Real-time badge updates + active view sync via Socket.io
 if(socket){socket.on('dataChanged',async()=>{try{
-  const statsRes=await api('/api/admin/stats');
-  if(statsRes&&statsRes.data){
-    if($('badgePending'))$('badgePending').textContent=statsRes.data.pending||0;
+  console.log('[SOCKET] Data changed, syncing live badges and active views...');
+  // 1. Refresh Pending and Found Badges (requires children permission)
+  if(adminPerms.all||adminPerms.children){
+    const stats=await api('/api/admin/stats').catch(()=>({}));
+    if(stats&&stats.data&&$('badgePending'))$('badgePending').textContent=stats.data.pending||0;
+    const fr=await api('/api/admin/found-requests').catch(()=>({}));
+    if(fr&&fr.data){foundFilterData=fr.data;if($('badgeFound'))$('badgeFound').textContent=fr.data.filter(x=>x.status==='pending').length;}
   }
-  try{const foundRes=await api('/api/admin/found-requests');
-    if(foundRes&&foundRes.data&&$('badgeFound'))$('badgeFound').textContent=foundRes.data.filter(x=>x.status==='pending').length;
-  }catch(e){}
-  try{const praiseRes=await api('/api/admin/praise');const giftRes=await api('/api/admin/gifts');
-    if(praiseRes&&praiseRes.data&&giftRes&&giftRes.data&&$('badgePraise'))$('badgePraise').textContent=[...praiseRes.data,...giftRes.data].filter(x=>x.status==='pending').length;
-  }catch(e){}
-}catch(e){console.warn('Silent badge update failed:',e)}})}
+  // 2. Refresh Praise & Gifts Badges (requires donations permission)
+  if(adminPerms.all||adminPerms.donations){
+    const p=await api('/api/admin/praise').catch(()=>({}));
+    const g=await api('/api/admin/gifts').catch(()=>({}));
+    if(p&&p.data&&g&&g.data){allPraise=p.data;allGifts=g.data;if($('badgePraise'))$('badgePraise').textContent=[...p.data,...g.data].filter(x=>x.status==='pending').length;}
+  }
+  // 3. Auto-refresh the currently active view so tables update instantly
+  const activePage=document.querySelector('.page.active');
+  if(activePage){
+    const pid=activePage.id;
+    if(pid==='pg-dashboard')loadDashboard();
+    else if(pid==='pg-pending'||pid==='pg-children'){
+      const c=await api('/api/admin/children').catch(()=>({}));
+      if(c&&c.data)allChildren=c.data;
+      if(pid==='pg-pending')renderPending();else renderChildren();
+    }
+    else if(pid==='pg-found')renderFoundList();
+    else if(pid==='pg-praise')renderPraise();
+    else if(pid==='pg-donations')loadDonations();
+    else if(pid==='pg-revenue')loadRevenue();
+  }
+}catch(e){console.warn('[SOCKET] Real-time sync failed:',e.message)}})}
 </script>
 </body>
 </html>
