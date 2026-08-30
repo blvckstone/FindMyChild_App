@@ -1524,10 +1524,21 @@ async function loadFaceApi(){
   }catch(e){console.error('[SAFECHILD] Model load failed:',e);faceApiLoading=false;return false}
 }
 
-async function getFaceDescriptor(imgElement){
-  const detection=await faceapi.detectSingleFace(imgElement).withFaceLandmarks().withFaceDescriptor();
-  if(!detection)return null;
-  return Array.from(detection.descriptor);
+async function extractFaceDescriptor(file){
+  return new Promise((resolve,reject)=>{
+    const img=new Image();
+    const objectUrl=URL.createObjectURL(file);
+    img.onload=async()=>{
+      try{
+        const detection=await faceapi.detectSingleFace(img,new faceapi.SsdMobilenetv1Options({minConfidence:0.4})).withFaceLandmarks().withFaceDescriptor();
+        URL.revokeObjectURL(objectUrl);
+        if(!detection)resolve(null);
+        else resolve(Array.from(detection.descriptor));
+      }catch(e){URL.revokeObjectURL(objectUrl);reject(e)}
+    };
+    img.onerror=()=>{URL.revokeObjectURL(objectUrl);reject(new Error('Failed to load image file.'))};
+    img.src=objectUrl;
+  });
 }
 
 /* --- Registration Flow --- */
@@ -1560,13 +1571,9 @@ async function submitRegistration(){
   if(!loaded){btn.disabled=false;btn.textContent='Register with AI';$('regStatus').textContent='Failed to load AI. Check your connection.';$('regStatus').style.color='var(--red)';return}
   
   $('regStatus').textContent='Detecting face...';
-  const img=new Image();img.crossOrigin='anonymous';
-  img.src=URL.createObjectURL(regPhotoFile);
-  await new Promise(r=>img.onload=r);
-  
-  const descriptor=await getFaceDescriptor(img);
-  URL.revokeObjectURL(img.src);
-  if(!descriptor){btn.disabled=false;btn.textContent='Register with AI';$('regStatus').textContent='No face detected. Please use a clear photo with one visible face.';$('regStatus').style.color='var(--red)';return}
+  let descriptor;
+  try{descriptor=await extractFaceDescriptor(regPhotoFile)}catch(e){descriptor=null}
+  if(!descriptor){btn.disabled=false;btn.textContent='Register with AI';$('regStatus').textContent='No face detected. Please ensure the child is facing the camera clearly with good lighting.';$('regStatus').style.color='var(--red)';return}
   
   $('regStatus').textContent='Registering child...';
   try{
@@ -1653,12 +1660,8 @@ async function submitFaceScan(){
     return;
   }
   
-  const img=new Image();img.crossOrigin='anonymous';
-  img.src=URL.createObjectURL(scanPhotoFile);
-  await new Promise(r=>img.onload=r);
-  
-  const descriptor=await getFaceDescriptor(img);
-  URL.revokeObjectURL(img.src);
+  let descriptor;
+  try{descriptor=await extractFaceDescriptor(scanPhotoFile)}catch(e){descriptor=null}
   
   if(!descriptor){
     $('scanLoading').style.display='none';

@@ -430,6 +430,16 @@ app.put('/api/admin/payment-settings', requireAdmin, requireSuperAdmin, async (r
 });
 
 // ---- SafeChild: Pre-Registration & AI Face Matching ----
+// Safely parse face descriptor from FormData string, JSON string, or array
+function parseFaceDescriptor(raw) {
+    let d = raw;
+    if (typeof d === 'string') {
+        try { d = JSON.parse(d); } catch (e) { d = d.split(',').map(Number); }
+    }
+    if (!Array.isArray(d) || d.length !== 128 || d.some(isNaN)) return null;
+    return d.map(Number);
+}
+
 // Public: no auth needed for matching
 app.get('/api/safechild/config', async (req, res) => {
     res.json({ success: true, message: 'SafeChild AI is active', version: '1.0' });
@@ -442,7 +452,8 @@ app.post('/api/safechild/register', requireAuth, async (req, res) => {
         if (!childName || !String(childName).trim()) {
             return res.status(400).json({ success: false, message: "Child's name is required." });
         }
-        if (!faceDescriptor || !Array.isArray(faceDescriptor) || faceDescriptor.length !== 128) {
+        const parsedDescriptor = parseFaceDescriptor(faceDescriptor);
+        if (!parsedDescriptor) {
             return res.status(400).json({ success: false, message: 'A valid face descriptor (128 numbers) is required.' });
         }
         // Upload photo to Cloudinary if provided as base64 or file
@@ -460,7 +471,7 @@ app.post('/api/safechild/register', requireAuth, async (req, res) => {
             parentContact: parentContact || '',
             medicalInfo: medicalInfo || '',
             photoUrl: finalPhotoUrl,
-            faceDescriptor: faceDescriptor.map(Number)
+            faceDescriptor: parsedDescriptor
         });
         res.status(201).json({ success: true, message: 'Child pre-registered successfully!', data: { id: child._id, childName: child.childName } });
     } catch (error) {
@@ -497,7 +508,8 @@ app.delete('/api/safechild/children/:id', requireAuth, async (req, res) => {
 app.post('/api/safechild/match', async (req, res) => {
     try {
         const { faceDescriptor } = req.body;
-        if (!faceDescriptor || !Array.isArray(faceDescriptor) || faceDescriptor.length !== 128) {
+        const parsedDescriptor = parseFaceDescriptor(faceDescriptor);
+        if (!parsedDescriptor) {
             return res.status(400).json({ success: false, message: 'A valid face descriptor (128 numbers) is required.' });
         }
         const { PreRegisteredChild } = await getModels();
@@ -509,7 +521,7 @@ app.post('/api/safechild/match', async (req, res) => {
         let bestMatch = null;
         let bestDistance = Infinity;
         const THRESHOLD = 0.6; // Lower = stricter match
-        const uploaded = faceDescriptor;
+        const uploaded = parsedDescriptor;
         for (const child of allChildren) {
             if (!child.faceDescriptor || child.faceDescriptor.length !== 128) continue;
             let sumSq = 0;
