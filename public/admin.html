@@ -366,6 +366,22 @@ button{font-family:inherit;cursor:pointer}input,select,textarea{font-family:inhe
     <div class="stat"><div class="icon blue"><svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg></div><div><div class="num" id="donCount">-</div><div class="lbl">Total Donations</div></div></div>
   </div>
   <div id="donList"></div>
+
+  <!-- Payment Settings -->
+  <div class="card-section" style="margin-top:18px">
+    <div class="cs-head"><h3>Payment Settings</h3><button class="btn-sm" onclick="savePaymentSettings()">Save Changes</button></div>
+    <div class="cs-body" id="paymentSettingsForm">
+      <div class="field"><label>UPI ID</label><input id="ps_upiId" type="text" placeholder="e.g. zii1@ybl"></div>
+      <div class="field"><label>Payee Name</label><input id="ps_payeeName" type="text" placeholder="e.g. MOHAMMAD SHOEB ABBAS"></div>
+      <div class="field"><label>Bank Account Name</label><input id="ps_bankAccountName" type="text" placeholder="e.g. FindMyChild Foundation"></div>
+      <div class="field"><label>Bank Account Number</label><input id="ps_bankAccountNumber" type="text" placeholder="Account number"></div>
+      <div class="field"><label>Bank IFSC Code</label><input id="ps_bankIfscCode" type="text" placeholder="e.g. SBIN0001234"></div>
+      <div class="field"><label>Bank Name</label><input id="ps_bankName" type="text" placeholder="e.g. State Bank of India"></div>
+      <div class="field"><label>Admin WhatsApp Number</label><input id="ps_adminPhone" type="text" placeholder="e.g. 919999999999"></div>
+      <div class="field"><label>Custom QR Image URL (optional)</label><input id="ps_qrImageUrl" type="text" placeholder="Leave empty for auto-generated QR"></div>
+      <div id="psMsg" style="font-size:12px;margin-top:8px"></div>
+    </div>
+  </div>
 </div>
 
 <!-- ===== USERS ===== -->
@@ -503,7 +519,7 @@ function navigateTo(page){
   if(page==='add')renderAddForm();
   if(page==='found')loadFoundReqs();
   if(page==='praise')renderPraise();
-  if(page==='donations')loadDonations();
+  if(page==='donations'){loadDonations();loadPaymentSettings()}
   if(page==='users')loadUsers();
   if(page==='analytics')loadAnalytics();
   if(page==='ads')loadAds();
@@ -800,6 +816,10 @@ function openPraiseDetail(id,kind){
 // Donations
 async function loadDonations(){try{const j=await api('/api/admin/donations');allDonations=j.data;$('donTotal').textContent=money(j.total);$('donCount').textContent=j.data.length;$('donList').innerHTML=j.data.length?j.data.map(d=>`<div class="card-section" style="margin-bottom:10px"><div class="item"><div class="info"><div class="top"><span class="name">${esc(d.donorName)}</span> <span class="sbadge approved">${money(d.amount)}</span></div><div class="sub">${d.emailId?esc(d.emailId):''}</div>${d.message?'<div class="sub">"'+esc(d.message)+'"</div>':''}<div class="meta">${fmtDate(d.createdAt)}</div></div><div class="acts">${miniBtn('btn-red',iDelete,'Delete',`delDonation('${d._id}')`)}</div></div></div>`).join(''):'<div class="empty">No donations yet.</div>'}catch(e){toast(e.message,'err')}}
 async function delDonation(id){if(!confirm('Delete?'))return;try{await api('/api/admin/donations/'+id,{method:'DELETE'});toast('Deleted.');loadDonations()}catch(e){toast(e.message,'err')}}
+
+// Payment Settings
+async function loadPaymentSettings(){try{const j=await api('/api/admin/payment-settings');if(j.success&&j.data){const d=j.data;$('ps_upiId').value=d.upiId||'';$('ps_payeeName').value=d.payeeName||'';$('ps_bankAccountName').value=d.bankAccountName||'';$('ps_bankAccountNumber').value=d.bankAccountNumber||'';$('ps_bankIfscCode').value=d.bankIfscCode||'';$('ps_bankName').value=d.bankName||'';$('ps_adminPhone').value=d.adminPhone||'';$('ps_qrImageUrl').value=d.qrImageUrl||''}}catch(e){}}
+async function savePaymentSettings(){const msg=$('psMsg');try{await api('/api/admin/payment-settings',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({upiId:$('ps_upiId').value.trim(),payeeName:$('ps_payeeName').value.trim(),bankAccountName:$('ps_bankAccountName').value.trim(),bankAccountNumber:$('ps_bankAccountNumber').value.trim(),bankIfscCode:$('ps_bankIfscCode').value.trim(),bankName:$('ps_bankName').value.trim(),adminPhone:$('ps_adminPhone').value.trim(),qrImageUrl:$('ps_qrImageUrl').value.trim()})});msg.style.color='var(--green)';msg.textContent='Settings saved!';toast('Payment settings saved.');setTimeout(()=>msg.textContent='',3000)}catch(e){msg.style.color='var(--red)';msg.textContent=e.message;toast(e.message,'err')}}
 
 // Users
 async function loadUsers(){

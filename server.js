@@ -374,6 +374,56 @@ app.get('/api/donations', async (req, res) => {
     }
 });
 
+// ---- Public: payment configuration ----
+app.get('/api/payment-config', async (req, res) => {
+    try {
+        const { PaymentSettings } = await getModels();
+        const settings = await PaymentSettings.findOne() || await PaymentSettings.create({});
+        res.json({
+            success: true,
+            data: {
+                upiId: settings.upiId,
+                payeeName: settings.payeeName,
+                bankAccountName: settings.bankAccountName,
+                bankAccountNumber: settings.bankAccountNumber,
+                bankIfscCode: settings.bankIfscCode,
+                bankName: settings.bankName,
+                adminPhone: settings.adminPhone,
+                qrImageUrl: settings.qrImageUrl
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// ---- Admin: payment settings ----
+app.get('/api/admin/payment-settings', requireAdmin, hasPermission('donations'), async (req, res) => {
+    try {
+        const { PaymentSettings } = await getModels();
+        const settings = await PaymentSettings.findOne() || await PaymentSettings.create({});
+        res.json({ success: true, data: settings });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+app.put('/api/admin/payment-settings', requireAdmin, hasPermission('donations'), async (req, res) => {
+    try {
+        const { PaymentSettings } = await getModels();
+        const allowed = ['upiId', 'payeeName', 'bankAccountName', 'bankAccountNumber', 'bankIfscCode', 'bankName', 'adminPhone', 'qrImageUrl'];
+        const updates = {};
+        allowed.forEach(field => {
+            if (req.body[field] !== undefined) updates[field] = String(req.body[field]).trim();
+        });
+        updates.updatedAt = new Date();
+        const settings = await PaymentSettings.findOneAndUpdate({}, { $set: updates }, { new: true, upsert: true });
+        res.json({ success: true, message: 'Payment settings saved.', data: settings });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
 // ---- Admin: login / logout ----
 app.post('/api/admin/login', (req, res) => {
     const result = loginAdmin(req.body.username, req.body.password);

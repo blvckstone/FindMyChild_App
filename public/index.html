@@ -784,13 +784,13 @@ main{scroll-padding-top:10px}
             <div style="font-size:12px;color:#92400e;margin-top:4px">Transfer directly to our bank account</div>
           </div>
           <div style="padding:16px 20px;display:flex;flex-direction:column;gap:12px">
-            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)"><span style="font-size:12px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">Account Name</span><span style="font-size:13px;font-weight:700;color:var(--text)">FindMyChild Foundation</span></div>
-            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)"><span style="font-size:12px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">Account Number</span><span style="font-size:13px;font-weight:700;color:var(--text)">1234567890123</span></div>
-            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)"><span style="font-size:12px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">IFSC Code</span><span style="font-size:13px;font-weight:700;color:var(--text)">SBIN0001234</span></div>
-            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0"><span style="font-size:12px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">Bank Name</span><span style="font-size:13px;font-weight:700;color:var(--text)">State Bank of India</span></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)"><span style="font-size:12px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">Account Name</span><span style="font-size:13px;font-weight:700;color:var(--text)" id="donBankAcctName">-</span></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)"><span style="font-size:12px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">Account Number</span><span style="font-size:13px;font-weight:700;color:var(--text)" id="donBankAcctNum">-</span></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)"><span style="font-size:12px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">IFSC Code</span><span style="font-size:13px;font-weight:700;color:var(--text)" id="donBankIfsc">-</span></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0"><span style="font-size:12px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">Bank Name</span><span style="font-size:13px;font-weight:700;color:var(--text)" id="donBankName">-</span></div>
           </div>
         </div>
-        <a href="https://wa.me/919999999999?text=Hi%20FindMyChild%20Team%2C%20I%20made%20a%20bank%20transfer%20donation." target="_blank" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px;background:#25d366;color:#fff;border:none;border-radius:14px;font-size:14px;font-weight:700;text-decoration:none;margin-bottom:10px">Contact Admin on WhatsApp</a>
+        <a id="donWhatsAppLink" href="https://wa.me/919999999999?text=Hi%20FindMyChild%20Team%2C%20I%20made%20a%20bank%20transfer%20donation." target="_blank" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px;background:#25d366;color:#fff;border:none;border-radius:14px;font-size:14px;font-weight:700;text-decoration:none;margin-bottom:10px">Contact Admin on WhatsApp</a>
         <button onclick="showDonStep(1);resetDonFlow()" style="width:100%;padding:12px;background:transparent;color:var(--text3);border:none;font-size:13px;font-weight:600;cursor:pointer">← Start New Donation</button>
       </div>
       <button id="donBackToPay" onclick="showDonStep(2)" style="width:100%;padding:12px;background:transparent;color:var(--text3);border:none;font-size:13px;font-weight:600;cursor:pointer">← Back to Payment</button>
@@ -1031,7 +1031,7 @@ $('reportBtn').addEventListener('click',async()=>{
 
 /* --- Navigation --- */
 function showView(name){['home','search','found','report','me','donate','about','contact','legal'].forEach(v=>{var el=$('view-'+v);if(el)el.classList.toggle('active',v===name)});['navHome','navSearch','navFound','navReport','navMe'].forEach(n=>$(n).classList.toggle('active',n==='nav'+name.charAt(0).toUpperCase()+name.slice(1)));
-  if($('desktopNav')){$('desktopNav').querySelectorAll('.desktop-nav-btn').forEach(b=>b.classList.toggle('active',b.getAttribute('data-page')===name));}if(name==='me')renderMe();if(name==='donate')loadDonations();if(name==='found')renderFound();if(name==='about')loadAboutPage();if(name==='contact')loadContactPage();trackSection(name);window.scrollTo(0,0)}
+  if($('desktopNav')){$('desktopNav').querySelectorAll('.desktop-nav-btn').forEach(b=>b.classList.toggle('active',b.getAttribute('data-page')===name));}if(name==='me')renderMe();if(name==='donate'){loadPaymentConfig();loadDonations()}if(name==='found')renderFound();if(name==='about')loadAboutPage();if(name==='contact')loadContactPage();trackSection(name);window.scrollTo(0,0)}
 $('heroSearch').addEventListener('click',()=>{showView('search');setTimeout(()=>$('q').focus(),300)})
 $('navHome').addEventListener('click',()=>showView('home'));
 $('navSearch').addEventListener('click',()=>showView('search'));
@@ -1096,11 +1096,13 @@ function logoutUser(){if(userToken)fetch('/api/auth/logout',{method:'POST',heade
 async function loadMyRequests(){const box=$('myReqs');if(!box)return;try{const j=await api('/api/found-requests/me',{auth:true});box.innerHTML=j.data.length?j.data.map(r=>`<div class="req-item"><div><div class="rn">${esc(r.finderName||'Anonymous')}</div><div class="rd">${fmtDate(r.createdAt)}${r.details?' . '+esc(String(r.details).slice(0,60)):''}</div></div><span class="req-badge ${r.status}">${r.status.toUpperCase()}</span></div>`).join(''):'<div class="empty"><p>No found requests yet.</p></div>'}catch(e){box.innerHTML=`<p style="color:var(--red);font-size:13px">${esc(e.message)}</p>`}}
 
 /* --- Donations --- */
-let donRetry=0;let donData={};const UPI_ID='zii1@ybl';
+let donRetry=0;let donData={};let paymentConfig={upiId:'zii1@ybl',payeeName:'MOHAMMAD SHOEB ABBAS',bankAccountName:'FindMyChild Foundation',bankAccountNumber:'',bankIfscCode:'',bankName:'',adminPhone:''};
+async function loadPaymentConfig(){try{const j=await fetch('/api/payment-config').then(r=>r.json());if(j.success&&j.data)paymentConfig=j.data;updatePaymentUI()}catch(e){}}
+function updatePaymentUI(){if($('donUpiIdDisplay'))$('donUpiIdDisplay').textContent=paymentConfig.upiId;if($('donCopyUpi'))$('donCopyUpi').innerHTML='📋 Copy UPI ID ('+paymentConfig.upiId+')';if($('donBankAcctName'))$('donBankAcctName').textContent=paymentConfig.bankAccountName||'-';if($('donBankAcctNum'))$('donBankAcctNum').textContent=paymentConfig.bankAccountNumber||'-';if($('donBankIfsc'))$('donBankIfsc').textContent=paymentConfig.bankIfscCode||'-';if($('donBankName'))$('donBankName').textContent=paymentConfig.bankName||'-';if($('donWhatsAppLink'))$('donWhatsAppLink').href='https://wa.me/'+(paymentConfig.adminPhone||'919999999999')+'?text=Hi%20FindMyChild%20Team%2C%20I%20made%20a%20bank%20transfer%20donation.'}
 function showDonStep(n){['donStep1','donStep2','donStep3','donStep4','donError'].forEach((id,i)=>{const el=$(id);if(el)el.style.display=(i===(n-1))?'block':'none'});window.scrollTo({top:0,behavior:'smooth'})}
 function genUpiRef(){return 'FMC'+Date.now().toString(36).toUpperCase()+Math.random().toString(36).slice(2,6).toUpperCase()}
-function buildUpiUri(method){const ref=genUpiRef();const name=esc($('d_name').value.trim());const amt=$('d_amount').value;const payee='MOHAMMAD SHOEB ABBAS';const tn='Donation from '+name;const params='pa='+UPI_ID+'&pn='+encodeURIComponent(payee)+'&am='+amt+'&cu=INR&tn='+encodeURIComponent(tn)+'&tr='+ref;donData={name:name,email:$('d_email').value.trim(),amount:amt,message:$('d_msg').value.trim(),ref:ref};if(method==='gpay')return 'tez://upi/pay?'+params;if(method==='phonepe')return 'phonepe://pay?'+params;return 'upi://pay?'+params}
-function copyUpiId(){navigator.clipboard.writeText(UPI_ID).then(()=>{const t=$('donCopyToast');const b=$('donCopyUpi');t.style.display='block';b.textContent='✅ Copied!';setTimeout(()=>{t.style.display='none';b.textContent='📋 Copy UPI ID'},3000)}).catch(()=>{const inp=document.createElement('input');inp.value=UPI_ID;document.body.appendChild(inp);inp.select();document.execCommand('copy');document.body.removeChild(inp);const t=$('donCopyToast');t.style.display='block';setTimeout(()=>t.style.display='none',3000)})}
+function buildUpiUri(method){const ref=genUpiRef();const name=esc($('d_name').value.trim());const amt=$('d_amount').value;const tn='Donation from '+name;const params='pa='+paymentConfig.upiId+'&pn='+encodeURIComponent(paymentConfig.payeeName)+'&am='+amt+'&cu=INR&tn='+encodeURIComponent(tn)+'&tr='+ref;donData={name:name,email:$('d_email').value.trim(),amount:amt,message:$('d_msg').value.trim(),ref:ref};if(method==='gpay')return 'tez://upi/pay?'+params;if(method==='phonepe')return 'phonepe://pay?'+params;return 'upi://pay?'+params}
+function copyUpiId(){const upi=paymentConfig.upiId||'zii1@ybl';navigator.clipboard.writeText(upi).then(()=>{const t=$('donCopyToast');const b=$('donCopyUpi');t.style.display='block';b.textContent='✅ Copied!';setTimeout(()=>{t.style.display='none';b.textContent='📋 Copy UPI ID ('+upi+')'},3000)}).catch(()=>{const inp=document.createElement('input');inp.value=upi;document.body.appendChild(inp);inp.select();document.execCommand('copy');document.body.removeChild(inp);const t=$('donCopyToast');t.style.display='block';setTimeout(()=>t.style.display='none',3000)})}
 $('donateBtn').addEventListener('click',async()=>{
   const msg=$('donateMsg');const name=$('d_name').value.trim();const amt=Number($('d_amount').value);
   if(!name){msg.textContent='Please enter your name.';return}
@@ -1388,6 +1390,7 @@ const cachedMsgs=loadCache('messages',600000);
 if(cachedMsgs){messages=cachedMsgs;renderMessages()}
 track('pageview','home');
 loadAds();
+loadPaymentConfig();
 scheduleBgRefresh();
 </script>
 

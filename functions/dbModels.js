@@ -136,6 +136,18 @@ const adSchema = mongoose.Schema({
     createdAt: { type: Date, default: Date.now }
 });
 
+const paymentSettingsSchema = mongoose.Schema({
+    upiId: { type: String, default: 'zii1@ybl' },
+    payeeName: { type: String, default: 'MOHAMMAD SHOEB ABBAS' },
+    bankAccountName: { type: String, default: 'FindMyChild Foundation' },
+    bankAccountNumber: { type: String, default: '' },
+    bankIfscCode: { type: String, default: '' },
+    bankName: { type: String, default: '' },
+    adminPhone: { type: String, default: '' },
+    qrImageUrl: { type: String, default: '' },
+    updatedAt: { type: Date, default: Date.now }
+});
+
 let modelsPromise = null;
 
 const getModels = async () => {
@@ -154,7 +166,13 @@ const getModels = async () => {
             const PageContent = mongoose.models.PageContent || mongoose.model('PageContent', pageContentSchema);
             const LegalPage = mongoose.models.LegalPage || mongoose.model('LegalPage', legalPageSchema);
             const Revenue = mongoose.models.Revenue || mongoose.model('Revenue', revenueSchema);
-            return { Child: db.data, User, FoundRequest, Praise, Gift, Donation, Analytics, Advertisement, AdminUser, PageContent, LegalPage, Revenue };
+            const PaymentSettings = mongoose.models.PaymentSettings || mongoose.model('PaymentSettings', paymentSettingsSchema);
+            // Seed default payment settings if none exist
+            const psCount = await PaymentSettings.countDocuments();
+            if (psCount === 0) {
+                await PaymentSettings.create({});
+            }
+            return { Child: db.data, User, FoundRequest, Praise, Gift, Donation, Analytics, Advertisement, AdminUser, PageContent, LegalPage, Revenue, PaymentSettings };
         })();
     }
     return modelsPromise;
