@@ -706,15 +706,121 @@ main{scroll-padding-top:10px}
   <section class="view" id="view-donate">
     <div class="page-top"><button class="back-btn" onclick="showView('home')"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button><h2>Donate</h2></div>
     <div class="search-head"><p>If this platform helped reunite your family, support us to keep it running.</p></div>
-    <div class="form-group">
-      <div class="field"><label>Your name *</label><input id="d_name" type="text" placeholder="Your name"></div>
-      <div class="field"><div class="row2"><div><label>Email</label><input id="d_email" type="email" placeholder="you@email.com"></div><div><label>Amount *</label><input id="d_amount" type="number" min="1" placeholder="500"></div></div></div>
-      <div class="field"><label>Message</label><textarea id="d_msg" rows="2" placeholder="Why are you donating?"></textarea></div>
-      <button class="btn" id="donateBtn"><svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>Donate</button>
-      <div class="result-info" id="donateMsg"></div>
+
+    <!-- Step 1: Donation Form -->
+    <div id="donStep1">
+      <div class="form-group">
+        <div class="field"><label>Your name *</label><input id="d_name" type="text" placeholder="Your name"></div>
+        <div class="field"><div class="row2"><div><label>Email</label><input id="d_email" type="email" placeholder="you@email.com"></div><div><label>Amount (₹) *</label><input id="d_amount" type="number" min="1" placeholder="500"></div></div></div>
+        <div class="field"><label>Message</label><textarea id="d_msg" rows="2" placeholder="Why are you donating?"></textarea></div>
+        <button class="btn" id="donateBtn" style="display:flex;align-items:center;justify-content:center;gap:8px"><svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:#fff"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>Proceed to Pay</button>
+        <div class="result-info" id="donateMsg"></div>
+      </div>
     </div>
-    <div class="section"><div class="section-head"><h3>Recent Donors</h3><span class="count" id="donTotal"></span></div><div class="don-list" id="donList"></div></div>
+
+    <!-- Step 2: UPI Payment Options -->
+    <div id="donStep2" style="display:none;padding:0 20px">
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:18px;overflow:hidden;box-shadow:var(--shadow);margin-bottom:16px">
+        <div style="padding:20px;border-bottom:1px solid var(--border)">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:4px">
+            <div style="width:40px;height:40px;border-radius:12px;background:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg viewBox="0 0 24 24" style="width:20px;height:20px;fill:#fff"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg></div>
+            <div><div style="font-size:16px;font-weight:700;color:var(--text)">Pay ₹<span id="donPayAmt">0</span></div><div style="font-size:12px;color:var(--text3);margin-top:2px">Choose your preferred UPI app</div></div>
+          </div>
+        </div>
+        <div style="padding:16px 20px;display:flex;flex-direction:column;gap:10px">
+          <button id="donPayGpay" style="display:flex;align-items:center;gap:12px;width:100%;padding:14px 16px;background:#fff;border:1.5px solid var(--border);border-radius:14px;cursor:pointer;transition:all .15s;font-size:14px;font-weight:600;color:var(--text)" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+            <div style="width:36px;height:36px;border-radius:10px;background:#4285f4;display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:#fff"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg></div>
+            <div style="text-align:left"><div style="font-weight:700">Google Pay</div><div style="font-size:11px;color:var(--text3);font-weight:400">Fast & secure</div></div>
+          </button>
+          <button id="donPayPhonepe" style="display:flex;align-items:center;gap:12px;width:100%;padding:14px 16px;background:#fff;border:1.5px solid var(--border);border-radius:14px;cursor:pointer;transition:all .15s;font-size:14px;font-weight:600;color:var(--text)" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+            <div style="width:36px;height:36px;border-radius:10px;background:#5f259f;display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:#fff"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg></div>
+            <div style="text-align:left"><div style="font-weight:700">PhonePe</div><div style="font-size:11px;color:var(--text3);font-weight:400">Pay via PhonePe</div></div>
+          </button>
+          <button id="donPayGeneric" style="display:flex;align-items:center;gap:12px;width:100%;padding:14px 16px;background:#fff;border:1.5px solid var(--border);border-radius:14px;cursor:pointer;transition:all .15s;font-size:14px;font-weight:600;color:var(--text)" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+            <div style="width:36px;height:36px;border-radius:10px;background:var(--dark);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:#fff"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></div>
+            <div style="text-align:left"><div style="font-weight:700">Other UPI App</div><div style="font-size:11px;color:var(--text3);font-weight:400">Any UPI app installed</div></div>
+          </button>
+        </div>
+        <!-- QR Code for Desktop -->
+        <div style="padding:0 20px 20px;display:none" id="donQRSection">
+          <div style="border-top:1px solid var(--border);padding-top:16px;text-align:center">
+            <div style="font-size:12px;color:var(--text3);margin-bottom:10px">Or scan this QR code with any UPI app</div>
+            <div style="display:inline-block;padding:12px;background:#fff;border:1.5px solid var(--border);border-radius:14px"><img id="donQRImg" src="" alt="UPI QR Code" style="width:180px;height:180px;display:block;border-radius:8px"></div>
+            <div style="font-size:11px;color:var(--text3);margin-top:8px">UPI ID: zii1@ybl</div>
+          </div>
+        </div>
+      </div>
+      <button id="donPaidBtn" style="width:100%;padding:14px;background:var(--green);color:#fff;border:none;border-radius:14px;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:10px;transition:transform .12s" onclick="showUTRStep()">I've Completed Payment</button>
+      <button onclick="showDonStep(1)" style="width:100%;padding:12px;background:transparent;color:var(--text3);border:none;font-size:13px;font-weight:600;cursor:pointer">← Go Back</button>
+    </div>
+
+    <!-- Step 3: UTR Verification -->
+    <div id="donStep3" style="display:none;padding:0 20px">
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:18px;overflow:hidden;box-shadow:var(--shadow);margin-bottom:16px">
+        <div style="padding:20px;border-bottom:1px solid var(--border)">
+          <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px">Verify Payment</div>
+          <div style="font-size:12px;color:var(--text3)">Enter the UTR / Reference number from your UPI app</div>
+        </div>
+        <div style="padding:16px 20px">
+          <div class="field"><label>UTR / Reference Number *</label><input id="d_utr" type="text" placeholder="e.g. 123456789012" maxlength="30" style="text-transform:uppercase"></div>
+          <div style="font-size:11px;color:var(--text3);margin-top:4px">Find this in your UPI app under transaction details</div>
+        </div>
+      </div>
+      <button id="donVerifyBtn" style="width:100%;padding:14px;background:var(--accent);color:#fff;border:none;border-radius:14px;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:10px;transition:transform .12s" onclick="submitDonation()">Verify & Submit</button>
+      <div id="donRetrySection" style="display:none;margin-bottom:12px">
+        <div style="background:#fff3cd;border:1px solid #ffc107;border-radius:14px;padding:16px;margin-bottom:12px">
+          <div style="font-size:13px;font-weight:700;color:#856404;margin-bottom:4px">Payment not verified</div>
+          <div style="font-size:12px;color:#856404">Attempt <span id="donRetryCount">1</span> of 3. Please check your UTR number and try again.</div>
+        </div>
+        <button id="donRetryBtn" style="width:100%;padding:14px;background:var(--orange);color:#fff;border:none;border-radius:14px;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:10px" onclick="retryPayment()">Retry Payment</button>
+      </div>
+      <div id="donBankFallback" style="display:none">
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:18px;overflow:hidden;box-shadow:var(--shadow);margin-bottom:16px">
+          <div style="padding:20px;border-bottom:1px solid var(--border);background:#fef3c7">
+            <div style="font-size:14px;font-weight:700;color:#92400e">🏦 Direct Bank Transfer</div>
+            <div style="font-size:12px;color:#92400e;margin-top:4px">Transfer directly to our bank account</div>
+          </div>
+          <div style="padding:16px 20px;display:flex;flex-direction:column;gap:12px">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)"><span style="font-size:12px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">Account Name</span><span style="font-size:13px;font-weight:700;color:var(--text)">FindMyChild Foundation</span></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)"><span style="font-size:12px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">Account Number</span><span style="font-size:13px;font-weight:700;color:var(--text)">1234567890123</span></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)"><span style="font-size:12px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">IFSC Code</span><span style="font-size:13px;font-weight:700;color:var(--text)">SBIN0001234</span></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0"><span style="font-size:12px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">Bank Name</span><span style="font-size:13px;font-weight:700;color:var(--text)">State Bank of India</span></div>
+          </div>
+        </div>
+        <a href="https://wa.me/919999999999?text=Hi%20FindMyChild%20Team%2C%20I%20made%20a%20bank%20transfer%20donation." target="_blank" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px;background:#25d366;color:#fff;border:none;border-radius:14px;font-size:14px;font-weight:700;text-decoration:none;margin-bottom:10px">Contact Admin on WhatsApp</a>
+        <button onclick="showDonStep(1);resetDonFlow()" style="width:100%;padding:12px;background:transparent;color:var(--text3);border:none;font-size:13px;font-weight:600;cursor:pointer">← Start New Donation</button>
+      </div>
+      <button id="donBackToPay" onclick="showDonStep(2)" style="width:100%;padding:12px;background:transparent;color:var(--text3);border:none;font-size:13px;font-weight:600;cursor:pointer">← Back to Payment</button>
+    </div>
+
+    <!-- Step 4: Thank You -->
+    <div id="donStep4" style="display:none;padding:0 20px;text-align:center">
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:18px;overflow:hidden;box-shadow:var(--shadow);padding:32px 20px;margin-bottom:16px">
+        <div style="width:64px;height:64px;border-radius:50%;background:#d1fae5;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;animation:donPopIn .5s cubic-bezier(.175,.885,.32,1.275)"><svg viewBox="0 0 24 24" style="width:32px;height:32px;fill:#059669"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>
+        <div style="font-size:20px;font-weight:700;color:var(--text);margin-bottom:6px">Thank You! ❤️</div>
+        <div style="font-size:13px;color:var(--text2);line-height:1.6">Your donation of <strong>₹<span id="donThankAmt">0</span></strong> helps us reunite more families.</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:8px">UTR: <span id="donThankUTR">-</span></div>
+      </div>
+      <button onclick="showDonStep(1);resetDonFlow()" style="width:100%;padding:14px;background:var(--accent);color:#fff;border:none;border-radius:14px;font-size:14px;font-weight:700;cursor:pointer">Donate Again</button>
+    </div>
+
+    <!-- Error state -->
+    <div id="donError" style="display:none;padding:0 20px;margin-bottom:16px">
+      <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:14px;padding:16px">
+        <div style="font-size:13px;font-weight:700;color:#dc2626;margin-bottom:4px">Something went wrong</div>
+        <div style="font-size:12px;color:#dc2624" id="donErrorMsg"></div>
+        <button onclick="showDonStep(1)" style="margin-top:10px;padding:8px 16px;background:#dc2624;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer">Try Again</button>
+      </div>
+    </div>
+
+    <div class="section" style="margin-top:8px"><div class="section-head"><h3>Recent Donors</h3><span class="count" id="donTotal"></span></div><div class="don-list" id="donList"></div></div>
   </section>
+
+  <style>
+  @keyframes donPopIn{0%{transform:scale(0);opacity:0}100%{transform:scale(1);opacity:1}}
+  @keyframes donFadeIn{0%{opacity:0;transform:translateY(10px)}100%{opacity:1;transform:translateY(0)}}
+  #donStep1,#donStep2,#donStep3,#donStep4{animation:donFadeIn .3s ease}
+  </style>
 
   <!-- ABOUT US -->
   <section class="view" id="view-about">
@@ -987,8 +1093,41 @@ function logoutUser(){if(userToken)fetch('/api/auth/logout',{method:'POST',heade
 async function loadMyRequests(){const box=$('myReqs');if(!box)return;try{const j=await api('/api/found-requests/me',{auth:true});box.innerHTML=j.data.length?j.data.map(r=>`<div class="req-item"><div><div class="rn">${esc(r.finderName||'Anonymous')}</div><div class="rd">${fmtDate(r.createdAt)}${r.details?' . '+esc(String(r.details).slice(0,60)):''}</div></div><span class="req-badge ${r.status}">${r.status.toUpperCase()}</span></div>`).join(''):'<div class="empty"><p>No found requests yet.</p></div>'}catch(e){box.innerHTML=`<p style="color:var(--red);font-size:13px">${esc(e.message)}</p>`}}
 
 /* --- Donations --- */
-$('donateBtn').addEventListener('click',async()=>{const msg=$('donateMsg');try{const j=await api('/api/donations',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({donorName:$('d_name').value.trim(),emailId:$('d_email').value.trim(),amount:$('d_amount').value,message:$('d_msg').value.trim()})});msg.textContent=j.message;$('d_name').value='';$('d_email').value='';$('d_amount').value='';$('d_msg').value='';loadDonations()}catch(e){msg.textContent=e.message}});
-async function loadDonations(){try{const j=await api('/api/donations');$('donTotal').textContent=money(j.total)+' raised';$('donList').innerHTML=j.data.length?j.data.map(d=>`<div class="don-item"><div class="drow"><span class="dname">${esc(d.donorName)}</span><span class="damt">${money(d.amount)}</span></div>${d.message?'<div class="dmsg">'+esc(d.message)+'</div>':''}<div class="ddate">${fmtDate(d.createdAt)}</div></div>`).join(''):'<div class="empty"><p>No donations yet.</p></div>'}catch(e){}}
+let donRetry=0;let donData={};const UPI_ID='zii1@ybl';
+function showDonStep(n){['donStep1','donStep2','donStep3','donStep4','donError'].forEach((id,i)=>{const el=$(id);if(el)el.style.display=(i===(n-1))?'block':'none'});window.scrollTo({top:0,behavior:'smooth'})}
+function genUpiRef(){return 'FMC'+Date.now().toString(36).toUpperCase()+Math.random().toString(36).slice(2,6).toUpperCase()}
+function buildUpiUri(method){const ref=genUpiRef();const name=esc($('d_name').value.trim());const amt=$('d_amount').value;const params='pa='+UPI_ID+'&pn=FindMyChild&am='+amt+'&cu=INR&tn=Donation+by+'+encodeURIComponent(name)+'&tr='+ref;donData={name:name,email:$('d_email').value.trim(),amount:amt,message:$('d_msg').value.trim(),ref:ref};if(method==='gpay')return 'tez://upi/pay?'+params;if(method==='phonepe')return 'phonepe://pay?'+params;return 'upi://pay?'+params}
+$('donateBtn').addEventListener('click',async()=>{
+  const msg=$('donateMsg');const name=$('d_name').value.trim();const amt=Number($('d_amount').value);
+  if(!name){msg.textContent='Please enter your name.';return}
+  if(!amt||amt<=0){msg.textContent='Please enter a valid amount.';return}
+  msg.textContent='';$('donPayAmt').textContent=amt;
+  const upiUri=buildUpiUri('generic');
+  $('donQRImg').src='https://api.qrserver.com/v1/create-qr-code/?size=180x180&data='+encodeURIComponent(upiUri)+'&margin=8';
+  $('donQRSection').style.display=(navigator.userAgent.includes('Mobile')||navigator.userAgent.includes('Android'))?'none':'block';
+  showDonStep(2)
+});
+$('donPayGpay').addEventListener('click',()=>{window.location.href=buildUpiUri('gpay');setTimeout(()=>$('donQRSection').style.display='block',2000)});
+$('donPayPhonepe').addEventListener('click',()=>{window.location.href=buildUpiUri('phonepe');setTimeout(()=>$('donQRSection').style.display='block',2000)});
+$('donPayGeneric').addEventListener('click',()=>{window.location.href=buildUpiUri('generic');setTimeout(()=>$('donQRSection').style.display='block',2000)});
+function showUTRStep(){donRetry=0;$('donRetrySection').style.display='none';$('donBankFallback').style.display='none';$('donBackToPay').style.display='block';showDonStep(3)}
+async function submitDonation(){
+  const utr=$('d_utr').value.trim();const btn=$('donVerifyBtn');
+  if(!utr){toast('Please enter your UTR number','err');return}
+  btn.disabled=true;btn.textContent='Verifying...';
+  try{
+    const j=await api('/api/donations',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({donorName:donData.name,emailId:donData.email,amount:Number(donData.amount),message:donData.message,utrNumber:utr,paymentMethod:'upi'})});
+    $('donThankAmt').textContent=donData.amount;$('donThankUTR').textContent=utr;
+    showDonStep(4);loadDonations();resetDonFlow();
+  }catch(e){
+    donRetry++;
+    if(donRetry>=3){$('donRetrySection').style.display='none';$('donBankFallback').style.display='block';$('donBackToPay').style.display='none'}
+    else{$('donRetrySection').style.display='block';$('donRetryCount').textContent=donRetry}
+  }finally{btn.disabled=false;btn.textContent='Verify & Submit'}
+}
+function retryPayment(){$('donRetrySection').style.display='none';$('d_utr').value='';$('d_utr').focus()}
+function resetDonFlow(){donRetry=0;donData={};$('d_utr').value='';$('donateMsg').textContent='';$('donError').style.display='none'}
+async function loadDonations(){try{const j=await api('/api/donations');$('donTotal').textContent=money(j.total)+' raised';$('donList').innerHTML=j.data.length?j.data.map(d=>`<div class="don-item" style="animation:donFadeIn .3s ease"><div class="drow"><span class="dname">${esc(d.donorName)}</span><span class="damt">${money(d.amount)}</span></div>${d.message?'<div class="dmsg">'+esc(d.message)+'</div>':''}${d.utrNumber?'<div style="font-size:10px;color:var(--text3);margin-top:3px">UTR: '+esc(d.utrNumber)+'</div>':''}<div class="ddate">${fmtDate(d.createdAt)}</div></div>`).join(''):'<div class="empty"><p>No donations yet.</p></div>'}catch(e){}}
 
 /* --- About Us page --- */
 async function loadAboutPage(){

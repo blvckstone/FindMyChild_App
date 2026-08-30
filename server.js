@@ -349,7 +349,10 @@ app.post('/api/donations', async (req, res) => {
             donorName: donorName.slice(0, 60),
             emailId: req.body.emailId ? String(req.body.emailId).trim().slice(0, 80) : '',
             amount,
-            message: req.body.message ? String(req.body.message).trim().slice(0, 500) : ''
+            message: req.body.message ? String(req.body.message).trim().slice(0, 500) : '',
+            utrNumber: req.body.utrNumber ? String(req.body.utrNumber).trim().slice(0, 30) : '',
+            paymentMethod: req.body.paymentMethod || 'upi',
+            status: 'pending'
         });
         io.emit('dataChanged'); clearDataCache();
         res.status(201).json({ success: true, message: "Thank you for your generous support! ❤️", data: donation });

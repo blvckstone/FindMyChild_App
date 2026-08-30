@@ -48,6 +48,9 @@ const donationSchema = mongoose.Schema({
     emailId: String,
     amount: Number,
     message: String,
+    utrNumber: { type: String, default: '' },
+    paymentMethod: { type: String, enum: ['upi', 'bank_transfer', 'other'], default: 'upi' },
+    status: { type: String, enum: ['pending', 'verified', 'failed'], default: 'pending' },
     createdAt: { type: Date, default: Date.now }
 });
 
