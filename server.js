@@ -268,6 +268,23 @@ app.put('/api/auth/me', requireAuth, async (req, res) => {
     }
 });
 
+app.get('/api/auth/activity', requireAuth, async (req, res) => {
+    try {
+        const { Child, FoundRequest, Praise, Gift, PreRegisteredChild } = await getModels();
+        const userId = req.userId;
+        const [children, foundReqs, praises, gifts, safeChildren] = await Promise.all([
+            Child.find({ uploadedBy: userId }).sort({ createdAt: -1 }).lean().catch(() => []),
+            FoundRequest.find({ userId }).sort({ createdAt: -1 }).populate('childId', 'fullName').lean().catch(() => []),
+            Praise.find({ userId }).sort({ createdAt: -1 }).populate('childId', 'fullName').lean().catch(() => []),
+            Gift.find({ userId }).sort({ createdAt: -1 }).populate('childId', 'fullName').lean().catch(() => []),
+            PreRegisteredChild.find({ parentId: userId }).sort({ createdAt: -1 }).lean().catch(() => [])
+        ]);
+        res.json({ success: true, data: { children, foundReqs, praises, gifts, safeChildren } });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
 // ---- Google OAuth ----
 if (googleClientId && googleClientSecret) {
     app.get('/api/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
