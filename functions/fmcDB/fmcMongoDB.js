@@ -19,6 +19,7 @@ const dataSchema = mongoose.Schema({
     missingDateTime: String,
     foundLocation: String,
     finderName: String,
+    finderContact: String,
     finderUserId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     foundDate: Date,
     disabilityInfo: String,

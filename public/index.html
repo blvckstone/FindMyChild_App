@@ -610,7 +610,7 @@ main{scroll-padding-top:10px}
 
 <div class="header">
   <div class="header-top">
-    <div class="header-brand">
+    <div class="header-brand" onclick="showView('home')" style="cursor:pointer">
       <div class="icon-wrap"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg></div>
       <div><h1>Find My Child</h1><small>Reunite families</small></div>
     </div>
@@ -748,7 +748,9 @@ main{scroll-padding-top:10px}
     <div class="page-top"><button class="back-btn" onclick="showView('home')"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button><h2>Found & Heroes</h2></div>
     <div class="search-head"><p>Children found through this portal and the heroes who found them.</p></div>
     <div style="padding:0 20px 8px"><div class="filter-chips" id="foundFilters"><div class="filter-chip active" onclick="setFoundFilter(this,'all')">All found</div><div class="filter-chip f-recent" onclick="setFoundFilter(this,'recent7')">Last 7 days</div></div></div>
+    <div style="padding:0 20px 10px"><input id="foundSearch" type="text" placeholder="Search by name or location..." oninput="foundPage=1;renderFound()" style="width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;background:var(--card);color:var(--text)"></div>
     <div class="found-list" id="foundList"></div>
+    <div id="foundPagination" style="padding:10px 20px 20px;text-align:center"></div>
   </section>
 
   <!-- REPORT -->
@@ -1121,6 +1123,7 @@ function openDetail(id){
   add('Location',esc(c.missingLocation));
   if(c.found)add('Found by',`<span style="color:var(--green);font-weight:700">${esc(c.finderName||'Someone')}</span>`);
   if(c.found&&c.foundLocation)add('Found at',esc(c.foundLocation));
+  if(c.found&&c.finderContact)add('Founder Contact',`<a href="tel:${esc(c.finderContact)}" style="color:var(--green)">${esc(c.finderContact)}</a>`);
   add('Disability',esc(c.disabilityInfo||c.disability||'None'));add('Info',esc(c.info));
   let actions='';
   if(c.found){
@@ -1141,19 +1144,29 @@ function doSearch(){const q=($('q')||{}).value||'';const gender=($('gender')||{}
 function renderResults(){let filtered=results.slice();const sortBy=($('sortBy')||{}).value||'recent';const ageMin=parseInt(($('ageMin')||{}).value)||0;const ageMax=parseInt(($('ageMax')||{}).value)||99;if(ageMin||ageMax<99)filtered=filtered.filter(c=>c.age>=ageMin&&c.age<=ageMax);if(activeFilter==='missing')filtered=filtered.filter(c=>!c.found);if(activeFilter==='found')filtered=filtered.filter(c=>c.found);if(activeFilter==='recent')filtered=filtered.sort(byDateDesc).slice(0,10);if(activeFilter==='week'){const w=Date.now()-7*86400000;filtered=filtered.filter(c=>new Date(c.createdAt).getTime()>w)}if(sortBy==='oldest')filtered.sort((a,b)=>new Date(a.createdAt)-new Date(b.createdAt));else if(sortBy==='name')filtered.sort((a,b)=>(a.fullName||'').localeCompare(b.fullName||''));else if(sortBy==='age')filtered.sort((a,b)=>(a.age||0)-(b.age||0));else filtered.sort(byDateDesc);if(!filtered.length){$('resultInfo').textContent='No matching child found.';$('searchResults').innerHTML='<div class="empty"><p>No results found.</p></div>';return}$('resultInfo').textContent=filtered.length+' match(es) found';$('searchResults').innerHTML='<div class="scard-grid">'+filtered.map(searchCardHtml).join('')+'</div>'}
 
 /* --- Found --- */
-let foundFilterMode='all';
-function setFoundFilter(el,mode){document.querySelectorAll('#foundFilters .filter-chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');foundFilterMode=mode;renderFound()}
+let foundFilterMode='all';let foundPage=1;const FOUND_PAGE_SIZE=10;
+function setFoundFilter(el,mode){document.querySelectorAll('#foundFilters .filter-chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');foundFilterMode=mode;foundPage=1;renderFound()}
 function renderFound(){
   let found=allData.filter(c=>c.found);
   if(foundFilterMode==='recent7'){const w=Date.now()-7*86400000;found=found.filter(c=>new Date(c.foundDate||c.createdAt).getTime()>w)}
+  const fq=($('foundSearch')||{}).value||'';const fqs=fq.trim().toLowerCase();
+  if(fqs)found=found.filter(c=>(c.fullName||'').toLowerCase().includes(fqs)||(c.finderName||'').toLowerCase().includes(fqs)||(c.address||'').toLowerCase().includes(fqs)||(c.foundLocation||'').toLowerCase().includes(fqs));
   found.sort(byDateDesc);
-  if(!found.length){$('foundList').innerHTML='<div class="empty"><p>No children found yet.</p></div>';return}
-  $('foundList').innerHTML=found.map(c=>{
+  const totalFound=found.length;const totalPages=Math.ceil(totalFound/FOUND_PAGE_SIZE);
+  if(foundPage>totalPages)foundPage=totalPages||1;
+  const paged=found.slice((foundPage-1)*FOUND_PAGE_SIZE,foundPage*FOUND_PAGE_SIZE);
+  if(!paged.length){$('foundList').innerHTML='<div class="empty"><p>'+(totalFound?'No matches for your search.':'No children found yet.')+'</p></div>';$('foundPagination').innerHTML='';return}
+  $('foundList').innerHTML=paged.map(c=>{
     const imgTag=c.image?'<img src="'+esc(c.image)+'" loading="lazy" onerror="this.style.display=\'none\'">':'';
     const isFinder=me&&me._id&&c.finderUserId&&(me._id===c.finderUserId||me._id.toString&&me._id.toString()===c.finderUserId);
     const actionsHtml=isFinder?'<div class="factions" style="justify-content:center"><span style="font-size:12px;color:var(--text3);font-style:italic">You are the finder — you cannot praise or gift yourself</span></div>':'<div class="factions"><button class="action-btn gold" onclick="openPraiseForm(\''+esc(c._id)+'\',\''+esc(c.fullName||'')+'\')">Praise</button><button class="action-btn green" onclick="openGiftForm(\''+esc(c._id)+'\',\''+esc(c.fullName||'')+'\')">Give a gift</button></div>';
     return '<div class="fcard" id="fcard-'+esc(c._id)+'"><div class="fhead" onclick="toggleFound(\''+esc(c._id)+'\')"><div class="favatar"><div class="ph">'+iconChild+'</div>'+imgTag+'</div><div class="finfo"><div class="fname">'+(esc(c.fullName)||'Unknown')+'</div><div class="finder"><svg viewBox="0 0 24 24" style="width:13px;height:13px;fill:var(--green);vertical-align:middle"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> Found by '+(esc(c.finderName||'Someone'))+'</div><div class="fdate">'+fmtDate(c.foundDate||c.createdAt)+'</div></div><div class="farrow" id="fcarrow-'+esc(c._id)+'">&#9662;</div></div><div class="fbody" id="fbody-'+esc(c._id)+'"><div id="praiseBox-'+esc(c._id)+'"><div class="empty"><p style="font-size:12px">Loading...</p></div></div>'+actionsHtml+'</div></div>'
   }).join('');
+  // Pagination
+  if(totalPages>1){let pg='';pg+='<button onclick="foundPage='+(foundPage-1)+';renderFound()" '+(foundPage<=1?'disabled':'')+' style="padding:8px 16px;margin:0 4px;border:1.5px solid var(--border);border-radius:var(--radius-sm);background:var(--card);color:var(--text);cursor:pointer;font-size:13px"'+(foundPage<=1?' disabled':'')+'>Prev</button>';
+  for(let p=1;p<=totalPages;p++){pg+='<button onclick="foundPage='+p+';renderFound()" style="padding:8px 12px;margin:0 2px;border:1.5px solid '+(p===foundPage?'var(--accent)':'var(--border)')+';border-radius:var(--radius-sm);background:'+(p===foundPage?'var(--accent)':'var(--card)')+';color:'+(p===foundPage?'#fff':'var(--text)')+';cursor:pointer;font-size:13px;font-weight:'+(p===foundPage?'700':'400')+'">'+p+'</button>'}
+  pg+='<button onclick="foundPage='+(foundPage+1)+';renderFound()" style="padding:8px 16px;margin:0 4px;border:1.5px solid var(--border);border-radius:var(--radius-sm);background:var(--card);color:var(--text);cursor:pointer;font-size:13px"'+(foundPage>=totalPages?' disabled':'')+'>Next</button>';
+  pg+='<div style="margin-top:8px;font-size:12px;color:var(--text3)">Page '+foundPage+' of '+totalPages+' ('+totalFound+' total)</div>';$('foundPagination').innerHTML=pg}else{$('foundPagination').innerHTML=''}
 }
 async function toggleFound(id){const card=$('fcard-'+id);if(!card)return;card.classList.toggle('open');$('fcarrow-'+id).textContent=card.classList.contains('open')?'\u25B4':'\u25BE';if(card.classList.contains('open')&&!$('praiseBox-'+id).dataset.loaded){try{const j=await api('/api/praise?childId='+id);const{praises,gifts}=j.data;$('praiseBox-'+id).dataset.loaded='1';let html='<h4>Praises ('+praises.length+')</h4>'+(praises.length?praises.map(p=>`<div class="praise-item"><div class="pn">${esc(p.userName)}</div><div class="pt">${esc(p.text)}</div></div>`).join(''):'<p style="font-size:12px;color:var(--text3)">No praises yet.</p>');html+='<h4>Gifts ('+gifts.length+')</h4>'+(gifts.length?gifts.map(g=>`<div class="gift-item"><div class="gn">${esc(g.giverName)}${g.amount?' . '+money(g.amount):''}</div><div class="gm">${esc(g.message)}</div></div>`).join(''):'<p style="font-size:12px;color:var(--text3)">No gifts yet.</p>');$('praiseBox-'+id).innerHTML=html}catch(e){$('praiseBox-'+id).innerHTML=`<p style="color:var(--red);font-size:13px">${esc(e.message)}</p>`}}}
 function openFoundFor(id){showView('found');setTimeout(()=>{const card=$('fcard-'+id);if(!card)return;if(!card.classList.contains('open'))toggleFound(id);card.scrollIntoView({behavior:'smooth',block:'center'})},250)}
@@ -1203,7 +1216,7 @@ async function submitGift(childId){try{const j=await api('/api/gifts',{method:'P
 
 /* --- Me --- */
 let authMode='login';
-function renderMe(){$('meBody').innerHTML='';if(me){$('meSub').textContent='Welcome back!';$('meBody').innerHTML=`<div class="profile-card"><div class="av">${iconUser}</div><div class="pn">${esc(me.userFullName)}</div><div class="ps">${esc(me.userContactNumber)}${me.emailId?' . '+esc(me.emailId):''}</div></div><div class="section" style="padding:0 20px 8px"><div class="section-head"><h3>My Found Requests</h3></div><div id="myReqs"></div></div><div class="donate-banner" id="meDonate" style="margin:16px 20px"><div class="db-icon">${iconHeart}</div><div><h3>Support this platform</h3><p>Donate if this portal helped you.</p></div></div><div style="padding:0 20px"><button class="btn-ghost" style="width:100%" onclick="logoutUser()">Log out</button></div>`;$('meDonate').addEventListener('click',()=>showView('donate'));loadMyRequests()}else{$('meSub').textContent='Log in to raise a found flag, or create an account.';$('meBody').innerHTML=`<div class="auth-toggle"><button id="authLoginBtn" class="active">Log in</button><button id="authSignupBtn">Sign up</button></div><div id="authForm" style="padding:0 20px"></div>`;$('authLoginBtn').addEventListener('click',()=>setAuthMode('login'));$('authSignupBtn').addEventListener('click',()=>setAuthMode('signup'));setAuthMode('login')}}
+function renderMe(){$('meBody').innerHTML='';if(me){$('meSub').textContent='Welcome back!';$('meBody').innerHTML=`<div class="profile-card"><div class="av">${iconUser}</div><div class="pn">${esc(me.userFullName)}</div><div class="ps">${esc(me.userContactNumber)}${me.emailId?' . '+esc(me.emailId):''}</div><button class="btn-ghost" style="width:100%;margin-top:12px;padding:10px;font-size:13px;border-radius:var(--radius-sm);border:1.5px solid var(--accent);color:var(--accent)" onclick="openProfileEdit()">✏️ Edit Profile</button></div><div class="section" style="padding:0 20px 8px"><div class="section-head"><h3>My Found Requests</h3></div><div id="myReqs"></div></div><div class="donate-banner" id="meDonate" style="margin:16px 20px"><div class="db-icon">${iconHeart}</div><div><h3>Support this platform</h3><p>Donate if this portal helped you.</p></div></div><div style="padding:0 20px"><button class="btn-ghost" style="width:100%" onclick="logoutUser()">Log out</button></div>`;$('meDonate').addEventListener('click',()=>showView('donate'));loadMyRequests()}else{$('meSub').textContent='Log in to raise a found flag, or create an account.';$('meBody').innerHTML=`<div class="auth-toggle"><button id="authLoginBtn" class="active">Log in</button><button id="authSignupBtn">Sign up</button></div><div id="authForm" style="padding:0 20px"></div>`;$('authLoginBtn').addEventListener('click',()=>setAuthMode('login'));$('authSignupBtn').addEventListener('click',()=>setAuthMode('signup'));setAuthMode('login')}}
 function setAuthMode(mode){
   authMode=mode;
   const l=$('authLoginBtn'),s=$('authSignupBtn');
@@ -1227,6 +1240,8 @@ function checkPwStrength(){const pw=($('as_pass')||{}).value||'';const el=$('pwS
 async function doLogin(){try{const id=($('ai_id')||{}).value||'';const pw=($('ai_pass')||{}).value||'';if(!id){toast('Enter phone or email','err');return}if(!pw){toast('Enter password','err');return}const j=await api('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({identifier:id.trim(),password:pw})});userToken=j.token;localStorage.setItem('fmc_user_token',j.token);me=j.user;track('login');toast(j.message);renderMe()}catch(e){toast(e.message,'err')}}
 async function doSignup(){try{const name=($('as_name')||{}).value||'';const phone=($('as_contact')||{}).value||'';const email=($('as_email')||{}).value||'';const pw=($('as_pass')||{}).value||'';if(!name.trim()||name.trim().length<2){toast('Name must be at least 2 characters','err');return}if(!/^\+?91?[6-9]\d{9}$/.test(phone.replace(/[\s\-()]/g,''))){toast('Enter valid 10-digit Indian phone','err');return}if(pw.length<8||!/[A-Z]/.test(pw)||!/[0-9]/.test(pw)||!/[!@#$%^&*()_+\-=\[\]{};':"\\\|,.<>\/?]/.test(pw)){toast('Password needs 8+ chars, uppercase, number, special','err');return}const j=await api('/api/auth/signup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fullName:name.trim(),contactNumber:phone.trim(),emailId:email.trim(),password:pw})});userToken=j.token;localStorage.setItem('fmc_user_token',j.token);me=j.user;track('signup');toast(j.message);renderMe()}catch(e){toast(e.message,'err')}}
 function logoutUser(){if(userToken)fetch('/api/auth/logout',{method:'POST',headers:{Authorization:'Bearer '+userToken}}).catch(()=>{});localStorage.removeItem('fmc_user_token');userToken='';me=null;toast('Logged out.');renderMe()}
+function openProfileEdit(){openModal('Edit Profile',`<div class="field"><label>Full Name</label><input id="pe_name" type="text" value="${esc(me&&me.userFullName||'')}" placeholder="Your full name"></div><div class="field"><label>Phone Number</label><input id="pe_contact" type="tel" value="${esc(me&&me.userContactNumber||'')}" placeholder="Phone number" maxlength="20"></div><div class="actions"><button class="btn" style="margin:0" onclick="submitProfileEdit()">Save Changes</button><button class="btn-ghost" onclick="closeModal()">Cancel</button></div>`)}
+async function submitProfileEdit(){try{const j=await api('/api/auth/me',{method:'PUT',auth:true,headers:{'Content-Type':'application/json'},body:JSON.stringify({userFullName:$('pe_name').value.trim(),userContactNumber:$('pe_contact').value.trim()})});if(j.user){me=j.user}closeModal();toast(j.message||'Profile updated!');renderMe()}catch(e){toast(e.message,'err')}}
 async function loadMyRequests(){const box=$('myReqs');if(!box)return;try{const j=await api('/api/found-requests/me',{auth:true});box.innerHTML=j.data.length?j.data.map(r=>`<div class="req-item"><div><div class="rn">${esc(r.finderName||'Anonymous')}</div><div class="rd">${fmtDate(r.createdAt)}${r.details?' . '+esc(String(r.details).slice(0,60)):''}</div></div><span class="req-badge ${r.status}">${r.status.toUpperCase()}</span></div>`).join(''):'<div class="empty"><p>No found requests yet.</p></div>'}catch(e){box.innerHTML=`<p style="color:var(--red);font-size:13px">${esc(e.message)}</p>`}}
 
 /* --- Donations --- */
@@ -1735,6 +1750,10 @@ async function submitFaceScan(){
     
     if(j.matched&&j.data){
       const d=j.data;
+      // Store matched child in allData so openDetail can find it
+      if(d.id&&!allData.find(x=>String(x._id)===String(d.id))){
+        allData.push({_id:d.id,fullName:d.childName,age:d.age,gender:d.gender,address:d.address,contactNumber:d.parentContact||'',medicalInfo:d.medicalInfo,image:d.photoUrl,found:false,source:'ai_match'});
+      }
       const imgHtml=d.photoUrl?'<img src="'+esc(d.photoUrl)+'" alt="'+esc(d.childName)+'">':'<div class="ph"><svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.26-5.33-4-8-4z"/></svg></div>';
       let infoRows='';
       if(d.age)infoRows+='<div class="info-row"><span class="lbl">Age</span><span class="val">'+esc(String(d.age))+' years</span></div>';
@@ -1743,9 +1762,10 @@ async function submitFaceScan(){
       if(d.medicalInfo)infoRows+='<div class="info-row"><span class="lbl">Medical</span><span class="val">'+esc(d.medicalInfo)+'</span></div>';
       $('scanResult').innerHTML='<div class="match-avatar">'+imgHtml+'</div>'+
         '<h3>'+esc(d.childName)+'</h3>'+
-        '<div class="conf">✅ Child Identified — '+j.confidence+'% confidence</div>'+
+        '<div class="conf">✅ Child Identified — '+d.confidence+'% confidence</div>'+
         infoRows+
         (d.parentContact?'<a class="contact-btn" href="tel:'+esc(d.parentContact.replace(/[^0-9+]/g,''))+'" style="text-decoration:none">📞 Call Parent: '+esc(d.parentContact)+'</a>':'')+
+        (d.id?'<button class="btn-outline" onclick="closeScanModal();openDetail(\''+esc(d.id)+'\')" style="width:100%;padding:14px;border-radius:14px;margin-top:8px;font-weight:700;border:1.5px solid var(--accent);color:var(--accent);background:transparent;cursor:pointer">More Details</button>':'')+
         '<button class="btn-ghost" style="width:100%;margin-top:10px" onclick="closeScanModal()">Close</button>';
       $('scanResult').style.display='block';
     }else{

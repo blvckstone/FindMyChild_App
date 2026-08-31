@@ -155,7 +155,7 @@ const childFields = [
     'fullName', 'address', 'contactNumber', 'uploadedBy', 'state', 'found',
     'image', 'missingDate', 'missingTime', 'gender', 'age', 'info',
     'disability', 'missingLocation', 'missingDateTime', 'foundLocation', 'disabilityInfo', 'status',
-    'faceDescriptor'
+    'faceDescriptor', 'finderName', 'finderContact', 'finderUserId', 'foundDate'
 ];
 
 const pickChildFields = (body) => {
@@ -247,6 +247,22 @@ app.get('/api/auth/me', requireAuth, async (req, res) => {
         const user = await User.findById(req.userId);
         if (!user) return res.status(404).json({ success: false, message: "User not found." });
         res.json({ success: true, user });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+app.put('/api/auth/me', requireAuth, async (req, res) => {
+    try {
+        const { userFullName, userContactNumber } = req.body;
+        const { User } = await getModels();
+        const update = {};
+        if (userFullName !== undefined) update.userFullName = String(userFullName).trim().slice(0, 100);
+        if (userContactNumber !== undefined) update.userContactNumber = String(userContactNumber).trim().slice(0, 20);
+        if (Object.keys(update).length === 0) return res.status(400).json({ success: false, message: 'No fields to update.' });
+        const user = await User.findByIdAndUpdate(req.userId, { $set: update }, { new: true });
+        if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
+        res.json({ success: true, message: 'Profile updated successfully.', user });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
@@ -614,6 +630,7 @@ app.post('/api/safechild/match', async (req, res) => {
                 matched: true,
                 distance: Math.round(bestDistance * 1000) / 1000,
                 data: {
+                    id: bestMatch._id,
                     childName: bestMatch.childName,
                     age: bestMatch.age,
                     gender: bestMatch.gender,
@@ -921,6 +938,7 @@ app.put('/api/admin/found-requests/:id', requireAdmin, async (req, res) => {
                     found: true,
                     foundLocation: fr.details || 'Reported found',
                     finderName: fr.finderName,
+                    finderContact: fr.contactNumber,
                     finderUserId: fr.userId,
                     foundDate: new Date()
                 }
