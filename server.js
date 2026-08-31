@@ -274,9 +274,9 @@ app.get('/api/auth/activity', requireAuth, async (req, res) => {
         const userId = req.userId;
         const [children, foundReqs, praises, gifts, safeChildren] = await Promise.all([
             Child.find({ uploadedBy: userId }).sort({ createdAt: -1 }).lean().catch(() => []),
-            FoundRequest.find({ userId }).sort({ createdAt: -1 }).populate('childId', 'fullName').lean().catch(() => []),
-            Praise.find({ userId }).sort({ createdAt: -1 }).populate('childId', 'fullName').lean().catch(() => []),
-            Gift.find({ userId }).sort({ createdAt: -1 }).populate('childId', 'fullName').lean().catch(() => []),
+            FoundRequest.find({ userId }).sort({ createdAt: -1 }).populate('childId', 'fullName childName').lean().catch(() => []),
+            Praise.find({ userId }).sort({ createdAt: -1 }).populate('childId', 'fullName childName').lean().catch(() => []),
+            Gift.find({ userId }).sort({ createdAt: -1 }).populate('childId', 'fullName childName').lean().catch(() => []),
             PreRegisteredChild.find({ parentId: userId }).sort({ createdAt: -1 }).lean().catch(() => [])
         ]);
         res.json({ success: true, data: { children, foundReqs, praises, gifts, safeChildren } });
@@ -359,7 +359,7 @@ app.post('/api/found-requests', requireAuth, async (req, res) => {
 app.get('/api/found-requests/me', requireAuth, async (req, res) => {
     try {
         const { FoundRequest, Child } = await getModels();
-        const data = await FoundRequest.find({ userId: req.userId }).sort({ createdAt: -1 });
+        const data = await FoundRequest.find({ userId: req.userId }).sort({ createdAt: -1 }).populate('childId', 'fullName childName');
         res.json({ success: true, data });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -1498,6 +1498,38 @@ app.get('/api/ads/click/:id', async (req, res) => {
 });
 
 // ---- Public: require login for praise & gifts ----
+// Update a user's own praise
+app.put('/api/praise/:id', requireAuth, async (req, res) => {
+    try {
+        const { Praise } = await getModels();
+        const { text } = req.body;
+        if (!text || !text.trim()) return res.status(400).json({ success: false, message: 'Praise text is required.' });
+        const praise = await Praise.findOneAndUpdate(
+            { _id: req.params.id, userId: req.userId },
+            { $set: { text: String(text).trim().slice(0, 500), status: 'pending' } },
+            { new: true }
+        );
+        if (!praise) return res.status(404).json({ success: false, message: 'Praise not found or unauthorized.' });
+        io.emit('dataChanged'); clearDataCache();
+        res.json({ success: true, message: 'Praise updated and pending approval.', data: praise });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// Delete a user's own praise
+app.delete('/api/praise/:id', requireAuth, async (req, res) => {
+    try {
+        const { Praise } = await getModels();
+        const praise = await Praise.findOneAndDelete({ _id: req.params.id, userId: req.userId });
+        if (!praise) return res.status(404).json({ success: false, message: 'Praise not found or unauthorized.' });
+        io.emit('dataChanged'); clearDataCache();
+        res.json({ success: true, message: 'Praise deleted.' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
 app.post('/api/praise', requireAuth, async (req, res) => {
     try {
         const { Praise, Child } = await getModels();
