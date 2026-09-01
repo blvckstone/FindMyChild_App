@@ -261,6 +261,7 @@ button{font-family:inherit;cursor:pointer}input,select,textarea{font-family:inhe
   <nav id="sideNav">
     <a href="#" class="active" data-page="dashboard"><svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>Dashboard</a>
     <a href="#" data-page="pending"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>Pending<span class="badge" id="badgePending">0</span></a>
+    <a href="#" data-page="history"><svg viewBox="0 0 24 24"><path d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>History</a>
     <a href="#" data-page="children"><svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>All Children</a>
     <a href="#" data-page="add"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>Add New</a>
     <a href="#" data-page="found"><svg viewBox="0 0 24 24"><path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6z"/></svg>Found Requests<span class="badge" id="badgeFound">0</span></a>
@@ -313,20 +314,33 @@ button{font-family:inherit;cursor:pointer}input,select,textarea{font-family:inhe
 <!-- ===== PENDING ===== -->
 <div class="page" id="pg-pending">
   <div class="page-head"><h2>Pending Approvals</h2><div class="actions"><button class="btn-sm btn-green" id="approveAllBtn">Approve All</button></div></div>
-  <div class="filter-bar"><input id="pendingSearch" placeholder="Search pending records..." oninput="renderPending()"></div>
+  <div class="filter-bar"><input id="pendingSearch" placeholder="Search pending records..." oninput="pendingPage=1;renderPending()"></div>
   <div id="pendingList"></div>
+  <div id="pendingPager" style="display:flex;align-items:center;justify-content:center;gap:12px;padding:16px 0"></div>
+</div>
+
+<!-- ===== HISTORY ===== -->
+<div class="page" id="pg-history">
+  <div class="page-head"><h2>Request History</h2></div>
+  <div class="filter-bar">
+    <input id="historySearch" placeholder="Search by name or address..." oninput="historyPage=1;renderHistory()">
+    <select id="historyStatus" onchange="historyPage=1;renderHistory()"><option value="">All Processed</option><option value="approved">Approved</option><option value="rejected">Rejected</option></select>
+  </div>
+  <div id="historyList"></div>
+  <div id="historyPager" style="display:flex;align-items:center;justify-content:center;gap:12px;padding:16px 0"></div>
 </div>
 
 <!-- ===== ALL CHILDREN ===== -->
 <div class="page" id="pg-children">
   <div class="page-head"><h2>All Children</h2></div>
   <div class="filter-bar">
-    <input id="childSearch" placeholder="Search name, address, contact..." oninput="renderChildren()">
-    <select id="childStatus" onchange="renderChildren()"><option value="">All Status</option><option value="approved">Approved</option><option value="pending">Pending</option><option value="rejected">Rejected</option></select>
-    <select id="childGender" onchange="renderChildren()"><option value="">All Gender</option><option value="Male">Male</option><option value="Female">Female</option></select>
-    <select id="childFound" onchange="renderChildren()"><option value="">All</option><option value="true">Found</option><option value="false">Missing</option></select>
+    <input id="childSearch" placeholder="Search name, address, contact..." oninput="childrenPage=1;renderChildren()">
+    <select id="childStatus" onchange="childrenPage=1;renderChildren()"><option value="">All Status</option><option value="approved">Approved</option><option value="pending">Pending</option><option value="rejected">Rejected</option></select>
+    <select id="childGender" onchange="childrenPage=1;renderChildren()"><option value="">All Gender</option><option value="Male">Male</option><option value="Female">Female</option></select>
+    <select id="childFound" onchange="childrenPage=1;renderChildren()"><option value="">All</option><option value="true">Found</option><option value="false">Missing</option></select>
   </div>
   <div id="childList"></div>
+  <div id="childPager" style="display:flex;align-items:center;justify-content:center;gap:12px;padding:16px 0"></div>
 </div>
 
 <!-- ===== ADD NEW ===== -->
@@ -549,6 +563,7 @@ function navigateTo(page){
   if(!canAccess(page)){showNoAccess(page);return}
   if(page==='dashboard')loadDashboard();
   if(page==='pending')renderPending();
+  if(page==='history')renderHistory();
   if(page==='children')renderChildren();
   if(page==='add')renderAddForm();
   if(page==='found')loadFoundReqs();
@@ -567,7 +582,7 @@ function navigateTo(page){
 document.querySelectorAll('#sideNav a[data-page]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();navigateTo(a.dataset.page)}));
 document.querySelectorAll('#mobNav button[data-page]').forEach(b=>b.addEventListener('click',()=>{if(b.dataset.page==='more'){showMoreMenu();return}navigateTo(b.dataset.page)}));
 function showMoreMenu(){
-  const allPages=[{id:'analytics',label:'Analytics',icon:'📊'},{id:'ads',label:'Ads',icon:'📺'},{id:'donations',label:'Donations',icon:'💰'},{id:'revenue',label:'Revenue',icon:'💵'},{id:'ngo',label:'NGO Contacts',icon:'📞'},{id:'pages',label:'Pages',icon:'📄'},{id:'legal',label:'Legal Pages',icon:'⚖️'},{id:'praise',label:'Praise & Gifts',icon:'⭐'},{id:'users',label:'Users',icon:'👥'},{id:'whitelist',label:'Admin Whitelist',icon:'🔐'},{id:'add',label:'Add New',icon:'➕'},{id:'profile',label:'My Profile',icon:'👤'}];
+  const allPages=[{id:'history',label:'History',icon:'🕐'},{id:'analytics',label:'Analytics',icon:'📊'},{id:'ads',label:'Ads',icon:'📺'},{id:'donations',label:'Donations',icon:'💰'},{id:'revenue',label:'Revenue',icon:'💵'},{id:'ngo',label:'NGO Contacts',icon:'📞'},{id:'pages',label:'Pages',icon:'📄'},{id:'legal',label:'Legal Pages',icon:'⚖️'},{id:'praise',label:'Praise & Gifts',icon:'⭐'},{id:'users',label:'Users',icon:'👥'},{id:'whitelist',label:'Admin Whitelist',icon:'🔐'},{id:'add',label:'Add New',icon:'➕'},{id:'profile',label:'My Profile',icon:'👤'}];
   const pages=allPages.filter(p=>canAccess(p.id));
   $('modalTitle').textContent='More';
   const items=pages.map(p=>`<div onclick="closeModal();navigateTo('${p.id}')" style="display:flex;align-items:center;gap:14px;padding:16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background=''"><span style="font-size:20px">${p.icon}</span><span style="font-size:15px;font-weight:600;color:var(--text)">${p.label}</span><span style="margin-left:auto;color:var(--text3)">›</span></div>`).join('');
@@ -618,7 +633,7 @@ let adminInfo={}; // Full admin info from /api/admin/me
 
 // Permission-to-page mapping
 const permMap={
-  children:['pending','children','add','found'],
+  children:['pending','history','children','add','found'],
   users:['users'],
   ads:['ads'],
   analytics:['analytics'],
@@ -662,25 +677,120 @@ function applyNavVisibility(){
   });
 }
 
-// Pending
-function renderPending(){
-  const q=($('pendingSearch')?.value||'').toLowerCase();
-  const pending=allChildren.filter(c=>c.status==='pending').filter(c=>!q||(c.fullName||'').toLowerCase().includes(q)||(c.address||'').toLowerCase().includes(q));
-  $('pendingList').innerHTML=pending.length?pending.map(c=>childItem(c,'pending')).join(''):'<div class="card-section"><div class="cs-body"><div class="empty">All caught up! No pending records.</div></div></div>';
+// --- Server-side pagination helper ---
+let pendingPage=1,historyPage=1;
+const PAGE_SIZE=20;
+function pagerHtml(containerId,page,totalPages,total,goFn){
+  if(totalPages<=1){$(containerId).innerHTML='';return}
+  $(containerId).innerHTML=`<button class="btn-sm" onclick="${goFn}(${page-1})" ${page<=1?'disabled':''} style="${page<=1?'opacity:0.4;pointer-events:none':''}">‹ Prev</button><span style="font-size:12px;color:var(--text3)">Page ${page} of ${totalPages} (${total} records)</span><button class="btn-sm" onclick="${goFn}(${page+1})" ${page>=totalPages?'disabled':''} style="${page>=totalPages?'opacity:0.4;pointer-events:none':''}">Next ›</button>`;
 }
-$('approveAllBtn').addEventListener('click',async()=>{const pending=allChildren.filter(c=>c.status==='pending');if(!pending.length)return;if(!confirm(`Approve all ${pending.length} pending records?`))return;for(const c of pending){try{await api('/api/admin/children/'+c._id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'approved'})})}catch(e){}}toast(`${pending.length} records approved!`);loadDashboard();renderPending()});
 
-// Children
-function renderChildren(){
-  const q=($('childSearch')?.value||'').toLowerCase();
-  const fs=$('childStatus').value,fg=$('childGender').value,ff=$('childFound').value;
-  let list=allChildren;
-  if(q)list=list.filter(c=>(c.fullName||'').toLowerCase().includes(q)||(c.address||'').toLowerCase().includes(q)||(c.contactNumber||'').includes(q));
-  if(fs)list=list.filter(c=>c.status===fs);
-  if(fg)list=list.filter(c=>c.gender===fg);
-  if(ff!=='')list=list.filter(c=>String(c.found)===ff);
-  $('childList').innerHTML=list.length?list.map(c=>childItem(c,'all')).join(''):'<div class="card-section"><div class="cs-body"><div class="empty">No children match your filters.</div></div></div>';
+// Pending — server-side filtered
+let _pendingLoading=false;
+async function renderPending(){
+  if(_pendingLoading)return;
+  _pendingLoading=true;
+  try{
+    const q=($('pendingSearch')?.value||'').slice(0,200);
+    let url='/api/admin/children?status=pending&page='+pendingPage+'&limit='+PAGE_SIZE;
+    if(q)url+='&q='+encodeURIComponent(q);
+    const r=await api(url);
+    const list=r.data||[];
+    const totalPages=r.pages||1;
+    const total=r.total||0;
+    $('pendingList').innerHTML=list.length?list.map(c=>childItem(c,'pending')).join(''):'<div class="card-section"><div class="cs-body"><div class="empty">All caught up! No pending records.</div></div></div>';
+    pagerHtml('pendingPager',pendingPage,totalPages,total,'goPendingPage');
+    // Update badge count from dashboard stats
+    if($('badgePending')&&r.total!=null)$('badgePending').textContent=r.total;
+  }catch(e){$('pendingList').innerHTML='<div class="card-section"><div class="cs-body"><div class="empty">Failed to load pending records.</div></div></div>'}
+  finally{_pendingLoading=false}
 }
+function goPendingPage(p){pendingPage=Math.max(1,p);renderPending()}
+
+// History — server-side filtered (approved/rejected)
+let _historyLoading=false;
+async function renderHistory(){
+  if(_historyLoading)return;
+  _historyLoading=true;
+  try{
+    const q=($('historySearch')?.value||'').slice(0,200);
+    const statusFilter=$('historyStatus')?.value||'';
+    // Fetch approved and rejected separately, then merge for display
+    // Or fetch all non-pending if no status filter
+    let list=[];let total=0,page=historyPage,pages=1;
+    if(statusFilter){
+      let url='/api/admin/children?status='+statusFilter+'&page='+historyPage+'&limit='+PAGE_SIZE;
+      if(q)url+='&q='+encodeURIComponent(q);
+      const r=await api(url);
+      list=r.data||[];total=r.total||0;pages=r.pages||1;
+    }else{
+      // No status filter — fetch approved + rejected, merge by createdAt
+      const [ra,rb]=await Promise.all([
+        api('/api/admin/children?status=approved&page='+historyPage+'&limit='+PAGE_SIZE+(q?'&q='+encodeURIComponent(q):'')),
+        api('/api/admin/children?status=rejected&page='+historyPage+'&limit='+PAGE_SIZE+(q?'&q='+encodeURIComponent(q):''))
+      ]);
+      // Merge and sort by createdAt DESC
+      const aData=ra.data||[];const bData=rb.data||[];
+      list=[...aData,...bData].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+      // Limit to PAGE_SIZE after merge
+      if(list.length>PAGE_SIZE)list=list.slice(0,PAGE_SIZE);
+      total=(ra.total||0)+(rb.total||0);
+      pages=Math.ceil(total/PAGE_SIZE);
+    }
+    $('historyList').innerHTML=list.length?list.map(c=>childItem(c,'all')).join(''):'<div class="card-section"><div class="cs-body"><div class="empty">No processed records found.</div></div></div>';
+    pagerHtml('historyPager',historyPage,pages,total,'goHistoryPage');
+  }catch(e){$('historyList').innerHTML='<div class="card-section"><div class="cs-body"><div class="empty">Failed to load history.</div></div></div>'}
+  finally{_historyLoading=false}
+}
+function goHistoryPage(p){historyPage=Math.max(1,p);renderHistory()}
+
+// Approve All — fetches pending from server
+$('approveAllBtn').addEventListener('click',async()=>{
+  try{
+    // Fetch all pending IDs from server (up to 200 per batch)
+    let allPendingIds=[];let pg=1;
+    while(true){
+      const r=await api('/api/admin/children?status=pending&page='+pg+'&limit=100');
+      const list=r.data||[];
+      allPendingIds.push(...list.map(c=>c._id));
+      if(list.length<100||pg>=r.pages)break;
+      pg++;
+    }
+    if(!allPendingIds.length){toast('No pending records.','info');return}
+    if(!confirm('Approve all '+allPendingIds.length+' pending records?'))return;
+    let approved=0;
+    for(const id of allPendingIds){try{await api('/api/admin/children/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'approved'})});approved++}catch(e){}}
+    toast(approved+' records approved!');
+    pendingPage=1;loadDashboard();renderPending();
+  }catch(e){toast(e.message,'err')}
+});
+
+// Children — server-side filtered
+let childrenPage=1;
+let _childrenLoading=false;
+async function renderChildren(){
+  if(_childrenLoading)return;
+  _childrenLoading=true;
+  try{
+    const q=($('childSearch')?.value||'').slice(0,200);
+    const fs=$('childStatus')?.value||'';
+    const fg=$('childGender')?.value||'';
+    const ff=$('childFound')?.value||'';
+    let url='/api/admin/children?page='+childrenPage+'&limit='+PAGE_SIZE;
+    if(q)url+='&q='+encodeURIComponent(q);
+    if(fs)url+='&status='+encodeURIComponent(fs);
+    if(fg)url+='&gender='+encodeURIComponent(fg);
+    if(ff!=='')url+='&found='+encodeURIComponent(ff);
+    const r=await api(url);
+    const list=r.data||[];
+    const totalPages=r.pages||1;
+    const total=r.total||0;
+    $('childList').innerHTML=list.length?list.map(c=>childItem(c,'all')).join(''):'<div class="card-section"><div class="cs-body"><div class="empty">No children match your filters.</div></div></div>';
+    pagerHtml('childPager',childrenPage,totalPages,total,'goChildrenPage');
+  }catch(e){$('childList').innerHTML='<div class="card-section"><div class="cs-body"><div class="empty">Failed to load children.</div></div></div>'}
+  finally{_childrenLoading=false}
+}
+function goChildrenPage(p){childrenPage=Math.max(1,p);renderChildren()}
 
 // Build image placeholder HTML (no SVG in template literals to avoid HTML parsing issues)
 function childImg(c){
@@ -740,7 +850,7 @@ function openChildDetail(id){
 }
 
 // Status / Delete
-async function setStatus(id,status){try{await api('/api/admin/children/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({status})});toast(status==='approved'?'Approved!':'Rejected.');loadDashboard()}catch(e){toast(e.message,'err')}}
+async function setStatus(id,status){try{await api('/api/admin/children/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({status})});toast(status==='approved'?'Approved!':'Rejected.');loadDashboard();const ap=document.querySelector('.page.active');if(ap){if(ap.id==='pg-pending')renderPending();else if(ap.id==='pg-history')renderHistory();else if(ap.id==='pg-children')renderChildren()}}catch(e){toast(e.message,'err')}}
 async function delChild(id){if(!confirm('Delete this record permanently?'))return;try{await api('/api/admin/children/'+id,{method:'DELETE'});toast('Deleted.');loadDashboard();renderChildren()}catch(e){toast(e.message,'err')}}
 
 // Found Requests
@@ -1660,38 +1770,48 @@ applyPermissions().then(()=>{
 }else{console.log('[ADMIN] No token, showing login');showLogin()}
 
 // Real-time badge updates + active view sync via Socket.io
-if(socket){socket.on('dataChanged',async()=>{try{
-  console.log('[SOCKET] Data changed, syncing live badges and active views...');
-  // 1. Refresh Pending and Found Badges (requires children permission)
-  if(adminPerms.all||adminPerms.children){
-    const stats=await api('/api/admin/stats').catch(()=>({}));
-    if(stats&&stats.data&&$('badgePending'))$('badgePending').textContent=stats.data.pending||0;
-    const fr=await api('/api/admin/found-requests').catch(()=>({}));
-    if(fr&&fr.data){foundFilterData=fr.data;if($('badgeFound'))$('badgeFound').textContent=fr.data.filter(x=>x.status==='pending').length;}
-  }
-  // 2. Refresh Praise & Gifts Badges (requires donations permission)
-  if(adminPerms.all||adminPerms.donations){
-    const p=await api('/api/admin/praise').catch(()=>({}));
-    const g=await api('/api/admin/gifts').catch(()=>({}));
-    if(p&&p.data&&g&&g.data){allPraise=p.data;allGifts=g.data;if($('badgePraise'))$('badgePraise').textContent=[...p.data,...g.data].filter(x=>x.status==='pending').length;}
-  }
-  // 3. Auto-refresh the currently active view so tables update instantly
-  const activePage=document.querySelector('.page.active');
-  if(activePage){
-    const pid=activePage.id;
-    if(pid==='pg-dashboard')loadDashboard();
-    else if(pid==='pg-pending'||pid==='pg-children'){
-      const c=await api('/api/admin/children').catch(()=>({}));
-      if(c&&c.data)allChildren=c.data;
-      if(pid==='pg-pending')renderPending();else renderChildren();
+let _socketRefreshBusy=false,_socketRefreshPending=false;
+async function _doSocketRefresh(){
+  try{
+    console.log('[SOCKET] Data changed, syncing live badges and active views...');
+    // 1. Refresh Pending and Found Badges (requires children permission)
+    if(adminPerms.all||adminPerms.children){
+      const stats=await api('/api/admin/stats').catch(()=>({}));
+      if(stats&&stats.data&&$('badgePending'))$('badgePending').textContent=stats.data.pending||0;
+      const fr=await api('/api/admin/found-requests').catch(()=>({}));
+      if(fr&&fr.data){foundFilterData=fr.data;if($('badgeFound'))$('badgeFound').textContent=fr.data.filter(x=>x.status==='pending').length;}
     }
-    else if(pid==='pg-found')renderFoundList();
-    else if(pid==='pg-praise')renderPraise();
-    else if(pid==='pg-donations')loadDonations();
-    else if(pid==='pg-revenue')loadRevenue();
-    else if(pid==='pg-ngo')loadNGOContacts();
-  }
-}catch(e){console.warn('[SOCKET] Real-time sync failed:',e.message)}})}
+    // 2. Refresh Praise & Gifts Badges (requires donations permission)
+    if(adminPerms.all||adminPerms.donations){
+      const p=await api('/api/admin/praise').catch(()=>({}));
+      const g=await api('/api/admin/gifts').catch(()=>({}));
+      if(p&&p.data&&g&&g.data){allPraise=p.data;allGifts=g.data;if($('badgePraise'))$('badgePraise').textContent=[...p.data,...g.data].filter(x=>x.status==='pending').length;}
+    }
+    // 3. Auto-refresh the currently active view so tables update instantly
+    const activePage=document.querySelector('.page.active');
+    if(activePage){
+      const pid=activePage.id;
+      if(pid==='pg-dashboard')loadDashboard();
+      else if(pid==='pg-pending'||pid==='pg-history'||pid==='pg-children'){
+        const c=await api('/api/admin/children').catch(()=>({}));
+        if(c&&c.data)allChildren=c.data;
+        if(pid==='pg-pending')renderPending();else if(pid==='pg-history')renderHistory();else renderChildren();
+      }
+      else if(pid==='pg-found')renderFoundList();
+      else if(pid==='pg-praise')renderPraise();
+      else if(pid==='pg-donations')loadDonations();
+      else if(pid==='pg-revenue')loadRevenue();
+      else if(pid==='pg-ngo')loadNGOContacts();
+    }
+  }catch(e){console.warn('[SOCKET] Real-time sync failed:',e.message)}
+}
+if(socket){socket.on('dataChanged',async()=>{
+  if(_socketRefreshBusy){_socketRefreshPending=true;return;}
+  _socketRefreshBusy=true;_socketRefreshPending=false;
+  await _doSocketRefresh();
+  _socketRefreshBusy=false;
+  if(_socketRefreshPending){_socketRefreshPending=false;_socketRefreshBusy=true;await _doSocketRefresh();_socketRefreshBusy=false;}
+})}
 </script>
 </body>
 </html>

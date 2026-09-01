@@ -625,9 +625,20 @@ app.get('/api/children/:id', async (req, res) => {
     try {
         const db = await fmcConnectMongoDB();
         if (!db.success) return res.status(500).json({ success: false, message: 'Database unavailable.' });
-        const child = await db.data.findOne({ _id: req.params.id, status: 'approved' }).select(PUBLIC_CHILD_FIELDS).lean();
+        const child = await db.data.findOne({ _id: req.params.id, status: 'approved' }).lean();
         if (!child) return res.status(404).json({ success: false, message: 'Child not found.' });
-        res.json({ success: true, data: child });
+        // Return only public-safe fields
+        const safeChild = {};
+        PUBLIC_CHILD_FIELDS.split(' ').filter(Boolean).forEach(f => { if (child[f] !== undefined) safeChild[f] = child[f]; });
+        // NGO contacts: prefer report's selected snapshots, fall back to all active
+        const { NGOContact } = await getModels();
+        let ngoContacts = [];
+        if (child.ngoContacts && child.ngoContacts.length > 0) {
+            ngoContacts = child.ngoContacts.map(c => ({ _id: c.ngoId, displayName: c.displayName, phone: c.phone, organization: c.organization }));
+        } else {
+            ngoContacts = await NGOContact.find({ active: true }).select(NGO_CONTACT_FIELDS).sort({ priority: -1 }).lean();
+        }
+        res.json({ success: true, data: safeChild, ngoContacts });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Failed to load child details.' });
     }
@@ -1010,6 +1021,8 @@ app.get('/api/admin/children', requireAdmin, async (req, res) => {
         const Child = db.data;
         const filter = {};
         if (req.query.status) filter.status = req.query.status;
+        if (req.query.gender) filter.gender = req.query.gender;
+        if (req.query.found === 'true' || req.query.found === 'false') filter.found = req.query.found === 'true';
         if (req.query.q) {
             const q = String(req.query.q).slice(0, 200);
             const re = { $regex: q, $options: "i" };

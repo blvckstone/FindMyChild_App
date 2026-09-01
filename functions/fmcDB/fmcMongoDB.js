@@ -30,7 +30,7 @@ const dataSchema = mongoose.Schema({
     ngoContacts: [{ ngoId: { type: mongoose.Schema.Types.ObjectId, ref: 'NGOContact' }, displayName: String, phone: String, organization: String }],
     // pending = waiting for admin approval, approved = visible publicly, rejected = denied
     status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' }
-});
+}, { timestamps: true });
 dataSchema.index({ status: 1 });
 dataSchema.index({ createdAt: -1 });
 dataSchema.index({ fullName: 'text', address: 'text', contactNumber: 'text' });
