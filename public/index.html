@@ -343,6 +343,12 @@ main{max-width:100%;margin:0 auto;padding-bottom:calc(80px + env(safe-area-inset
 .btn-praise-detail:active{transform:scale(.97)}
 .btn-praise-detail svg{width:16px;height:16px;fill:var(--text2)}
 .sheet .dstatus{position:absolute;bottom:16px;left:16px;z-index:2}
+.found-status-card{background:#f0fdf4;border:1.5px solid var(--green);border-radius:var(--radius-sm);padding:16px 20px;margin:16px 20px 24px}
+.found-status-card .fst-title{color:#0a6b3a;font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.found-status-card .fst-title svg{width:18px;height:18px;fill:currentColor}
+.found-status-card .fst-row{font-size:14px;color:var(--text);margin-bottom:6px;line-height:1.5}
+.found-status-card .fst-row:last-child{margin-bottom:0}
+.found-status-card .fst-row strong{font-weight:700;color:var(--text2)}
 .btn-praise{
   display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px;
   background:var(--bg);color:var(--text);border:none;border-radius:var(--radius-sm);
@@ -1127,7 +1133,7 @@ function openDetail(id){
   add('Disability',esc(c.disabilityInfo||c.disability||'None'));add('Info',esc(c.info));
   let recoveredBlock='';
   if(c.found){
-    recoveredBlock=`<div style="background:var(--green-light,#e8f5e9);padding:16px;border-radius:12px;margin:0 0 16px;border:1.5px solid var(--green,#4caf50)"><h4 style="color:var(--green,#4caf50);font-size:11px;margin:0 0 10px;text-transform:uppercase;letter-spacing:.5px;font-weight:800">✓ Child Recovered</h4><div style="font-size:13px;color:var(--text,#1a1a2e);margin-bottom:6px"><strong>Found By:</strong> ${esc(c.finderName||'Anonymous')}</div><div style="font-size:13px;color:var(--text,#1a1a2e);margin-bottom:6px"><strong>Found At:</strong> ${esc(c.foundLocation||'Not specified')}</div>${c.finderContact?`<div style="font-size:13px;color:var(--text,#1a1a2e)"><strong>Founder Contact:</strong> <a href="tel:${esc(c.finderContact)}" style="color:var(--accent,#4361ee);font-weight:600">${esc(c.finderContact)}</a></div>`:''}</div>`;
+    recoveredBlock=`<div class="found-status-card"><div class="fst-title"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>Child Recovered</div><div class="fst-row"><strong>Found By:</strong> ${esc(c.finderName||'Anonymous')}</div><div class="fst-row"><strong>Found At:</strong> ${esc(c.foundLocation||'Not specified')}</div>${c.finderContact?`<div class="fst-row"><strong>Founder Contact:</strong> <a href="tel:${esc(c.finderContact)}" style="color:var(--accent);text-decoration:none;font-weight:700">${esc(c.finderContact)}</a></div>`:''}</div>`;
   }
   let actions='';
   if(c.found){
