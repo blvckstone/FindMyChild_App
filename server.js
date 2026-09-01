@@ -206,11 +206,12 @@ app.post('/api/children', requireAuth, reportLimiter, async (req, res) => {
         if (!data.fullName || !String(data.fullName).trim()) {
             return res.status(400).json({ success: false, message: "Child's full name is required." });
         }
-        if (!data.contactNumber || !String(data.contactNumber).trim()) {
-            return res.status(400).json({ success: false, message: "A contact number is required so people can reach the family." });
-        }
         data.fullName = String(data.fullName).trim();
-        data.contactNumber = String(data.contactNumber).trim();
+        if (data.contactNumber) data.contactNumber = String(data.contactNumber).trim();
+        if (req.body.contactNumberConsent === 'true' && data.contactNumber) {
+            data.contactNumberConsent = true;
+            data.contactNumberConsentDate = new Date();
+        }
         if (data.age !== undefined && data.age !== '') {
             data.age = Number(data.age);
             if (data.age < 0) {
@@ -229,6 +230,24 @@ app.post('/api/children', requireAuth, reportLimiter, async (req, res) => {
         const imagePath = await saveImage(req.files && req.files.image);
         if (imagePath) data.image = imagePath;
 
+        // Validate and store selected NGO contacts (snapshot at submission time)
+        if (req.body.selectedNGOContacts) {
+            try {
+                const ngoIds = JSON.parse(req.body.selectedNGOContacts);
+                if (Array.isArray(ngoIds) && ngoIds.length > 0) {
+                    const { NGOContact } = await getModels();
+                    const validContacts = await NGOContact.find({ _id: { $in: ngoIds }, active: true }).lean();
+                    if (validContacts.length > 0) {
+                        data.ngoContacts = validContacts.map(c => ({
+                            ngoId: c._id,
+                            displayName: c.displayName,
+                            phone: c.phone,
+                            organization: c.organization || ''
+                        }));
+                    }
+                }
+            } catch (e) { /* ignore malformed JSON */ }
+        }
         data.status = 'pending';
         data.found = false;
         data.uploadedBy = data.uploadedBy || 'User';
@@ -606,7 +625,7 @@ app.get('/api/children/:id', async (req, res) => {
     try {
         const db = await fmcConnectMongoDB();
         if (!db.success) return res.status(500).json({ success: false, message: 'Database unavailable.' });
-        const child = await db.data.findById(req.params.id).select(PUBLIC_CHILD_FIELDS).lean();
+        const child = await db.data.findOne({ _id: req.params.id, status: 'approved' }).select(PUBLIC_CHILD_FIELDS).lean();
         if (!child) return res.status(404).json({ success: false, message: 'Child not found.' });
         res.json({ success: true, data: child });
     } catch (error) {
@@ -614,17 +633,29 @@ app.get('/api/children/:id', async (req, res) => {
     }
 });
 
-// ---- Authenticated child detail (includes contact for authorized users) ----
+// ---- Authenticated child detail (includes contact only for the report owner) ----
 app.get('/api/children/:id/detail', requireAuth, async (req, res) => {
     try {
         const db = await fmcConnectMongoDB();
         if (!db.success) return res.status(500).json({ success: false, message: 'Database unavailable.' });
-        const child = await db.data.findById(req.params.id).select(AUTHENTICATED_CHILD_FIELDS).lean();
+        const child = await db.data.findOne({ _id: req.params.id, status: 'approved' }).lean();
         if (!child) return res.status(404).json({ success: false, message: 'Child not found.' });
-        // Get active NGO contacts for the contact section
+        // Only the report owner gets private contact fields; others see public fields only
+        const isOwner = child.userId && String(child.userId) === String(req.userId);
+        const safeFields = isOwner ? AUTHENTICATED_CHILD_FIELDS : PUBLIC_CHILD_FIELDS;
+        const safeChild = {};
+        safeFields.split(' ').filter(Boolean).forEach(f => { if (child[f] !== undefined) safeChild[f] = child[f]; });
+        // NGO contacts: prefer report's selected contacts (snapshots), fall back to all active
         const { NGOContact } = await getModels();
-        const ngoContacts = await NGOContact.find({ active: true }).select(NGO_CONTACT_FIELDS).sort({ priority: -1 }).lean();
-        res.json({ success: true, data: child, ngoContacts });
+        let ngoContacts = [];
+        if (child.ngoContacts && child.ngoContacts.length > 0) {
+            // Report has selected contacts — return the snapshots
+            ngoContacts = child.ngoContacts.map(c => ({ _id: c.ngoId, displayName: c.displayName, phone: c.phone, organization: c.organization }));
+        } else {
+            // No selection — fall back to all active contacts
+            ngoContacts = await NGOContact.find({ active: true }).select(NGO_CONTACT_FIELDS).sort({ priority: -1 }).lean();
+        }
+        res.json({ success: true, data: safeChild, ngoContacts });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Failed to load child details.' });
     }

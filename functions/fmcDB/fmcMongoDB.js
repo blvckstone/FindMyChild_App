@@ -25,6 +25,9 @@ const dataSchema = mongoose.Schema({
     foundDate: Date,
     disabilityInfo: String,
     faceDescriptor: { type: [Number], default: [] },
+    contactNumberConsent: { type: Boolean, default: false },
+    contactNumberConsentDate: { type: Date },
+    ngoContacts: [{ ngoId: { type: mongoose.Schema.Types.ObjectId, ref: 'NGOContact' }, displayName: String, phone: String, organization: String }],
     // pending = waiting for admin approval, approved = visible publicly, rejected = denied
     status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' }
 });
