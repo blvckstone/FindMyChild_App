@@ -52,7 +52,7 @@ const SESSION_SECRET = process.env.JWT_SECRET || process.env.SESSION_SECRET;
 if (!SESSION_SECRET) {
     console.error('[SECURITY] CRITICAL: No JWT_SECRET or SESSION_SECRET set. Session security is disabled.');
 }
-app.use(require('express-session')({ secret: SESSION_SECRET || 'insecure-fallback-do-not-deploy', resave: false, saveUninitialized: false }));
+app.use(require('express-session')({ secret: SESSION_SECRET, resave: false, saveUninitialized: false }));
 app.use(passport.initialize());
 app.use(passport.session());
 
