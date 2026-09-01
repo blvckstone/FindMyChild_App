@@ -503,7 +503,8 @@ async function api(path,opts={}){
   const h=opts.headers||{};
   if(token)h.Authorization='Bearer '+token;
   opts.cache='no-store';
-  const r=await fetch(path,{...opts,headers:h});
+  const url=new URL(path,window.location.origin);url.searchParams.append('_t',Date.now());const fetchPath=url.pathname+url.search;
+  const r=await fetch(fetchPath,{...opts,headers:h});
   console.log('[API]',r.status,path);
   if(r.status===401){console.error('[API] 401 Unauthorized for',path);localStorage.removeItem('fmc_admin_token');token='';showLogin();toast('Session expired.','err');throw new Error('unauthorized')}
   const j=await r.json().catch(()=>({}));
