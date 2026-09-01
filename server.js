@@ -58,6 +58,7 @@ app.use(passport.session());
 
 // Rate limiting
 const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 10, message: { success: false, message: 'Too many attempts. Try again in 15 minutes.' } });
+const faceScanLimiter = rateLimit({ windowMs: 60 * 1000, max: 10, message: { success: false, message: 'Too many scan requests. Please wait a minute.' } });
 
 //-----------------------------------------------Functions Module--------------------------------------------------------------->
 const fmcConnectMongoDB = require('./functions/fmcDB/fmcMongoDB');
@@ -429,7 +430,7 @@ app.get('/api/donations', async (req, res) => {
     try {
         const { Donation } = await getModels();
         const [data, totalAgg] = await Promise.all([
-            Donation.find().sort({ createdAt: -1 }).limit(50),
+            Donation.find().sort({ createdAt: -1 }).limit(50).select('donorName amount message paymentMethod createdAt'),
             Donation.aggregate([{ $group: { _id: null, total: { $sum: '$amount' } } }])
         ]);
         res.json({ success: true, data, total: (totalAgg[0] && totalAgg[0].total) || 0 });
@@ -601,7 +602,7 @@ app.delete('/api/safechild/children/:id', requireAuth, async (req, res) => {
 });
 
 // AI Face Match — PUBLIC, no auth required
-app.post('/api/safechild/match', async (req, res) => {
+app.post('/api/safechild/match', faceScanLimiter, async (req, res) => {
     try {
         const { faceDescriptor } = req.body;
         const parsedDescriptor = parseFaceDescriptor(faceDescriptor);
@@ -668,9 +669,7 @@ app.post('/api/safechild/match', async (req, res) => {
                     childName: bestMatch.childName,
                     age: bestMatch.age,
                     gender: bestMatch.gender,
-                    address: bestMatch.address,
                     parentContact: bestMatch.parentContact,
-                    medicalInfo: bestMatch.medicalInfo,
                     photoUrl: bestMatch.photoUrl,
                     confidence: Math.round((1 - bestDistance) * 100),
                     source: bestMatch.source || 'safechild'

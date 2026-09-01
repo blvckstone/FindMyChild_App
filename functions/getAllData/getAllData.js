@@ -7,7 +7,7 @@ const getAllData = async () => {
     if (responseObj.success) {
         const Child = responseObj.data;
         try {
-            const data = await Child.find({ status: 'approved' });
+            const data = await Child.find({ status: 'approved' }).select('-faceDescriptor -userId -uploadedBy').lean();
             return { success: true, error: false, message: "Successfully found data!", data };
         } catch (error) {
             return { success: false, error: true, message: "Error during fetching with database!", data: error };
