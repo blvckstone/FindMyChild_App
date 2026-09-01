@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const fmcConnectMongoDB = require('./fmcDB/fmcMongoDB');
 
 const userSchema = mongoose.Schema({
-    userFullName: String,
+    userFullName: { type: String, default: '' },
     userContactNumber: { type: String, unique: true, sparse: true },
     password: String,
     emailId: String,
@@ -10,7 +10,8 @@ const userSchema = mongoose.Schema({
     photo: String,
     verified: { type: Boolean, default: false },
     blocked: { type: Boolean, default: false },
-    createdAt: String,
+    createdAt: { type: Date, default: Date.now },
+    updatedAt: { type: Date, default: Date.now }
 });
 
 const foundRequestSchema = mongoose.Schema({
@@ -137,9 +138,9 @@ const adSchema = mongoose.Schema({
 });
 
 const paymentSettingsSchema = mongoose.Schema({
-    upiId: { type: String, default: 'zii1@ybl' },
-    payeeName: { type: String, default: 'MOHAMMAD SHOEB ABBAS' },
-    bankAccountName: { type: String, default: 'FindMyChild Foundation' },
+    upiId: { type: String, default: '' },
+    payeeName: { type: String, default: '' },
+    bankAccountName: { type: String, default: '' },
     bankAccountNumber: { type: String, default: '' },
     bankIfscCode: { type: String, default: '' },
     bankName: { type: String, default: '' },
@@ -159,8 +160,38 @@ const preRegisteredChildSchema = mongoose.Schema({
     medicalInfo: { type: String, default: '' },
     photoUrl: { type: String, default: '' },
     faceDescriptor: { type: [Number], required: true }, // 128D face descriptor array
+    createdAt: { type: Date, default: Date.now },
+    updatedAt: { type: Date, default: Date.now }
+});
+
+// NGO Contact — centrally managed contact numbers for the application
+const ngoContactSchema = mongoose.Schema({
+    displayName: { type: String, required: true, trim: true },
+    organization: { type: String, default: '' },
+    phone: { type: String, required: true },
+    whatsapp: { type: String, default: '' },
+    label: { type: String, default: '' },
+    description: { type: String, default: '' },
+    priority: { type: Number, default: 0 },
+    active: { type: Boolean, default: true },
+    primary: { type: Boolean, default: false },
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'AdminUser' },
+    createdAt: { type: Date, default: Date.now },
+    updatedAt: { type: Date, default: Date.now }
+});
+ngoContactSchema.index({ active: 1, priority: -1 });
+
+// Audit log — lightweight admin action tracking
+const auditLogSchema = mongoose.Schema({
+    action: { type: String, required: true },
+    entityType: { type: String, default: '' },
+    entityId: { type: mongoose.Schema.Types.ObjectId },
+    performedBy: { type: String, default: '' },
+    details: { type: mongoose.Schema.Types.Mixed },
     createdAt: { type: Date, default: Date.now }
 });
+auditLogSchema.index({ createdAt: -1 });
+auditLogSchema.index({ entityType: 1, createdAt: -1 });
 
 let modelsPromise = null;
 
@@ -182,12 +213,14 @@ const getModels = async () => {
             const Revenue = mongoose.models.Revenue || mongoose.model('Revenue', revenueSchema);
             const PaymentSettings = mongoose.models.PaymentSettings || mongoose.model('PaymentSettings', paymentSettingsSchema);
             const PreRegisteredChild = mongoose.models.PreRegisteredChild || mongoose.model('PreRegisteredChild', preRegisteredChildSchema);
+            const NGOContact = mongoose.models.NGOContact || mongoose.model('NGOContact', ngoContactSchema);
+            const AuditLog = mongoose.models.AuditLog || mongoose.model('AuditLog', auditLogSchema);
             // Seed default payment settings if none exist
             const psCount = await PaymentSettings.countDocuments();
             if (psCount === 0) {
                 await PaymentSettings.create({});
             }
-            return { Child: db.data, User, FoundRequest, Praise, Gift, Donation, Analytics, Advertisement, AdminUser, PageContent, LegalPage, Revenue, PaymentSettings, PreRegisteredChild };
+            return { Child: db.data, User, FoundRequest, Praise, Gift, Donation, Analytics, Advertisement, AdminUser, PageContent, LegalPage, Revenue, PaymentSettings, PreRegisteredChild, NGOContact, AuditLog };
         })();
     }
     return modelsPromise;

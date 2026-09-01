@@ -1124,24 +1124,24 @@ function openDetail(id){
   const rows=[];const add=(k,v)=>{if(v!=null&&String(v).trim()!=='')rows.push(`<div class="drow"><div class="k">${k}</div><div class="v">${v}</div></div>`)};
   add('Gender',esc(c.gender||'Unknown'));add('Age',c.age?c.age+' years':'Not specified');
   add('Address',esc(c.address));add('State',esc(c.state));
-  if(c.contactNumber)add('Contact',`<a href="tel:${esc(c.contactNumber)}" style="color:var(--green)">${esc(c.contactNumber)}</a>`);
+  // Contact number hidden from public — use NGO contacts instead
   if(c.missingDate)add('Missing on',esc(c.missingDate+(c.missingTime?' at '+c.missingTime:'')));
   add('Location',esc(c.missingLocation));
   if(c.found)add('Found by',`<span style="color:var(--green);font-weight:700">${esc(c.finderName||'Someone')}</span>`);
   if(c.found&&c.foundLocation)add('Found at',esc(c.foundLocation));
-  if(c.found&&c.finderContact)add('Founder Contact',`<a href="tel:${esc(c.finderContact)}" style="color:var(--green)">${esc(c.finderContact)}</a>`);
+  // Finder contact hidden from public — use NGO contacts instead
   add('Disability',esc(c.disabilityInfo||c.disability||'None'));add('Info',esc(c.info));
   let recoveredBlock='';
   if(c.found){
-    recoveredBlock=`<div class="found-status-card"><div class="fst-title"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>Child Recovered</div><div class="fst-row"><strong>Found By:</strong> ${esc(c.finderName||'Anonymous')}</div><div class="fst-row"><strong>Found At:</strong> ${esc(c.foundLocation||'Not specified')}</div>${c.finderContact?`<div class="fst-row"><strong>Founder Contact:</strong> <a href="tel:${esc(c.finderContact)}" style="color:var(--accent);text-decoration:none;font-weight:700">${esc(c.finderContact)}</a></div>`:''}</div>`;
+    recoveredBlock=`<div class="found-status-card"><div class="fst-title"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>Child Recovered</div><div class="fst-row"><strong>Found By:</strong> ${esc(c.finderName||'Anonymous')}</div><div class="fst-row"><strong>Found At:</strong> ${esc(c.foundLocation||'Not specified')}</div></div>`;
   }
   let actions='';
   if(c.found){
     actions=`<div class="detail-actions"><div class="da-row"><button class="btn-found-detail" onclick="closeDetail();openFoundFor('${esc(c._id)}')">${iconCheck} View praise & gifts</button></div></div>`;
   } else if(me){
-    actions=`<div class="detail-actions"><div class="da-row"><button class="btn-found-detail" onclick="openFoundForm('${esc(c._id)}','${esc(c.fullName||'')}')">${iconFlag} Mark as found</button>${c.contactNumber?`<a class="btn-call-detail" href="tel:${esc(c.contactNumber)}">${iconCall} Call</a>`:''}</div><div class="da-row"><button class="btn-praise-detail" onclick="closeDetail();openFoundFor('${esc(c._id)}')">${iconCheck} Praise & gifts</button></div></div>`;
+    actions=`<div class="detail-actions"><div class="da-row"><button class="btn-found-detail" onclick="openFoundForm('${esc(c._id)}','${esc(c.fullName||'')}')">${iconFlag} Mark as found</button></div><div class="da-row"><button class="btn-praise-detail" onclick="closeDetail();openFoundFor('${esc(c._id)}')">${iconCheck} Praise & gifts</button></div></div>`;
   } else {
-    actions=`<div class="detail-actions"><div class="da-row"><button class="btn-found-detail" onclick="closeDetail();showView('me')">${iconUser} Log in to help</button></div>${c.contactNumber?`<div class="da-row"><a class="btn-call-detail" href="tel:${esc(c.contactNumber)}">${iconCall} Call ${esc(c.contactNumber)}</a></div>`:''}</div>`;
+    actions=`<div class="detail-actions"><div class="da-row"><button class="btn-found-detail" onclick="closeDetail();showView('me')">${iconUser} Log in to help</button></div></div>`;
   }
   $('sheetBody').innerHTML=`<div class="dphoto">${c.image?`<img src="${esc(c.image)}" alt="" loading="lazy">`:`<div class="ph">${iconChild}</div>`}<div class="dstatus"><span class="dbadge ${c.found?'found':'missing'}">${c.found?'FOUND':'MISSING'}</span></div></div><div class="dbody"><div class="dname">${esc(c.fullName)||'Unknown'}</div><div class="dsub">${esc(c.uploadedBy?'Reported by '+c.uploadedBy:'')}${c.missingDate?' · '+esc(c.missingDate):''}</div>${recoveredBlock}${rows.join('')}</div>${actions}`;
   $('backdrop').classList.add('show');$('sheet').classList.add('show');document.body.style.overflow='hidden';
@@ -1795,9 +1795,7 @@ async function submitFaceScan(){
     if(j.matched&&j.data){
       const d=j.data;
       // Store matched child in allData so openDetail can find it
-      if(d.id&&!allData.find(x=>String(x._id)===String(d.id))){
-        allData.push({_id:d.id,fullName:d.childName,age:d.age,gender:d.gender,contactNumber:d.parentContact||'',image:d.photoUrl,found:false,source:'ai_match'});
-      }
+      // Do not store parentContact in allData — it's private
       const imgHtml=d.photoUrl?'<img src="'+esc(d.photoUrl)+'" alt="'+esc(d.childName)+'">':'<div class="ph"><svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.26-5.33-4-8-4z"/></svg></div>';
       let infoRows='';
       if(d.age)infoRows+='<div class="info-row"><span class="lbl">Age</span><span class="val">'+esc(String(d.age))+' years</span></div>';
@@ -1807,8 +1805,8 @@ async function submitFaceScan(){
         '<h3>'+esc(d.childName)+'</h3>'+
         '<div class="conf">✅ Child Identified — '+d.confidence+'% confidence</div>'+
         infoRows+
-        (d.parentContact?'<a class="contact-btn" href="tel:'+esc(d.parentContact.replace(/[^0-9+]/g,''))+'" style="text-decoration:none">📞 Call Parent: '+esc(d.parentContact)+'</a>':'')+
-        (d.id?'<button class="btn-outline" onclick="closeScanModal();openDetail(\''+esc(d.id)+'\')" style="width:100%;padding:14px;border-radius:14px;margin-top:8px;font-weight:700;border:1.5px solid var(--accent);color:var(--accent);background:transparent;cursor:pointer">More Details</button>':'')+
+        '<div style="margin-top:8px;padding:10px 12px;background:var(--bg2);border-radius:10px;font-size:12px;color:var(--text2);line-height:1.6">📞 Contact the FindMyChild helpline to help reunite this child. NGO contact details are available on the child detail page.</div>'+
+        (d.id?'<button class="btn-outline" onclick="closeScanModal();openScanDetail(\''+esc(d.id)+'\')" style="width:100%;padding:14px;border-radius:14px;margin-top:8px;font-weight:700;border:1.5px solid var(--accent);color:var(--accent);background:transparent;cursor:pointer">More Details</button>':'')+
         '<button class="btn-ghost" style="width:100%;margin-top:10px" onclick="closeScanModal()">Close</button>';
       $('scanResult').style.display='block';
     }else{
@@ -1825,6 +1823,40 @@ async function submitFaceScan(){
     $('scanPreview').style.display='block';$('scanBtn').style.display='block';
     toast('Matching failed: '+e.message,'err');
   }
+}
+
+/* --- Scanner Detail (authenticated) --- */
+let ngoContactsCache=null;
+async function loadNGOContacts(){try{if(ngoContactsCache)return ngoContactsCache;const j=await fetch('/api/ngo-contacts').then(r=>r.json());ngoContactsCache=j.data||[];return ngoContactsCache}catch(e){return[]}}
+function renderNGOContacts(contacts){
+  if(!contacts||!contacts.length)return '<div style="margin-top:8px;padding:12px;background:var(--bg2);border-radius:10px;font-size:12px;color:var(--text3)">Contact information is currently unavailable. Please check back later.</div>';
+  let h='<div style="margin-top:12px"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Contact for this case</div>';
+  contacts.forEach(c=>{h+='<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg2);border-radius:10px;margin-bottom:6px"><div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--text)">'+esc(c.displayName)+'</div>'+(c.organization?'<div style="font-size:11px;color:var(--text3)">'+esc(c.organization)+'</div>':'')+(c.description?'<div style="font-size:11px;color:var(--text3);margin-top:2px">'+esc(c.description)+'</div>':'')+'</div><a href="tel:'+esc(c.phone)+'" style="display:flex;align-items:center;gap:6px;padding:8px 14px;background:var(--green);color:#fff;border-radius:8px;font-size:12px;font-weight:600;text-decoration:none;white-space:nowrap">📞 '+esc(c.phone)+'</a></div>'});h+='</div>';return h;
+}
+async function openScanDetail(id){
+  closeScanModal();
+  try{
+    const opts=userToken?{auth:true}:{headers:{}};
+    const url=userToken?'/api/children/'+id+'/detail':'/api/children/'+id;
+    const j=await api(url,opts);
+    if(!j.success||!j.data){toast('Child not found','err');return}
+    const c=j.data;const ngo=j.ngoContacts||ngoContactsCache||await loadNGOContacts();
+    // Build detail sheet
+    const rows=[];const add=(k,v)=>{if(v!=null&&String(v).trim()!=='')rows.push('<div class="drow"><div class="k">'+k+'</div><div class="v">'+v+'</div></div>')};
+    add('Gender',esc(c.gender||'Unknown'));add('Age',c.age?c.age+' years':'Not specified');
+    add('Address',esc(c.address));add('State',esc(c.state));
+    if(c.missingDate)add('Missing on',esc(c.missingDate+(c.missingTime?' at '+c.missingTime:'')));
+    add('Location',esc(c.missingLocation));
+    if(c.found)add('Found by','<span style="color:var(--green);font-weight:700">'+esc(c.finderName||'Someone')+'</span>');
+    if(c.found&&c.foundLocation)add('Found at',esc(c.foundLocation));
+    add('Disability',esc(c.disabilityInfo||c.disability||'None'));add('Info',esc(c.info));
+    let recoveredBlock='';
+    if(c.found){recoveredBlock='<div class="found-status-card"><div class="fst-title"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>Child Recovered</div><div class="fst-row"><strong>Found By:</strong> '+esc(c.finderName||'Anonymous')+'</div><div class="fst-row"><strong>Found At:</strong> '+esc(c.foundLocation||'Not specified')+'</div></div>'}
+    let actions='';
+    if(!me){actions='<div class="detail-actions"><div class="da-row"><button class="btn-found-detail" onclick="closeDetail();showView(\'me\')">'+iconUser+' Log in to help</button></div></div>'}
+    $('sheetBody').innerHTML='<div class="dphoto">'+(c.image?'<img src="'+esc(c.image)+'" alt="" loading="lazy">':'<div class="ph">'+iconChild+'</div>')+'<div class="dstatus"><span class="dbadge '+(c.found?'found':'missing')+'">'+(c.found?'FOUND':'MISSING')+'</span></div></div><div class="dbody"><div class="dname">'+(esc(c.fullName)||'Unknown')+'</div><div class="dsub">'+esc(c.uploadedBy?'Reported by '+c.uploadedBy:'')+(c.missingDate?' · '+esc(c.missingDate):'')+'</div>'+recoveredBlock+rows.join('')+renderNGOContacts(ngo)+'</div>'+(actions||'<div></div>');
+    $('backdrop').classList.add('show');$('sheet').classList.add('show');document.body.style.overflow='hidden';
+  }catch(e){toast('Failed to load details','err')}
 }
 
 /* --- Boot --- */

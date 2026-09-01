@@ -29,9 +29,22 @@ const server = http.createServer(app);
 //-----------------------------------------------Middleware-------------------------------------------------------------------->
 app.set('trust proxy', 1); // Trust Northflank proxy - fixes http/https protocol detection
 app.use(cors());
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
-app.use(fileUpload());
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+app.use(express.json({ limit: '1mb' }));
+app.use(fileUpload({ limits: { fileSize: 5 * 1024 * 1024 } }));
+
+// ── Security Headers ────────────────────────────────────────────────────────
+app.use((req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+    if (req.secure || req.headers['x-forwarded-proto'] === 'https') {
+        res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    }
+    next();
+});
 app.use(express.static(path.join(__dirname, 'public'), {
     setHeaders: (res, filePath) => {
         if (filePath.endsWith('admin.html')) {
@@ -59,11 +72,14 @@ app.use(passport.session());
 // Rate limiting
 const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 10, message: { success: false, message: 'Too many attempts. Try again in 15 minutes.' } });
 const faceScanLimiter = rateLimit({ windowMs: 60 * 1000, max: 10, message: { success: false, message: 'Too many scan requests. Please wait a minute.' } });
+const reportLimiter = rateLimit({ windowMs: 60 * 1000, max: 5, message: { success: false, message: 'Too many reports. Please wait a minute.' } });
+const donationLimiter = rateLimit({ windowMs: 5 * 60 * 1000, max: 5, message: { success: false, message: 'Too many donation attempts. Please wait.' } });
 
 //-----------------------------------------------Functions Module--------------------------------------------------------------->
 const fmcConnectMongoDB = require('./functions/fmcDB/fmcMongoDB');
 const getModels = require('./functions/dbModels');
 const { loginAdmin, loginAdminGoogle, signupUser, loginUser, findOrCreateGoogleUser, logout, requireAuth, requireAdmin, requireSuperAdmin, hasPermission, isValidPhone, sanitize, SUPER_ADMIN_EMAIL } = require('./functions/auth');
+const { PUBLIC_CHILD_FIELDS, AUTHENTICATED_CHILD_FIELDS, ADMIN_CHILD_FIELDS, NGO_CONTACT_FIELDS } = require('./functions/publicProjection');
 const { sendOTP, verifyOTP, sendWelcomeEmail } = require('./functions/email');
 // const userConnectMongoDB = require('./functions/userDB/userMongoDB');
 const getAllData = require('./functions/getAllData/getAllData.js');
@@ -137,9 +153,8 @@ app.get('/api/health', async (req, res) => {
     const dbStatus = await fmcConnectMongoDB();
     const dbOk = dbStatus && dbStatus.success;
     res.json({
-        status: 'ok',
+        status: dbOk ? 'ok' : 'degraded',
         database: dbOk ? 'connected' : 'error',
-        mode: dbOk ? 'live' : 'demo',
         port: process.env.PORT || 9002,
         time: new Date().toISOString()
     });
@@ -185,7 +200,7 @@ const pickChildFields = (body) => {
 };
 
 // ---- Submit a missing child report (goes to the pending queue) — login required ----
-app.post('/api/children', requireAuth, async (req, res) => {
+app.post('/api/children', requireAuth, reportLimiter, async (req, res) => {
     try {
         const data = pickChildFields(req.body);
         if (!data.fullName || !String(data.fullName).trim()) {
@@ -403,7 +418,7 @@ app.get('/api/praise', async (req, res) => {
 // NOTE: /api/praise and /api/gifts POST routes are defined later with requireAuth middleware
 
 // ---- Public: donations ----
-app.post('/api/donations', async (req, res) => {
+app.post('/api/donations', donationLimiter, async (req, res) => {
     try {
         const { Donation } = await getModels();
         const donorName = req.body.donorName ? String(req.body.donorName).trim() : '';
@@ -486,6 +501,132 @@ app.put('/api/admin/payment-settings', requireAdmin, requireSuperAdmin, async (r
         res.json({ success: true, message: 'Payment settings saved.', data: settings });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// ---- NGO Contact Management ----
+// Public: get active NGO contacts
+app.get('/api/ngo-contacts', async (req, res) => {
+    try {
+        const { NGOContact } = await getModels();
+        const contacts = await NGOContact.find({ active: true }).select(NGO_CONTACT_FIELDS).sort({ priority: -1, createdAt: 1 }).lean();
+        res.json({ success: true, data: contacts });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Failed to load contact information.' });
+    }
+});
+
+// Admin: list all NGO contacts
+app.get('/api/admin/ngo-contacts', requireAdmin, async (req, res) => {
+    try {
+        const { NGOContact } = await getModels();
+        const contacts = await NGOContact.find().sort({ priority: -1, createdAt: 1 }).lean();
+        res.json({ success: true, data: contacts });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// Admin: create NGO contact
+app.post('/api/admin/ngo-contacts', requireAdmin, async (req, res) => {
+    try {
+        const { NGOContact, AuditLog } = await getModels();
+        const { displayName, organization, phone, whatsapp, label, description, priority, active, primary } = req.body;
+        if (!displayName || !String(displayName).trim()) return res.status(400).json({ success: false, message: 'Display name is required.' });
+        if (!phone || !String(phone).trim()) return res.status(400).json({ success: false, message: 'Phone number is required.' });
+
+        // If marking as primary, unset other primaries
+        if (primary) await NGOContact.updateMany({ primary: true }, { $set: { primary: false } });
+
+        const contact = await NGOContact.create({
+            displayName: String(displayName).trim().slice(0, 100),
+            organization: String(organization || '').trim().slice(0, 100),
+            phone: String(phone).trim().slice(0, 20),
+            whatsapp: String(whatsapp || '').trim().slice(0, 20),
+            label: String(label || '').trim().slice(0, 50),
+            description: String(description || '').trim().slice(0, 200),
+            priority: Number(priority) || 0,
+            active: active !== false,
+            primary: primary === true,
+            createdBy: req.adminInfo.id || null
+        });
+        await AuditLog.create({ action: 'ngo_contact_created', entityType: 'NGOContact', entityId: contact._id, performedBy: req.adminInfo.email, details: { displayName: contact.displayName } });
+        io.emit('dataChanged');
+        res.status(201).json({ success: true, message: 'NGO contact created.', data: contact });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// Admin: update NGO contact
+app.put('/api/admin/ngo-contacts/:id', requireAdmin, async (req, res) => {
+    try {
+        const { NGOContact, AuditLog } = await getModels();
+        const { displayName, organization, phone, whatsapp, label, description, priority, active, primary } = req.body;
+        const update = {};
+        if (displayName !== undefined) update.displayName = String(displayName).trim().slice(0, 100);
+        if (organization !== undefined) update.organization = String(organization).trim().slice(0, 100);
+        if (phone !== undefined) update.phone = String(phone).trim().slice(0, 20);
+        if (whatsapp !== undefined) update.whatsapp = String(whatsapp).trim().slice(0, 20);
+        if (label !== undefined) update.label = String(label).trim().slice(0, 50);
+        if (description !== undefined) update.description = String(description).trim().slice(0, 200);
+        if (priority !== undefined) update.priority = Number(priority);
+        if (active !== undefined) update.active = active === true || active === 'true';
+        if (primary !== undefined) {
+            update.primary = primary === true || primary === 'true';
+            if (update.primary) await NGOContact.updateMany({ _id: { $ne: req.params.id }, primary: true }, { $set: { primary: false } });
+        }
+        update.updatedAt = new Date();
+        const contact = await NGOContact.findByIdAndUpdate(req.params.id, { $set: update }, { new: true });
+        if (!contact) return res.status(404).json({ success: false, message: 'Contact not found.' });
+        await AuditLog.create({ action: 'ngo_contact_updated', entityType: 'NGOContact', entityId: contact._id, performedBy: req.adminInfo.email, details: { displayName: contact.displayName } });
+        io.emit('dataChanged');
+        res.json({ success: true, message: 'Contact updated.', data: contact });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// Admin: delete NGO contact (soft-delete preferred — set active=false)
+app.delete('/api/admin/ngo-contacts/:id', requireAdmin, async (req, res) => {
+    try {
+        const { NGOContact, AuditLog } = await getModels();
+        const contact = await NGOContact.findByIdAndDelete(req.params.id);
+        if (!contact) return res.status(404).json({ success: false, message: 'Contact not found.' });
+        await AuditLog.create({ action: 'ngo_contact_deleted', entityType: 'NGOContact', entityId: contact._id, performedBy: req.adminInfo.email, details: { displayName: contact.displayName } });
+        io.emit('dataChanged');
+        res.json({ success: true, message: 'Contact deleted.' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// ---- Public child detail (safe fields) ----
+app.get('/api/children/:id', async (req, res) => {
+    try {
+        const db = await fmcConnectMongoDB();
+        if (!db.success) return res.status(500).json({ success: false, message: 'Database unavailable.' });
+        const child = await db.data.findById(req.params.id).select(PUBLIC_CHILD_FIELDS).lean();
+        if (!child) return res.status(404).json({ success: false, message: 'Child not found.' });
+        res.json({ success: true, data: child });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Failed to load child details.' });
+    }
+});
+
+// ---- Authenticated child detail (includes contact for authorized users) ----
+app.get('/api/children/:id/detail', requireAuth, async (req, res) => {
+    try {
+        const db = await fmcConnectMongoDB();
+        if (!db.success) return res.status(500).json({ success: false, message: 'Database unavailable.' });
+        const child = await db.data.findById(req.params.id).select(AUTHENTICATED_CHILD_FIELDS).lean();
+        if (!child) return res.status(404).json({ success: false, message: 'Child not found.' });
+        // Get active NGO contacts for the contact section
+        const { NGOContact } = await getModels();
+        const ngoContacts = await NGOContact.find({ active: true }).select(NGO_CONTACT_FIELDS).sort({ priority: -1 }).lean();
+        res.json({ success: true, data: child, ngoContacts });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Failed to load child details.' });
     }
 });
 
@@ -614,12 +755,12 @@ app.post('/api/safechild/match', faceScanLimiter, async (req, res) => {
         const Child = db.success ? db.data : null;
 
         // 1. Fetch pre-registered children
-        const preReg = await PreRegisteredChild.find({}).lean();
+        const preReg = await PreRegisteredChild.find({}).select('-faceDescriptor').lean();
 
         // 2. Fetch standard missing children (not yet found, with valid face data)
         let missing = [];
         if (Child) {
-            missing = await Child.find({ faceDescriptor: { $exists: true, $ne: [] } }).lean();
+            missing = await Child.find({ faceDescriptor: { $exists: true, $ne: [] } }).select(PUBLIC_CHILD_FIELDS + ' faceDescriptor').lean();
         }
 
         // 3. Normalize into a single combined pool
@@ -660,6 +801,7 @@ app.post('/api/safechild/match', faceScanLimiter, async (req, res) => {
             }
         }
         if (bestMatch && bestDistance < THRESHOLD) {
+            // Return only safe public fields — no parentContact, no faceDescriptor
             res.json({
                 success: true,
                 matched: true,
@@ -669,7 +811,6 @@ app.post('/api/safechild/match', faceScanLimiter, async (req, res) => {
                     childName: bestMatch.childName,
                     age: bestMatch.age,
                     gender: bestMatch.gender,
-                    parentContact: bestMatch.parentContact,
                     photoUrl: bestMatch.photoUrl,
                     confidence: Math.round((1 - bestDistance) * 100),
                     source: bestMatch.source || 'safechild'
@@ -839,11 +980,18 @@ app.get('/api/admin/children', requireAdmin, async (req, res) => {
         const filter = {};
         if (req.query.status) filter.status = req.query.status;
         if (req.query.q) {
-            const re = { $regex: String(req.query.q), $options: "i" };
+            const q = String(req.query.q).slice(0, 200);
+            const re = { $regex: q, $options: "i" };
             filter.$or = [{ fullName: re }, { address: re }, { contactNumber: re }];
         }
-        const data = await Child.find(filter).sort({ createdAt: -1 }).populate('userId', 'userFullName emailId userContactNumber');
-        res.json({ success: true, data });
+        const page = Math.max(1, parseInt(req.query.page) || 1);
+        const limit = Math.min(Math.max(1, parseInt(req.query.limit) || 50), 100);
+        const skip = (page - 1) * limit;
+        const [data, total] = await Promise.all([
+            Child.find(filter).sort({ createdAt: -1, _id: -1 }).skip(skip).limit(limit).populate('userId', 'userFullName emailId userContactNumber'),
+            Child.countDocuments(filter)
+        ]);
+        res.json({ success: true, data, total, page, limit, pages: Math.ceil(total / limit) });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
@@ -1148,16 +1296,14 @@ app.post('/api/ads/:id/impression', async (req, res) => {
     } catch (e) { res.json({ success: true }); }
 });
 
-// ---- Cached data endpoint for instant load ----
+// ---- Data endpoint with pagination ----
 app.get('/api/data', async (req, res) => {
     try {
-        const cached = getCached('data');
-        if (cached) return res.json(cached);
-        const data = await getAllData();
-        const result = { success: true, data };
-        setCache('data', result);
-        res.json(result);
-    } catch (e) { res.json({ success: true, data: [] }); }
+        const page = parseInt(req.query.page) || 1;
+        const limit = Math.min(parseInt(req.query.limit) || 50, 100);
+        const data = await getAllData({ page, limit });
+        res.json({ success: true, data });
+    } catch (e) { res.json({ success: false, data: { data: [], total: 0 } }); }
 });
 
 app.get('/api/messages', async (req, res) => {
@@ -1762,8 +1908,8 @@ app.delete('/api/admin/legal/:slug', requireAdmin, requireSuperAdmin, async (req
 io.on("connection", function (socket) {
     console.log("New socket user found", socket.id);
 
-    socket.on("load", () => {
-        getAllData()
+    socket.on("load", (opts) => {
+        getAllData(opts || {})
             .then(function (data) {
                 socket.emit('getAllData', data)
             })

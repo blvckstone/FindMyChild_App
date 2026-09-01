@@ -271,6 +271,7 @@ button{font-family:inherit;cursor:pointer}input,select,textarea{font-family:inhe
     <a href="#" data-page="ads"><svg viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H3V5h18v14z"/></svg>Ads</a>
     <a href="#" data-page="whitelist"><svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM12 17c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zM9 8V6c0-1.66 1.34-3 3-3s3 1.34 3 3v2H9z"/></svg>Admin Whitelist<span class="badge" id="badgeWhitelist">0</span></a>
     <a href="#" data-page="revenue"><svg viewBox="0 0 24 24"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>Revenue</a>
+    <a href="#" data-page="ngo"><svg viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>NGO Contacts</a>
     <a href="#" data-page="pages"><svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>Pages</a>
     <a href="#" data-page="legal"><svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-1 9h-2v2H9v-2H7V9h2V7h2v2h2v2zm3-3.5V3.5L18.5 9H13z"/></svg>Legal</a>
     <a href="#" data-page="profile"><svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>My Profile</a>
@@ -461,6 +462,12 @@ button{font-family:inherit;cursor:pointer}input,select,textarea{font-family:inhe
   <div id="revenueList"></div>
 </div>
 
+<!-- ===== NGO CONTACTS ===== -->
+<div class="page" id="pg-ngo">
+  <div class="page-head"><h2>NGO Contacts</h2><div class="actions"><button class="btn-sm" onclick="showAddNGOModal()">+ Add Contact</button></div></div>
+  <div id="ngoList"></div>
+</div>
+
 <!-- ===== PAGES ===== -->
 <div class="page" id="pg-pages">
   <div class="page-head"><h2>Pages Content</h2></div>
@@ -553,13 +560,14 @@ function navigateTo(page){
   if(page==='whitelist')loadWhitelist();
   if(page==='profile')loadProfile();
   if(page==='revenue')loadRevenue();
+  if(page==='ngo')loadNGOContacts();
   if(page==='pages')loadPages();
   if(page==='legal')loadLegal();
 }
 document.querySelectorAll('#sideNav a[data-page]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();navigateTo(a.dataset.page)}));
 document.querySelectorAll('#mobNav button[data-page]').forEach(b=>b.addEventListener('click',()=>{if(b.dataset.page==='more'){showMoreMenu();return}navigateTo(b.dataset.page)}));
 function showMoreMenu(){
-  const allPages=[{id:'analytics',label:'Analytics',icon:'📊'},{id:'ads',label:'Ads',icon:'📺'},{id:'donations',label:'Donations',icon:'💰'},{id:'revenue',label:'Revenue',icon:'💵'},{id:'pages',label:'Pages',icon:'📄'},{id:'legal',label:'Legal Pages',icon:'⚖️'},{id:'praise',label:'Praise & Gifts',icon:'⭐'},{id:'users',label:'Users',icon:'👥'},{id:'whitelist',label:'Admin Whitelist',icon:'🔐'},{id:'add',label:'Add New',icon:'➕'},{id:'profile',label:'My Profile',icon:'👤'}];
+  const allPages=[{id:'analytics',label:'Analytics',icon:'📊'},{id:'ads',label:'Ads',icon:'📺'},{id:'donations',label:'Donations',icon:'💰'},{id:'revenue',label:'Revenue',icon:'💵'},{id:'ngo',label:'NGO Contacts',icon:'📞'},{id:'pages',label:'Pages',icon:'📄'},{id:'legal',label:'Legal Pages',icon:'⚖️'},{id:'praise',label:'Praise & Gifts',icon:'⭐'},{id:'users',label:'Users',icon:'👥'},{id:'whitelist',label:'Admin Whitelist',icon:'🔐'},{id:'add',label:'Add New',icon:'➕'},{id:'profile',label:'My Profile',icon:'👤'}];
   const pages=allPages.filter(p=>canAccess(p.id));
   $('modalTitle').textContent='More';
   const items=pages.map(p=>`<div onclick="closeModal();navigateTo('${p.id}')" style="display:flex;align-items:center;gap:14px;padding:16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background=''"><span style="font-size:20px">${p.icon}</span><span style="font-size:15px;font-weight:600;color:var(--text)">${p.label}</span><span style="margin-left:auto;color:var(--text3)">›</span></div>`).join('');
@@ -1310,6 +1318,29 @@ async function deleteRevenue(id){
   try{await api('/api/admin/revenue/'+id,{method:'DELETE'});toast('Record deleted.');loadRevenue()}catch(e){toast(e.message,'err')}
 }
 
+// === NGO CONTACTS ===
+async function loadNGOContacts(){
+  try{const r=await api('/api/admin/ngo-contacts');const data=r.data||[];
+  $('ngoList').innerHTML=data.length?data.map(c=>`<div class="card-section" style="margin-bottom:10px"><div class="item"><div class="info" style="flex:1"><div class="top"><span class="name">${esc(c.displayName)}</span> ${c.primary?'<span class="sbadge approved">PRIMARY</span>':''} ${c.active?'<span class="sbadge approved">ACTIVE</span>':'<span class="sbadge rejected">DISABLED</span>'}</div>${c.organization?'<div class="sub">🏢 '+esc(c.organization)+'</div>':''}<div class="sub">📞 ${esc(c.phone)}</div>${c.whatsapp?'<div class="sub">💬 WhatsApp: '+esc(c.whatsapp)+'</div>':''}<div class="meta">Priority: ${c.priority}${c.description?' · '+esc(c.description).slice(0,60):''}</div></div><div class="acts"><button class="btn-sm btn-outline" onclick="event.stopPropagation();toggleNGOActive('${c._id}',${!c.active})" style="padding:7px 12px;font-size:11px">${c.active?'Disable':'Enable'}</button><button class="btn-sm btn-outline" onclick="event.stopPropagation();editNGOContact('${c._id}')" style="padding:7px 12px;font-size:11px">Edit</button><button class="btn-sm btn-red" onclick="event.stopPropagation();deleteNGOContact('${c._id}')" style="padding:7px 12px;font-size:11px">Del</button></div></div></div>`).join(''):'<div class="card-section"><div class="cs-body"><div class="empty">No NGO contacts configured. Add your first contact to help users reach out.</div></div></div>';
+  }catch(e){toast(e.message,'err')}}
+function showAddNGOModal(){
+  $('modalTitle').textContent='Add NGO Contact';
+  $('modalBody').innerHTML=`<div class="field"><label>Display Name *</label><input id="ngo_name" placeholder="e.g. FindMyChild Helpline"></div><div class="field"><label>Organization</label><input id="ngo_org" placeholder="e.g. FindMyChild Foundation"></div><div class="field"><label>Phone Number *</label><input id="ngo_phone" placeholder="e.g. +91 98765 43210"></div><div class="field"><label>WhatsApp</label><input id="ngo_wa" placeholder="Optional"></div><div class="field"><label>Label</label><input id="ngo_label" placeholder="e.g. Primary Helpline"></div><div class="field"><label>Description</label><input id="ngo_desc" placeholder="Short description"></div><div class="grid2"><div class="field"><label>Priority (higher = shown first)</label><input id="ngo_priority" type="number" value="0"></div><div class="field"><label style="display:flex;align-items:center;gap:8px;margin-top:22px"><input id="ngo_active" type="checkbox" checked> Active</label><label style="display:flex;align-items:center;gap:8px;margin-top:8px"><input id="ngo_primary" type="checkbox"> Primary Contact</label></div></div><div style="display:flex;gap:10px;margin-top:16px"><button class="btn" onclick="submitNGOContact()" style="flex:1">Save Contact</button><button class="btn-outline" onclick="closeModal()" style="flex:1">Cancel</button></div>`;
+  $('modalBg').classList.add('show')}
+async function submitNGOContact(id){
+  try{const body={displayName:($('ngo_name')||{}).value||'',organization:($('ngo_org')||{}).value||'',phone:($('ngo_phone')||{}).value||'',whatsapp:($('ngo_wa')||{}).value||'',label:($('ngo_label')||{}).value||'',description:($('ngo_desc')||{}).value||'',priority:Number(($('ngo_priority')||{}).value)||0,active:($('ngo_active')||{}).checked,primary:($('ngo_primary')||{}).checked};
+  if(!body.displayName.trim())return toast('Display name required','err');
+  if(!body.phone.trim())return toast('Phone number required','err');
+  if(id){await api('/api/admin/ngo-contacts/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})}else{await api('/api/admin/ngo-contacts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})}
+  closeModal();toast('Contact saved!');loadNGOContacts()}catch(e){toast(e.message,'err')}}
+async function editNGOContact(id){
+  try{const r=await api('/api/admin/ngo-contacts');const c=(r.data||[]).find(x=>x._id===id);if(!c)return toast('Contact not found','err');
+  $('modalTitle').textContent='Edit NGO Contact';
+  $('modalBody').innerHTML=`<div class="field"><label>Display Name *</label><input id="ngo_name" value="${esc(c.displayName)}"></div><div class="field"><label>Organization</label><input id="ngo_org" value="${esc(c.organization||'')}"></div><div class="field"><label>Phone Number *</label><input id="ngo_phone" value="${esc(c.phone)}"></div><div class="field"><label>WhatsApp</label><input id="ngo_wa" value="${esc(c.whatsapp||'')}"></div><div class="field"><label>Label</label><input id="ngo_label" value="${esc(c.label||'')}"></div><div class="field"><label>Description</label><input id="ngo_desc" value="${esc(c.description||'')}"></div><div class="grid2"><div class="field"><label>Priority</label><input id="ngo_priority" type="number" value="${c.priority||0}"></div><div class="field"><label style="display:flex;align-items:center;gap:8px;margin-top:22px"><input id="ngo_active" type="checkbox" ${c.active?'checked':''}> Active</label><label style="display:flex;align-items:center;gap:8px;margin-top:8px"><input id="ngo_primary" type="checkbox" ${c.primary?'checked':''}> Primary Contact</label></div></div><div style="display:flex;gap:10px;margin-top:16px"><button class="btn" onclick="submitNGOContact('${id}')" style="flex:1">Save Changes</button><button class="btn-outline" onclick="closeModal()" style="flex:1">Cancel</button></div>`;
+  $('modalBg').classList.add('show')}catch(e){toast(e.message,'err')}}
+async function toggleNGOActive(id,active){try{await api('/api/admin/ngo-contacts/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({active})});toast(active?'Contact enabled':'Contact disabled');loadNGOContacts()}catch(e){toast(e.message,'err')}}
+async function deleteNGOContact(id){if(!confirm('Delete this NGO contact?'))return;try{await api('/api/admin/ngo-contacts/'+id,{method:'DELETE'});toast('Contact deleted.');loadNGOContacts()}catch(e){toast(e.message,'err')}}
+
 // === PAGES (About Us, Contact Us) ===
 async function loadPages(){
   try{
@@ -1658,6 +1689,7 @@ if(socket){socket.on('dataChanged',async()=>{try{
     else if(pid==='pg-praise')renderPraise();
     else if(pid==='pg-donations')loadDonations();
     else if(pid==='pg-revenue')loadRevenue();
+    else if(pid==='pg-ngo')loadNGOContacts();
   }
 }catch(e){console.warn('[SOCKET] Real-time sync failed:',e.message)}})}
 </script>

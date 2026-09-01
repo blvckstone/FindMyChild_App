@@ -1,8 +1,13 @@
 const fmcConnectMongoDB = require('../fmcDB/fmcMongoDB');
-const { getBySearchDemo } = require('../demoData/demoData');
 const { PUBLIC_CHILD_FIELDS } = require('../publicProjection');
 
-const getBySearchData = async ({ query, age, gender, ageMin, ageMax, filter, sortBy } = {}) => {
+const MAX_PAGE_SIZE = 100;
+
+const getBySearchData = async ({ query, age, gender, ageMin, ageMax, filter, sortBy, page, limit } = {}) => {
+    const safeLimit = Math.min(Math.max(1, parseInt(limit) || 50), MAX_PAGE_SIZE);
+    const safePage = Math.max(1, parseInt(page) || 1);
+    const skip = (safePage - 1) * safeLimit;
+
     const responseObj = await fmcConnectMongoDB();
 
     if (responseObj.success) {
@@ -11,7 +16,7 @@ const getBySearchData = async ({ query, age, gender, ageMin, ageMax, filter, sor
             const conditions = [];
 
             if (query && String(query).trim() !== "") {
-                const q = String(query).trim();
+                const q = String(query).trim().slice(0, 200);
                 const regex = { $regex: q, $options: "i" };
                 conditions.push({
                     $or: [
@@ -21,8 +26,7 @@ const getBySearchData = async ({ query, age, gender, ageMin, ageMax, filter, sor
                         { missingLocation: regex },
                         { gender: regex },
                         { info: regex },
-                        { disability: regex },
-                        { contactNumber: regex }
+                        { disability: regex }
                     ]
                 });
                 if (!isNaN(Number(q))) {
@@ -42,7 +46,7 @@ const getBySearchData = async ({ query, age, gender, ageMin, ageMax, filter, sor
             }
 
             if (gender && String(gender).trim() !== "") {
-                conditions.push({ gender: { $regex: String(gender), $options: "i" } });
+                conditions.push({ gender: { $regex: String(gender).slice(0, 20), $options: "i" } });
             }
 
             if (filter === 'missing') {
@@ -58,27 +62,26 @@ const getBySearchData = async ({ query, age, gender, ageMin, ageMax, filter, sor
 
             conditions.push({ status: 'approved' });
 
-            const data = await Child.find(conditions.length ? { $and: conditions } : {}).select(PUBLIC_CHILD_FIELDS).lean();
+            const mongoFilter = conditions.length ? { $and: conditions } : {};
 
-            let sorted = data;
-            if (sortBy === 'oldest') {
-                sorted.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-            } else if (sortBy === 'name') {
-                sorted.sort((a, b) => (a.fullName || '').localeCompare(b.fullName || ''));
-            } else if (sortBy === 'age') {
-                sorted.sort((a, b) => (a.age || 0) - (b.age || 0));
-            } else {
-                sorted.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-            }
+            // Build MongoDB sort
+            let mongoSort = { createdAt: -1, _id: -1 };
+            if (sortBy === 'oldest') mongoSort = { createdAt: 1, _id: 1 };
+            else if (sortBy === 'name') mongoSort = { fullName: 1, _id: 1 };
+            else if (sortBy === 'age') mongoSort = { age: 1, _id: 1 };
 
-            return { success: true, error: false, message: "Successfully found data!", data: sorted };
+            const [data, total] = await Promise.all([
+                Child.find(mongoFilter).select(PUBLIC_CHILD_FIELDS).sort(mongoSort).skip(skip).limit(safeLimit).lean(),
+                Child.countDocuments(mongoFilter)
+            ]);
+
+            return { success: true, error: false, message: "Successfully found data!", data, total, page: safePage, limit: safeLimit, pages: Math.ceil(total / safeLimit) };
         } catch (error) {
             return { success: false, error: true, message: "Error during fetching with database!", data: error };
         }
     }
 
-    console.warn("Database unavailable — returning demo data for 'getBySearchData'");
-    return getBySearchDemo({ query, age, gender });
+    return { success: false, error: true, message: "Child records are temporarily unavailable. Please try again shortly.", data: [] };
 };
 
 module.exports = getBySearchData;

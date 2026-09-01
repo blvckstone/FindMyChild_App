@@ -1,25 +1,33 @@
 const fmcConnectMongoDB = require('../fmcDB/fmcMongoDB');
-const { getByRangeDemo } = require('../demoData/demoData');
 const { PUBLIC_CHILD_FIELDS } = require('../publicProjection');
 
-const getByRangeData = async (obj) => {
+const MAX_PAGE_SIZE = 100;
+
+const getByRangeData = async (obj, { page = 1, limit = 50 } = {}) => {
+    const safeLimit = Math.min(Math.max(1, parseInt(limit) || 50), MAX_PAGE_SIZE);
+    const safePage = Math.max(1, parseInt(page) || 1);
+    const skip = (safePage - 1) * safeLimit;
+
     const responseObj = await fmcConnectMongoDB();
 
     if (responseObj.success) {
         const Child = responseObj.data;
         try {
-            const data = await Child.find({
-                "missingDate": { $gte: obj.searchingDateFrom, $lte: obj.searchingDateTo },
+            const filter = {
+                "missingDate": { $gte: String(obj?.searchingDateFrom || '').slice(0, 20), $lte: String(obj?.searchingDateTo || '').slice(0, 20) },
                 status: 'approved'
-            }).select(PUBLIC_CHILD_FIELDS).lean();
-            return { success: true, error: false, message: "Successfully found data!", data };
+            };
+            const [data, total] = await Promise.all([
+                Child.find(filter).select(PUBLIC_CHILD_FIELDS).sort({ createdAt: -1, _id: -1 }).skip(skip).limit(safeLimit).lean(),
+                Child.countDocuments(filter)
+            ]);
+            return { success: true, error: false, message: "Successfully found data!", data, total, page: safePage, limit: safeLimit, pages: Math.ceil(total / safeLimit) };
         } catch (error) {
             return { success: false, error: true, message: "Error during fetching with database!", data: error };
         }
     }
 
-    console.warn("Database unavailable — returning demo data for 'getByRangeData'");
-    return getByRangeDemo(obj);
+    return { success: false, error: true, message: "Child records are temporarily unavailable. Please try again shortly.", data: [] };
 };
 
 module.exports = getByRangeData;
