@@ -1,5 +1,6 @@
 const fmcConnectMongoDB = require('../fmcDB/fmcMongoDB');
 const { getBySearchDemo } = require('../demoData/demoData');
+const { PUBLIC_CHILD_FIELDS } = require('../publicProjection');
 
 const getBySearchData = async ({ query, age, gender, ageMin, ageMax, filter, sortBy } = {}) => {
     const responseObj = await fmcConnectMongoDB();
@@ -57,7 +58,7 @@ const getBySearchData = async ({ query, age, gender, ageMin, ageMax, filter, sor
 
             conditions.push({ status: 'approved' });
 
-            const data = await Child.find(conditions.length ? { $and: conditions } : {});
+            const data = await Child.find(conditions.length ? { $and: conditions } : {}).select(PUBLIC_CHILD_FIELDS).lean();
 
             let sorted = data;
             if (sortBy === 'oldest') {

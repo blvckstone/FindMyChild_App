@@ -1,5 +1,6 @@
 const fmcConnectMongoDB = require('../fmcDB/fmcMongoDB');
 const { getByAddressDemo } = require('../demoData/demoData');
+const { PUBLIC_CHILD_FIELDS } = require('../publicProjection');
 
 const getByAddressData = async (searchingAddress) => {
     const responseObj = await fmcConnectMongoDB();
@@ -7,7 +8,7 @@ const getByAddressData = async (searchingAddress) => {
     if (responseObj.success) {
         const Child = responseObj.data;
         try {
-            const data = await Child.find({ "address": { $regex: searchingAddress, $options: "i" }, status: 'approved' });
+            const data = await Child.find({ "address": { $regex: searchingAddress, $options: "i" }, status: 'approved' }).select(PUBLIC_CHILD_FIELDS).lean();
             return { success: true, error: false, message: "Successfully found data!", data };
         } catch (error) {
             return { success: false, error: true, message: "Error during fetching with database!", data: error };

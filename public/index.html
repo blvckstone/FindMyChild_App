@@ -1796,14 +1796,13 @@ async function submitFaceScan(){
       const d=j.data;
       // Store matched child in allData so openDetail can find it
       if(d.id&&!allData.find(x=>String(x._id)===String(d.id))){
-        allData.push({_id:d.id,fullName:d.childName,age:d.age,gender:d.gender,address:d.address,contactNumber:d.parentContact||'',medicalInfo:d.medicalInfo,image:d.photoUrl,found:false,source:'ai_match'});
+        allData.push({_id:d.id,fullName:d.childName,age:d.age,gender:d.gender,contactNumber:d.parentContact||'',image:d.photoUrl,found:false,source:'ai_match'});
       }
       const imgHtml=d.photoUrl?'<img src="'+esc(d.photoUrl)+'" alt="'+esc(d.childName)+'">':'<div class="ph"><svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.26-5.33-4-8-4z"/></svg></div>';
       let infoRows='';
       if(d.age)infoRows+='<div class="info-row"><span class="lbl">Age</span><span class="val">'+esc(String(d.age))+' years</span></div>';
       if(d.gender)infoRows+='<div class="info-row"><span class="lbl">Gender</span><span class="val">'+esc(d.gender)+'</span></div>';
-      if(d.address)infoRows+='<div class="info-row"><span class="lbl">Address</span><span class="val">'+esc(d.address)+'</span></div>';
-      if(d.medicalInfo)infoRows+='<div class="info-row"><span class="lbl">Medical</span><span class="val">'+esc(d.medicalInfo)+'</span></div>';
+      
       $('scanResult').innerHTML='<div class="match-avatar">'+imgHtml+'</div>'+
         '<h3>'+esc(d.childName)+'</h3>'+
         '<div class="conf">✅ Child Identified — '+d.confidence+'% confidence</div>'+
