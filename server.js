@@ -10,6 +10,19 @@ const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
+// ── Startup Security Audit ──────────────────────────────────────────────────────
+const criticalEnvVars = ['JWT_SECRET', 'DB_ATLAS', 'CLOUDINARY_CLOUD_NAME', 'CLOUDINARY_API_KEY', 'CLOUDINARY_API_SECRET'];
+const missingVars = criticalEnvVars.filter(v => !process.env[v]);
+if (missingVars.length > 0) {
+    console.error(`[SECURITY] CRITICAL: Missing environment variables: ${missingVars.join(', ')}`);
+    console.error('[SECURITY] The application may not function correctly. Set these in your .env file or hosting dashboard.');
+}
+if (!process.env.ADMIN_USERNAME || !process.env.ADMIN_PASS) {
+    console.error('[SECURITY] WARNING: ADMIN_USERNAME / ADMIN_PASS not set. Legacy admin login disabled.');
+}
+console.log('[STARTUP] Environment audit complete.');
+// ───────────────────────────────────────────────────────────────────────────────
+
 const app = express();
 const server = http.createServer(app);
 
@@ -35,7 +48,11 @@ app.use(express.static(path.join(__dirname, 'public'), {
 }));
 
 // Session for Passport
-app.use(require('express-session')({ secret: process.env.JWT_SECRET || 'session_secret', resave: false, saveUninitialized: false }));
+const SESSION_SECRET = process.env.JWT_SECRET || process.env.SESSION_SECRET;
+if (!SESSION_SECRET) {
+    console.error('[SECURITY] CRITICAL: No JWT_SECRET or SESSION_SECRET set. Session security is disabled.');
+}
+app.use(require('express-session')({ secret: SESSION_SECRET || 'insecure-fallback-do-not-deploy', resave: false, saveUninitialized: false }));
 app.use(passport.initialize());
 app.use(passport.session());
 
@@ -780,7 +797,7 @@ app.get('/api/admin/debug', (req, res) => {
     if (!token) return res.json({ ok: false, reason: 'no token in header', headers: Object.keys(req.headers) });
     try {
         const jwt = require('jsonwebtoken');
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'findmychild_jwt_secret_k4x9m2');
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
         console.log('[DEBUG] JWT verified OK:', JSON.stringify(decoded));
         res.json({ ok: true, decoded });
     } catch (e) {

@@ -3,20 +3,24 @@ const jwt = require('jsonwebtoken');
 const { hashPassword, verifyPassword } = require('./passwords');
 const getModels = require('./dbModels');
 
-// Legacy admin login (username/password)
-const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
-const ADMIN_PASS = process.env.ADMIN_PASS || 'admin123';
+// Legacy admin login (username/password) — MUST be set in environment variables
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME;
+const ADMIN_PASS = process.env.ADMIN_PASS;
 
-if (!process.env.ADMIN_USERNAME || !process.env.ADMIN_PASS) {
-    console.warn("WARNING: Using default admin credentials (admin / admin123). Set ADMIN_USERNAME and ADMIN_PASS in .env to change them.");
+if (!ADMIN_USERNAME || !ADMIN_PASS) {
+    console.error('[SECURITY] CRITICAL: ADMIN_USERNAME and/or ADMIN_PASS not set in environment. Legacy admin login will be DISABLED.');
 }
 
 // Super admin email - cannot be removed or demoted
-const SUPER_ADMIN_EMAIL = 'iblvckstone@gmail.com';
+const SUPER_ADMIN_EMAIL = process.env.SUPER_ADMIN_EMAIL || 'iblvckstone@gmail.com';
 
-// JWT config for admin tokens (persistent - survives server restarts)
-const JWT_SECRET = process.env.JWT_SECRET || 'findmychild_jwt_secret_k4x9m2';
+// JWT config for admin tokens — MUST be set in environment variables
+const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRES = process.env.JWT_EXPIRES_IN || '7d';
+
+if (!JWT_SECRET) {
+    console.error('[SECURITY] CRITICAL: JWT_SECRET not set in environment. Auth tokens will fail.');
+}
 
 // Admin tokens: token -> { email, role, permissions } (kept as cache, but JWT is primary)
 const adminTokens = new Map();

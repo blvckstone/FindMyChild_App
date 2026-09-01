@@ -6,4 +6,17 @@ public/uploads/
 .DS_Store
 .freebuff/
 tmp/
-.ideavo/project
+
+# Agent/IDE internal state — may contain secrets
+.ideavo/
+.ideavo-attachments/
+AppInformations.txt
+
+# Uploads
+public/uploads/
+
+# OS files
+Thumbs.db
+
+# Debug logs
+npm-debug.log*
