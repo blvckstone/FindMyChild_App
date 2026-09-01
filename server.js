@@ -290,7 +290,7 @@ app.get('/api/auth/activity', requireAuth, async (req, res) => {
         const { Child, FoundRequest, Praise, Gift, PreRegisteredChild } = await getModels();
         const userId = req.userId;
         const [children, foundReqs, praises, gifts, safeChildren] = await Promise.all([
-            Child.find({ uploadedBy: userId }).sort({ createdAt: -1 }).lean().catch(() => []),
+            Child.find({ userId: userId }).sort({ createdAt: -1 }).lean().catch(() => []),
             FoundRequest.find({ userId }).sort({ createdAt: -1 }).populate('childId', 'fullName childName').lean().catch(() => []),
             Praise.find({ userId }).sort({ createdAt: -1 }).populate('childId', 'fullName childName').lean().catch(() => []),
             Gift.find({ userId }).sort({ createdAt: -1 }).populate('childId', 'fullName childName').lean().catch(() => []),
@@ -843,7 +843,7 @@ app.get('/api/admin/children', requireAdmin, async (req, res) => {
             const re = { $regex: String(req.query.q), $options: "i" };
             filter.$or = [{ fullName: re }, { address: re }, { contactNumber: re }];
         }
-        const data = await Child.find(filter).sort({ createdAt: -1 });
+        const data = await Child.find(filter).sort({ createdAt: -1 }).populate('userId', 'userFullName emailId userContactNumber');
         res.json({ success: true, data });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });

@@ -502,6 +502,7 @@ function toast(msg,type){const t=$('toast');t.textContent=msg;t.className='show 
 async function api(path,opts={}){
   const h=opts.headers||{};
   if(token)h.Authorization='Bearer '+token;
+  opts.cache='no-store';
   const r=await fetch(path,{...opts,headers:h});
   console.log('[API]',r.status,path);
   if(r.status===401){console.error('[API] 401 Unauthorized for',path);localStorage.removeItem('fmc_admin_token');token='';showLogin();toast('Session expired.','err');throw new Error('unauthorized')}
@@ -691,7 +692,8 @@ function childItem(c,view){
     acts=miniBtn('btn-outline',iEdit,'Edit',"event.stopPropagation();openEdit('"+c._id+"')")+miniBtn('btn-red',iDelete,'Delete',"event.stopPropagation();delChild('"+c._id+"')");
   }
   var foundBadge=c.found?'<span class="sbadge found">FOUND</span>':'<span class="sbadge missing">MISSING</span>';
-  return '<div class="card-section" style="margin-bottom:10px;cursor:pointer" onclick="openChildDetail(\''+c._id+'\')"><div class="item">'+imgHTML+'<div class="info" style="min-width:0;flex:1;overflow:hidden"><div class="top"><span class="name">'+(esc(c.fullName)||'Unknown')+'</span><div class="badges">'+sbadge(c.status)+' '+foundBadge+'</div></div>'+(sub?'<div class="sub">'+esc(sub)+'</div>':'')+(c.address?'<div class="addr">'+esc(c.address)+'</div>':'')+(contactLine||dateLine?'<div class="meta">'+contactLine+(contactLine&&dateLine?' · ':'')+dateLine+'</div>':'')+'</div><div class="acts">'+acts+'</div></div></div>';
+  var submitterName=c.userId&&c.userId.userFullName?c.userId.userFullName:(c.uploadedBy||'User');
+  return '<div class="card-section" style="margin-bottom:10px;cursor:pointer" onclick="openChildDetail(\''+c._id+'\')"><div class="item">'+imgHTML+'<div class="info" style="min-width:0;flex:1;overflow:hidden"><div class="top"><span class="name">'+(esc(c.fullName)||'Unknown')+'</span><div class="badges">'+sbadge(c.status)+' '+foundBadge+'</div></div>'+(sub?'<div class="sub">'+esc(sub)+'</div>':'')+(c.address?'<div class="addr">'+esc(c.address)+'</div>':'')+'<div class="sub" style="color:var(--accent);font-weight:600">Reported by '+esc(submitterName)+'</div>'+(contactLine||dateLine?'<div class="meta">'+contactLine+(contactLine&&dateLine?' · ':'')+dateLine+'</div>':'')+'</div><div class="acts">'+acts+'</div></div></div>';
 }
 
 // Child detail modal
@@ -714,6 +716,7 @@ function openChildDetail(id){
     ${c.missingDate?'<div style="margin-bottom:12px"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Missing Date</div><div style="font-size:13px;color:var(--text)">'+fmtDate(c.missingDate)+(c.missingTime?' at '+c.missingTime:'')+'</div></div>':''}
     ${c.missingLocation?'<div style="margin-bottom:12px"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Last Seen Location</div><div style="font-size:13px;color:var(--text)">'+esc(c.missingLocation)+'</div></div>':''}
     ${c.info?'<div style="margin-bottom:12px"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Additional Details</div><div style="background:var(--bg);border-radius:var(--radius-xs);padding:12px;font-size:13px;color:var(--text);line-height:1.6">'+esc(c.info)+'</div></div>':''}
+    ${(() => {const sName = c.userId && c.userId.userFullName ? c.userId.userFullName : (c.uploadedBy || 'User'); const sContact = c.userId && c.userId.userContactNumber ? c.userId.userContactNumber : ''; return '<div style="margin-bottom:12px;padding:12px;background:var(--accent-light);border-radius:var(--radius-xs);border:1px solid var(--accent)"><div style="font-size:11px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">Reported By</div><div style="font-size:14px;font-weight:700;color:var(--text)">'+esc(sName)+'</div>'+(sContact?'<div style="font-size:13px;margin-top:2px"><a href="tel:'+esc(sContact)+'" style="color:var(--accent);text-decoration:none;font-weight:600">'+esc(sContact)+'</a></div>':'')+'</div>'})()}
     <div style="font-size:11px;color:var(--text3);margin-top:12px">Submitted: ${fmtDate(c.createdAt)} · ID: ${esc(c._id)}</div>
     <div style="display:flex;gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
       ${miniBtn('btn-outline',iEdit,'Edit','openEdit(\''+c._id+'\');closeModal()')}
