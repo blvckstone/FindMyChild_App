@@ -728,7 +728,8 @@ app.post('/api/safechild/register', requireAuth, async (req, res) => {
             parentContact: parentContact || '',
             medicalInfo: medicalInfo || '',
             photoUrl: finalPhotoUrl,
-            faceDescriptor: parsedDescriptor
+            faceDescriptor: parsedDescriptor,
+            status: 'approved'
         });
         res.status(201).json({ success: true, message: 'Child pre-registered successfully!', data: { id: child._id, childName: child.childName } });
     } catch (error) {
@@ -1654,6 +1655,49 @@ app.get('/api/admin/ensure-super-admin', requireAdmin, requireSuperAdmin, async 
 });
 
 // ---- Admin: user management ----
+app.get('/api/admin/users/:id/safe-children', requireAdmin, async (req, res) => {
+    if (!hasPermission(req, 'users')) return res.status(403).json({ success: false, message: 'Permission denied.' });
+    try {
+        const { PreRegisteredChild } = await getModels();
+        const data = await PreRegisteredChild.find({ parentId: req.params.id }).sort({ createdAt: -1 }).lean();
+        res.json({ success: true, data });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+app.put('/api/admin/safe-children/:id', requireAdmin, async (req, res) => {
+    if (!hasPermission(req, 'users')) return res.status(403).json({ success: false, message: 'Permission denied.' });
+    try {
+        const { PreRegisteredChild } = await getModels();
+        const { status, rejectionReason } = req.body;
+        if (status !== undefined && !['pending', 'approved', 'rejected'].includes(status)) return res.status(400).json({ success: false, message: 'Invalid status.' });
+        const update = {};
+        if (status !== undefined) update.status = status;
+        if (rejectionReason !== undefined) update.rejectionReason = String(rejectionReason).trim().slice(0, 500);
+        update.reviewedBy = req.adminInfo.id || null;
+        update.reviewedAt = new Date();
+        const child = await PreRegisteredChild.findByIdAndUpdate(req.params.id, { $set: update }, { new: true }).select('-faceDescriptor');
+        if (!child) return res.status(404).json({ success: false, message: 'SafeChild record not found.' });
+        res.json({ success: true, message: 'SafeChild record updated.', data: child });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+app.delete('/api/admin/safe-children/:id', requireAdmin, async (req, res) => {
+    if (!hasPermission(req, 'users')) return res.status(403).json({ success: false, message: 'Permission denied.' });
+    try {
+        const { PreRegisteredChild } = await getModels();
+        const child = await PreRegisteredChild.findByIdAndDelete(req.params.id);
+        if (!child) return res.status(404).json({ success: false, message: 'SafeChild record not found.' });
+        if (child.photoUrl) await deleteImage(child.photoUrl);
+        res.json({ success: true, message: 'SafeChild record deleted.' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
 app.get('/api/admin/users', requireAdmin, async (req, res) => {
     if (!hasPermission(req, 'users')) return res.status(403).json({ success: false, message: 'Permission denied.' });
     try {
@@ -1697,15 +1741,17 @@ app.delete('/api/admin/users/:id', requireAdmin, async (req, res) => {
 
 app.get('/api/admin/users/:id/activity', requireAdmin, async (req, res) => {
     try {
-        const { Analytics, Praise, Gift, FoundRequest } = await getModels();
+        const { Analytics, Praise, Gift, FoundRequest, Child, PreRegisteredChild } = await getModels();
         const userId = req.params.id;
         const [praises, gifts, foundReqs, analytics] = await Promise.all([
             Praise.find({ userId }).sort({ createdAt: -1 }).limit(20).lean(),
             Gift.find({ userId }).sort({ createdAt: -1 }).limit(20).lean(),
             FoundRequest.find({ userId }).sort({ createdAt: -1 }).limit(20).populate('childId', 'fullName').lean(),
-            Analytics.find({ userId }).sort({ createdAt: -1 }).limit(20).lean()
+            Analytics.find({ userId }).sort({ createdAt: -1 }).limit(20).lean(),
+            Child.find({ userId }).select('-faceDescriptor').sort({ createdAt: -1 }).limit(100).lean(),
+            PreRegisteredChild.find({ parentId: userId }).select('-faceDescriptor').sort({ createdAt: -1 }).limit(100).lean()
         ]);
-        res.json({ success: true, data: { praises, gifts, foundReqs, analytics } });
+        res.json({ success: true, data: { praises, gifts, foundReqs, analytics, reports: children, safeChildren } });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }

@@ -425,8 +425,10 @@ button{font-family:inherit;cursor:pointer}input,select,textarea{font-family:inhe
 <!-- ===== USERS ===== -->
 <div class="page" id="pg-users">
   <div class="page-head"><h2>Registered Users</h2></div>
-  <div class="filter-bar"><input id="userSearch" placeholder="Search users..." oninput="renderUsers()"></div>
-  <div id="userList"></div>
+  <div class="filter-bar"><input id="userSearch" placeholder="Search users..." oninput="renderUsersList()"></div>
+  <div style="display:flex;gap:8px;margin-bottom:16px"><button id="usersDetailsTab" class="filter-btn active" onclick="switchUsersTab('details')">User Details</button><button id="usersChildrenTab" class="filter-btn" onclick="switchUsersTab('children')">User Children</button></div>
+  <div id="userDetailsPane"><div id="userList"></div></div>
+  <div id="userChildrenPane" style="display:none"><div class="filter-bar"><select id="safeChildStatusFilter" onchange="renderSafeChildren()"><option value="">All statuses</option><option value="approved">Approved</option><option value="pending">Pending</option><option value="rejected">Rejected</option></select><input id="safeChildSearch" placeholder="Search child or user..." oninput="renderSafeChildren()"></div><div id="safeChildrenList"></div></div>
 </div>
 
 <!-- ===== ANALYTICS ===== -->
@@ -511,7 +513,7 @@ button{font-family:inherit;cursor:pointer}input,select,textarea{font-family:inhe
 window.onerror=function(msg,src,line,col,err){document.body.insertAdjacentHTML('afterbegin','<div style="position:fixed;top:0;left:0;right:0;background:red;color:#fff;z-index:99999;padding:12px;text-align:center;font:14px monospace">JS ERROR: '+msg+' (line '+line+')</div>');return false};
 console.log('[ADMIN-SCRIPT] Script started at',new Date().toISOString());
 const socket=typeof io!=='undefined'?io():null;
-let token=localStorage.getItem('fmc_admin_token')||'',allChildren=[],allUsers=[],allFoundReqs=[],allPraise=[],allGifts=[],allDonations=[];
+let token=localStorage.getItem('fmc_admin_token')||'',allChildren=[],allUsers=[],allFoundReqs=[],allPraise=[],allGifts=[],allDonations=[],allSafeChildren=[];
 let currentFoundFilter='',currentPraiseFilter='';
 const $=id=>document.getElementById(id);
 const esc=s=>String(s==null?'':s).replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
@@ -971,8 +973,14 @@ async function savePaymentSettings(){const msg=$('psMsg');try{await api('/api/ad
 // Users
 async function loadUsers(){
   try{const r=await api('/api/admin/users');allUsers=r.data||[]}catch(e){allUsers=[]}
-  renderUsersList();
+  try{const rows=await Promise.all(allUsers.map(async u=>{try{const r=await api('/api/admin/users/'+u._id+'/safe-children');return (r.data||[]).map(c=>({...c,user:u}))}catch(e){return []}}));allSafeChildren=rows.flat()}catch(e){allSafeChildren=[]}
+  renderUsersList();renderSafeChildren();
 }
+function switchUsersTab(tab){const details=tab==='details';$('userDetailsPane').style.display=details?'block':'none';$('userChildrenPane').style.display=details?'none':'block';$('usersDetailsTab').classList.toggle('active',details);$('usersChildrenTab').classList.toggle('active',!details);if(!details)renderSafeChildren()}
+function renderSafeChildren(){const status=$('safeChildStatusFilter')?.value||'',q=($('safeChildSearch')?.value||'').toLowerCase();const list=allSafeChildren.filter(c=>(!status||c.status===status)&&(!q||[c.childName,c.user?.userFullName,c.user?.emailId].some(v=>String(v||'').toLowerCase().includes(q))));$('safeChildrenList').innerHTML=list.length?list.map(c=>'<div class="card-section" style="margin-bottom:10px"><div class="item">'+(c.photoUrl?'<img src="'+esc(c.photoUrl)+'" style="width:48px;height:48px;border-radius:12px;object-fit:cover">':'<div class="img-wrap" style="width:48px;height:48px;border-radius:12px;background:var(--border);display:flex;align-items:center;justify-content:center">👶</div>')+'<div class="info" style="flex:1;min-width:0"><div class="top"><span class="name">'+esc(c.childName||'Unknown')+'</span> '+sbadge(c.status||'approved')+'</div><div class="sub">User: '+esc(c.user?.userFullName||'Unknown')+'</div><div class="sub">'+esc(c.user?.emailId||c.user?.userContactNumber||'')+'</div><div class="meta">'+(c.age?c.age+' yrs · ':'')+fmtDate(c.createdAt)+'</div></div><div class="acts">'+miniBtn('btn-outline',iEdit,'Edit','openSafeChildAdminEdit(\''+c._id+'\')')+miniBtn('btn-red',iDelete,'Del','deleteSafeChildAdmin(\''+c._id+'\')')+'</div></div></div>').join(''):'<div class="card-section"><div class="cs-body"><div class="empty">No SafeChild registrations found.</div></div></div>'}
+function openSafeChildAdminEdit(id){const c=allSafeChildren.find(x=>x._id===id);if(!c)return;openModal('Manage SafeChild',`<div class="field"><label>Status</label><select id="adminSafeStatus"><option value="approved" ${c.status==='approved'?'selected':''}>Approved</option><option value="pending" ${c.status==='pending'?'selected':''}>Pending</option><option value="rejected" ${c.status==='rejected'?'selected':''}>Rejected</option></select></div><div class="field"><label>Rejection reason</label><textarea id="adminSafeReason">${esc(c.rejectionReason||'')}</textarea></div><div style="display:flex;gap:10px"><button class="btn" onclick="saveSafeChildAdmin('${id}')" style="flex:1">Save</button><button class="btn-outline" onclick="closeModal()" style="flex:1">Cancel</button></div>`)}
+async function saveSafeChildAdmin(id){try{await api('/api/admin/safe-children/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:$('adminSafeStatus').value,rejectionReason:$('adminSafeReason').value})});closeModal();toast('SafeChild updated.');loadUsers()}catch(e){toast(e.message,'err')}}
+async function deleteSafeChildAdmin(id){if(!confirm('Delete this SafeChild registration?'))return;try{await api('/api/admin/safe-children/'+id,{method:'DELETE'});toast('SafeChild deleted.');loadUsers()}catch(e){toast(e.message,'err')}}
 function renderUsersList(){
   const q=($('userSearch')?.value||'').toLowerCase();
   let list=allUsers;

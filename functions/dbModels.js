@@ -160,6 +160,10 @@ const preRegisteredChildSchema = mongoose.Schema({
     medicalInfo: { type: String, default: '' },
     photoUrl: { type: String, default: '' },
     faceDescriptor: { type: [Number], required: true }, // 128D face descriptor array
+    status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'approved' },
+    reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'AdminUser' },
+    reviewedAt: { type: Date },
+    rejectionReason: { type: String, default: '' },
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now }
 });
