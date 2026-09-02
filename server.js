@@ -797,11 +797,14 @@ app.post('/api/safechild/match', faceScanLimiter, async (req, res) => {
         const Child = db.success ? db.data : null;
 
         // 1. Fetch pre-registered children
-        const preReg = await PreRegisteredChild.find({}).select('-faceDescriptor').lean();
+        const preReg = await PreRegisteredChild.find({}).lean();
 
         // 2. Fetch standard missing children (not yet found, with valid face data)
         let missing = [];
         if (Child) {
+            // Search every reported child, including pending, approved, rejected,
+            // missing, and found records. The photo match is an internal lookup;
+            // public response fields remain sanitized below.
             missing = await Child.find({ faceDescriptor: { $exists: true, $ne: [] } }).select(PUBLIC_CHILD_FIELDS + ' faceDescriptor').lean();
         }
 

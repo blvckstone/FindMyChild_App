@@ -301,14 +301,15 @@ main{max-width:100%;margin:0 auto;padding-bottom:calc(80px + env(safe-area-inset
 .ngo-contact-org{font-size:11px;color:var(--text3);margin-top:2px}
 .ngo-contact-desc{font-size:11px;color:var(--text2);line-height:1.45;margin-top:5px}
 .ngo-contact-phone{font-size:13px;font-weight:700;color:var(--text2);margin-top:9px;letter-spacing:.2px}
-.ngo-contact-actions{display:flex;flex-direction:column;gap:7px;flex-shrink:0}
-.ngo-contact-actions a{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-width:104px;padding:10px 12px;border-radius:10px;color:#fff;text-decoration:none;font-size:12px;font-weight:800;transition:transform .12s,opacity .12s}
+.ngo-contact-actions{display:flex;flex-direction:column;gap:7px;flex-shrink:0;width:100%;margin-top:12px}
+.ngo-contact-actions a{display:flex;align-items:center;justify-content:center;gap:5px;width:100%;min-height:44px;padding:10px 12px;border-radius:10px;color:#fff;text-decoration:none;font-size:12px;font-weight:800;transition:transform .12s,opacity .12s}
 .ngo-contact-actions a:active{transform:scale(.96);opacity:.9}
 .ngo-contact-actions .ngo-call{background:var(--green);box-shadow:0 3px 8px rgba(52,199,89,.22)}
 .ngo-contact-actions .ngo-whatsapp{background:#25d366;box-shadow:0 3px 8px rgba(37,211,102,.2)}
 .ngo-contact-empty{margin-top:14px;padding:14px;background:var(--bg);border:1px solid var(--border);border-radius:14px;text-align:center}
 .ngo-contact-empty p{font-size:12px;color:var(--text3);line-height:1.5;margin:0}
-@media(max-width:420px){.ngo-contact-main{display:block}.ngo-contact-actions{flex-direction:row;margin-top:12px}.ngo-contact-actions a{flex:1}.ngo-contact-actions a:only-child{flex:0 0 104px}}
+@media(min-width:421px){.ngo-contact-main{display:block}}
+@media(max-width:420px){.ngo-contact-actions{flex-direction:row}.ngo-contact-actions a{flex:1}}
 .backdrop{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.4);opacity:0;pointer-events:none;transition:opacity .3s}
 .backdrop.show{opacity:1;pointer-events:auto}
 .sheet{
