@@ -1879,7 +1879,7 @@ async function openScanDetail(id,detailType){
   const isSafeChild=detailType==='safechild';
   const cached=!isSafeChild&&allData.concat(results).find(x=>String(x._id)===String(id));
   if(cached){
-    renderScanDetail(cached, ngoContactsCache||[]);
+    renderScanDetail(cached, ngoContactsCache||[], isSafeChild);
     // Refresh the detail in the background so NGO contacts stay current.
     openScanDetail._refresh(id,detailType);
     return;
@@ -1898,7 +1898,7 @@ openScanDetail._refresh=async function(id,detailType){
     const opts=isSafeChild?{}:userToken?{auth:true}:{headers:{}};
     const url=isSafeChild?'/api/safechild/children/'+id+'/public':userToken?'/api/children/'+id+'/detail':'/api/children/'+id;
     const j=await api(url,opts);
-    if(j.success&&j.data&&$('sheet').classList.contains('show'))renderScanDetail(j.data,j.ngoContacts!=null?j.ngoContacts:null);
+    if(j.success&&j.data&&$('sheet').classList.contains('show'))renderScanDetail(j.data,j.ngoContacts!=null?j.ngoContacts:null,isSafeChild);
   }catch(e){/* Cached details remain usable if the background refresh fails. */}
 };
 function renderScanDetail(c,providedNgo,isSafeChild){
