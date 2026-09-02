@@ -287,6 +287,28 @@ main{max-width:100%;margin:0 auto;padding-bottom:calc(80px + env(safe-area-inset
 .nav button.active{color:var(--accent)}
 
 /* === DETAIL SHEET === */
+.ngo-contact-section{margin:16px 0 8px;padding:16px;background:linear-gradient(145deg,#f7fff9,#fff);border:1px solid #d8f0df;border-radius:18px;box-shadow:0 4px 14px rgba(52,199,89,.08)}
+.ngo-contact-heading{display:flex;align-items:center;gap:10px;margin-bottom:14px;color:var(--text)}
+.ngo-contact-heading .ngo-icon{width:34px;height:34px;border-radius:11px;background:#eaf9ef;display:flex;align-items:center;justify-content:center;color:var(--green)}
+.ngo-contact-heading svg{width:18px;height:18px;fill:currentColor}
+.ngo-contact-heading h4{font-size:14px;font-weight:800;letter-spacing:.2px;margin:0}
+.ngo-contact-heading p{font-size:11px;color:var(--text3);margin:2px 0 0}
+.ngo-contact-card{padding:14px;background:var(--card);border:1px solid var(--border);border-radius:14px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,.04)}
+.ngo-contact-card:last-child{margin-bottom:0}
+.ngo-contact-main{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.ngo-contact-info{min-width:0;flex:1}
+.ngo-contact-name{font-size:14px;font-weight:800;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ngo-contact-org{font-size:11px;color:var(--text3);margin-top:2px}
+.ngo-contact-desc{font-size:11px;color:var(--text2);line-height:1.45;margin-top:5px}
+.ngo-contact-phone{font-size:13px;font-weight:700;color:var(--text2);margin-top:9px;letter-spacing:.2px}
+.ngo-contact-actions{display:flex;flex-direction:column;gap:7px;flex-shrink:0}
+.ngo-contact-actions a{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-width:104px;padding:10px 12px;border-radius:10px;color:#fff;text-decoration:none;font-size:12px;font-weight:800;transition:transform .12s,opacity .12s}
+.ngo-contact-actions a:active{transform:scale(.96);opacity:.9}
+.ngo-contact-actions .ngo-call{background:var(--green);box-shadow:0 3px 8px rgba(52,199,89,.22)}
+.ngo-contact-actions .ngo-whatsapp{background:#25d366;box-shadow:0 3px 8px rgba(37,211,102,.2)}
+.ngo-contact-empty{margin-top:14px;padding:14px;background:var(--bg);border:1px solid var(--border);border-radius:14px;text-align:center}
+.ngo-contact-empty p{font-size:12px;color:var(--text3);line-height:1.5;margin:0}
+@media(max-width:420px){.ngo-contact-main{display:block}.ngo-contact-actions{flex-direction:row;margin-top:12px}.ngo-contact-actions a{flex:1}.ngo-contact-actions a:only-child{flex:0 0 104px}}
 .backdrop{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.4);opacity:0;pointer-events:none;transition:opacity .3s}
 .backdrop.show{opacity:1;pointer-events:auto}
 .sheet{
@@ -1839,32 +1861,23 @@ if($('r_ngo_contacts'))loadReportNGOContacts();
 let ngoContactsCache=null;let ngoContactsFailed=false;
 async function loadNGOContacts(){try{if(ngoContactsCache)return ngoContactsCache;ngoContactsFailed=false;const j=await fetch('/api/ngo-contacts').then(r=>r.json());ngoContactsCache=j.data||[];return ngoContactsCache}catch(e){ngoContactsFailed=true;return null}}
 function renderNGOContacts(contacts){
-  if(!contacts||!contacts.length)return '<div style="margin-top:12px;padding:16px;background:var(--bg);border-radius:12px;text-align:center"><p style="font-size:13px;color:var(--text3);margin:0">Contact information is currently unavailable. Please check back later.</p></div>';
-  let h='<div style="margin-top:16px;margin-bottom:8px">';
-  h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px"><div style="width:32px;height:32px;border-radius:8px;background:#f0fdf4;display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:var(--green)"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg></div><h4 style="font-size:13px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:0.5px;margin:0">Contact for this case</h4></div>';
+  if(!contacts||!contacts.length)return '<div class="ngo-contact-empty"><p>Contact information is currently unavailable. Please check back later.</p></div>';
+  let h='<section class="ngo-contact-section"><div class="ngo-contact-heading"><div class="ngo-icon"><svg viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1C9.61 21 2 13.39 2 4c0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg></div><div><h4>Contact for this case</h4><p>Reach a verified support contact</p></div></div>';
   contacts.forEach(c=>{
-    h+='<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,0.04)">';
-    h+='<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">';
-    h+='<div style="flex:1;min-width:0">';
-    h+='<p style="font-size:14px;font-weight:700;color:var(--text);margin:0 0 2px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(c.displayName)+'</p>';
-    if(c.organization)h+='<p style="font-size:12px;color:var(--text3);margin:0">'+esc(c.organization)+'</p>';
-    if(c.description)h+='<p style="font-size:12px;color:var(--text3);margin:4px 0 0 0">'+esc(c.description)+'</p>';
-    h+='<p style="font-size:14px;font-weight:600;color:var(--text2);margin:8px 0 0 0">📞 '+esc(c.phone)+'</p>';
-    h+='</div>';
-    h+='<div style="display:flex;flex-direction:column;gap:8px;flex-shrink:0">';
-    h+='<a href="tel:'+esc(c.phone)+'" style="display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 20px;background:var(--green);color:#fff;border-radius:10px;font-size:13px;font-weight:700;text-decoration:none;white-space:nowrap;transition:opacity 0.15s">📞 Call</a>';
-    if(c.whatsapp)h+='<a href="https://wa.me/'+esc(c.whatsapp.replace(/[^0-9]/g,''))+'" target="_blank" style="display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 20px;background:#25D366;color:#fff;border-radius:10px;font-size:13px;font-weight:700;text-decoration:none;white-space:nowrap;transition:opacity 0.15s">💬 WhatsApp</a>';
-    h+='</div>';
-    h+='</div></div>';
+    h+='<div class="ngo-contact-card"><div class="ngo-contact-main"><div class="ngo-contact-info"><div class="ngo-contact-name">'+esc(c.displayName)+'</div>';
+    if(c.organization)h+='<div class="ngo-contact-org">'+esc(c.organization)+'</div>';
+    if(c.description)h+='<div class="ngo-contact-desc">'+esc(c.description)+'</div>';
+    h+='<div class="ngo-contact-phone">📞 '+esc(c.phone)+'</div></div><div class="ngo-contact-actions"><a class="ngo-call" href="tel:'+esc(c.phone)+'">📞 Call</a>';
+    if(c.whatsapp)h+='<a class="ngo-whatsapp" href="https://wa.me/'+esc(c.whatsapp.replace(/[^0-9]/g,''))+'" target="_blank" rel="noopener">💬 WhatsApp</a>';
+    h+='</div></div></div>';
   });
-  h+='</div>';
-  return h;
+  return h+'</section>';
 }
 async function openScanDetail(id){
   closeScanModal();
   const cached=allData.concat(results).find(x=>String(x._id)===String(id));
   if(cached){
-    renderScanDetail(cached, null);
+    renderScanDetail(cached, ngoContactsCache||[]);
     // Refresh the detail in the background so NGO contacts stay current.
     openScanDetail._refresh(id);
     return;
