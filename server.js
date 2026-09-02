@@ -1743,7 +1743,7 @@ app.get('/api/admin/users/:id/activity', requireAdmin, async (req, res) => {
     try {
         const { Analytics, Praise, Gift, FoundRequest, Child, PreRegisteredChild } = await getModels();
         const userId = req.params.id;
-        const [praises, gifts, foundReqs, analytics] = await Promise.all([
+        const [praises, gifts, foundReqs, analytics, children, safeChildren] = await Promise.all([
             Praise.find({ userId }).sort({ createdAt: -1 }).limit(20).lean(),
             Gift.find({ userId }).sort({ createdAt: -1 }).limit(20).lean(),
             FoundRequest.find({ userId }).sort({ createdAt: -1 }).limit(20).populate('childId', 'fullName').lean(),
