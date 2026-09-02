@@ -1835,7 +1835,7 @@ async function submitFaceScan(){
         '<div class="conf">✅ Child Identified — '+d.confidence+'% confidence</div>'+
         infoRows+
         '<div style="margin-top:8px;padding:10px 12px;background:var(--bg2);border-radius:10px;font-size:12px;color:var(--text2);line-height:1.6">📞 Contact the FindMyChild helpline to help reunite this child. NGO contact details are available on the child detail page.</div>'+
-        (d.id?'<button class="btn-outline" onclick="closeScanModal();openScanDetail(\''+esc(d.id)+'\')" style="width:100%;padding:14px;border-radius:14px;margin-top:8px;font-weight:700;border:1.5px solid var(--accent);color:var(--accent);background:transparent;cursor:pointer">More Details</button>':'')+
+        (d.id?'<button class="btn-outline" onclick="closeScanModal();openScanDetail(\''+esc(d.id)+'\',\''+esc(d.detailType||d.source||'child')+'\')" style="width:100%;padding:14px;border-radius:14px;margin-top:8px;font-weight:700;border:1.5px solid var(--accent);color:var(--accent);background:transparent;cursor:pointer">More Details</button>':'')+
         '<button class="btn-ghost" style="width:100%;margin-top:10px" onclick="closeScanModal()">Close</button>';
       $('scanResult').style.display='block';
     }else{
@@ -1874,33 +1874,36 @@ function renderNGOContacts(contacts){
   });
   return h+'</section>';
 }
-async function openScanDetail(id){
+async function openScanDetail(id,detailType){
   closeScanModal();
-  const cached=allData.concat(results).find(x=>String(x._id)===String(id));
+  const isSafeChild=detailType==='safechild';
+  const cached=!isSafeChild&&allData.concat(results).find(x=>String(x._id)===String(id));
   if(cached){
     renderScanDetail(cached, ngoContactsCache||[]);
     // Refresh the detail in the background so NGO contacts stay current.
-    openScanDetail._refresh(id);
+    openScanDetail._refresh(id,detailType);
     return;
   }
   try{
-    const opts=userToken?{auth:true}:{headers:{}};
-    const url=userToken?'/api/children/'+id+'/detail':'/api/children/'+id;
+    const opts=isSafeChild?{}:userToken?{auth:true}:{headers:{}};
+    const url=isSafeChild?'/api/safechild/children/'+id+'/public':userToken?'/api/children/'+id+'/detail':'/api/children/'+id;
     const j=await api(url,opts);
     if(!j.success||!j.data){toast('Child not found','err');return}
-    renderScanDetail(j.data,j.ngoContacts!=null?j.ngoContacts:null);
+    renderScanDetail(j.data,j.ngoContacts!=null?j.ngoContacts:null,isSafeChild);
   }catch(e){toast('Failed to load details','err')}
 }
-openScanDetail._refresh=async function(id){
+openScanDetail._refresh=async function(id,detailType){
   try{
-    const opts=userToken?{auth:true}:{headers:{}};
-    const url=userToken?'/api/children/'+id+'/detail':'/api/children/'+id;
+    const isSafeChild=detailType==='safechild';
+    const opts=isSafeChild?{}:userToken?{auth:true}:{headers:{}};
+    const url=isSafeChild?'/api/safechild/children/'+id+'/public':userToken?'/api/children/'+id+'/detail':'/api/children/'+id;
     const j=await api(url,opts);
     if(j.success&&j.data&&$('sheet').classList.contains('show'))renderScanDetail(j.data,j.ngoContacts!=null?j.ngoContacts:null);
   }catch(e){/* Cached details remain usable if the background refresh fails. */}
 };
-function renderScanDetail(c,providedNgo){
+function renderScanDetail(c,providedNgo,isSafeChild){
     const ngo=providedNgo!=null?providedNgo:(ngoContactsCache!=null)?ngoContactsCache:[];
+    if(isSafeChild||(!c.fullName&&c.childName))c={...c,fullName:c.childName,image:c.photoUrl,info:c.medicalInfo};
     // Build detail sheet
     const rows=[];const add=(k,v)=>{if(v!=null&&String(v).trim()!=='')rows.push('<div class="drow"><div class="k">'+k+'</div><div class="v">'+v+'</div></div>')};
     add('Gender',esc(c.gender||'Unknown'));add('Age',c.age?c.age+' years':'Not specified');

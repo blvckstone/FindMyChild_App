@@ -673,6 +673,20 @@ app.get('/api/children/:id/detail', requireAuth, async (req, res) => {
 });
 
 // ---- SafeChild: Pre-Registration & AI Face Matching ----
+// Public SafeChild detail lookup (only non-sensitive fields; no face descriptor or parent contact)
+app.get('/api/safechild/children/:id/public', async (req, res) => {
+    try {
+        const { PreRegisteredChild } = await getModels();
+        const child = await PreRegisteredChild.findById(req.params.id)
+            .select('_id childName age gender address medicalInfo photoUrl createdAt')
+            .lean();
+        if (!child) return res.status(404).json({ success: false, message: 'Child not found.' });
+        res.json({ success: true, data: child, ngoContacts: [] });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Failed to load child details.' });
+    }
+});
+
 // Safely parse face descriptor from FormData string, JSON string, or array
 function parseFaceDescriptor(raw) {
     let d = raw;
@@ -858,7 +872,8 @@ app.post('/api/safechild/match', faceScanLimiter, async (req, res) => {
                     gender: bestMatch.gender,
                     photoUrl: bestMatch.photoUrl,
                     confidence: Math.round((1 - bestDistance) * 100),
-                    source: bestMatch.source || 'safechild'
+                    source: bestMatch.source || 'safechild',
+                    detailType: bestMatch.source === 'safechild' ? 'safechild' : 'child'
                 }
             });
         } else {
