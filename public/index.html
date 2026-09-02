@@ -287,29 +287,27 @@ main{max-width:100%;margin:0 auto;padding-bottom:calc(80px + env(safe-area-inset
 .nav button.active{color:var(--accent)}
 
 /* === DETAIL SHEET === */
-.ngo-contact-section{margin:16px 0 8px;padding:16px;background:linear-gradient(145deg,#f7fff9,#fff);border:1px solid #d8f0df;border-radius:18px;box-shadow:0 4px 14px rgba(52,199,89,.08)}
-.ngo-contact-heading{display:flex;align-items:center;gap:10px;margin-bottom:14px;color:var(--text)}
-.ngo-contact-heading .ngo-icon{width:34px;height:34px;border-radius:11px;background:#eaf9ef;display:flex;align-items:center;justify-content:center;color:var(--green)}
-.ngo-contact-heading svg{width:18px;height:18px;fill:currentColor}
+.ngo-contact-section{margin:16px 0 8px;padding:14px;background:linear-gradient(145deg,#f7fff9,#fff);border:1px solid #d8f0df;border-radius:18px;box-shadow:0 4px 14px rgba(52,199,89,.08)}
+.ngo-contact-heading{display:flex;align-items:center;gap:10px;margin-bottom:12px;color:var(--text)}
+.ngo-contact-heading .ngo-icon{width:32px;height:32px;border-radius:10px;background:#eaf9ef;display:flex;align-items:center;justify-content:center;color:var(--green)}
+.ngo-contact-heading svg{width:17px;height:17px;fill:currentColor}
 .ngo-contact-heading h4{font-size:14px;font-weight:800;letter-spacing:.2px;margin:0}
 .ngo-contact-heading p{font-size:11px;color:var(--text3);margin:2px 0 0}
-.ngo-contact-card{padding:14px;background:var(--card);border:1px solid var(--border);border-radius:14px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,.04)}
+.ngo-contact-card{padding:13px 14px;background:var(--card);border:1px solid var(--border);border-radius:14px;margin-bottom:9px;box-shadow:0 2px 8px rgba(0,0,0,.04)}
 .ngo-contact-card:last-child{margin-bottom:0}
-.ngo-contact-main{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
-.ngo-contact-info{min-width:0;flex:1}
+.ngo-contact-main{display:block}
+.ngo-contact-info{min-width:0}
 .ngo-contact-name{font-size:14px;font-weight:800;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ngo-contact-org{font-size:11px;color:var(--text3);margin-top:2px}
 .ngo-contact-desc{font-size:11px;color:var(--text2);line-height:1.45;margin-top:5px}
-.ngo-contact-phone{font-size:13px;font-weight:700;color:var(--text2);margin-top:9px;letter-spacing:.2px}
-.ngo-contact-actions{display:flex;flex-direction:column;gap:7px;flex-shrink:0;width:100%;margin-top:12px}
-.ngo-contact-actions a{display:flex;align-items:center;justify-content:center;gap:5px;width:100%;min-height:44px;padding:10px 12px;border-radius:10px;color:#fff;text-decoration:none;font-size:12px;font-weight:800;transition:transform .12s,opacity .12s}
+.ngo-contact-phone{font-size:13px;font-weight:700;color:var(--text2);margin-top:8px;letter-spacing:.2px}
+.ngo-contact-actions{display:flex;gap:8px;width:100%;margin-top:10px}
+.ngo-contact-actions a{display:flex;align-items:center;justify-content:center;gap:5px;flex:1;min-height:40px;padding:9px 10px;border-radius:10px;color:#fff;text-decoration:none;font-size:12px;font-weight:800;transition:transform .12s,opacity .12s}
 .ngo-contact-actions a:active{transform:scale(.96);opacity:.9}
 .ngo-contact-actions .ngo-call{background:var(--green);box-shadow:0 3px 8px rgba(52,199,89,.22)}
 .ngo-contact-actions .ngo-whatsapp{background:#25d366;box-shadow:0 3px 8px rgba(37,211,102,.2)}
 .ngo-contact-empty{margin-top:14px;padding:14px;background:var(--bg);border:1px solid var(--border);border-radius:14px;text-align:center}
 .ngo-contact-empty p{font-size:12px;color:var(--text3);line-height:1.5;margin:0}
-@media(min-width:421px){.ngo-contact-main{display:block}}
-@media(max-width:420px){.ngo-contact-actions{flex-direction:row}.ngo-contact-actions a{flex:1}}
 .backdrop{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.4);opacity:0;pointer-events:none;transition:opacity .3s}
 .backdrop.show{opacity:1;pointer-events:auto}
 .sheet{
@@ -366,8 +364,8 @@ main{max-width:100%;margin:0 auto;padding-bottom:calc(80px + env(safe-area-inset
 .btn-praise-detail:active{transform:scale(.97)}
 .btn-praise-detail svg{width:16px;height:16px;fill:var(--text2)}
 .sheet .dstatus{position:absolute;bottom:16px;left:16px;z-index:2}
-.found-status-card{background:#f0fdf4;border:1.5px solid var(--green);border-radius:var(--radius-sm);padding:16px 20px;margin:16px 20px 24px}
-.found-status-card .fst-title{color:#0a6b3a;font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.found-status-card{background:#f0fdf4;border:1.5px solid var(--green);border-radius:var(--radius-sm);padding:15px 20px;margin:16px 0 24px}
+.found-status-card .fst-title{color:#0a6b3a;font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;margin-bottom:11px;display:flex;align-items:center;gap:6px}
 .found-status-card .fst-title svg{width:18px;height:18px;fill:currentColor}
 .found-status-card .fst-row{font-size:14px;color:var(--text);margin-bottom:6px;line-height:1.5}
 .found-status-card .fst-row:last-child{margin-bottom:0}
