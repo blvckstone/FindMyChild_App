@@ -1862,12 +1862,31 @@ function renderNGOContacts(contacts){
 }
 async function openScanDetail(id){
   closeScanModal();
+  const cached=allData.concat(results).find(x=>String(x._id)===String(id));
+  if(cached){
+    renderScanDetail(cached, null);
+    // Refresh the detail in the background so NGO contacts stay current.
+    openScanDetail._refresh(id);
+    return;
+  }
   try{
     const opts=userToken?{auth:true}:{headers:{}};
     const url=userToken?'/api/children/'+id+'/detail':'/api/children/'+id;
     const j=await api(url,opts);
     if(!j.success||!j.data){toast('Child not found','err');return}
-    const c=j.data;const ngo=(j.ngoContacts!=null)?j.ngoContacts:(ngoContactsCache!=null)?ngoContactsCache:await loadNGOContacts();
+    renderScanDetail(j.data,j.ngoContacts!=null?j.ngoContacts:null);
+  }catch(e){toast('Failed to load details','err')}
+}
+openScanDetail._refresh=async function(id){
+  try{
+    const opts=userToken?{auth:true}:{headers:{}};
+    const url=userToken?'/api/children/'+id+'/detail':'/api/children/'+id;
+    const j=await api(url,opts);
+    if(j.success&&j.data&&$('sheet').classList.contains('show'))renderScanDetail(j.data,j.ngoContacts!=null?j.ngoContacts:null);
+  }catch(e){/* Cached details remain usable if the background refresh fails. */}
+};
+function renderScanDetail(c,providedNgo){
+    const ngo=providedNgo!=null?providedNgo:(ngoContactsCache!=null)?ngoContactsCache:[];
     // Build detail sheet
     const rows=[];const add=(k,v)=>{if(v!=null&&String(v).trim()!=='')rows.push('<div class="drow"><div class="k">'+k+'</div><div class="v">'+v+'</div></div>')};
     add('Gender',esc(c.gender||'Unknown'));add('Age',c.age?c.age+' years':'Not specified');
@@ -1883,7 +1902,6 @@ async function openScanDetail(id){
     if(!me){actions='<div class="detail-actions"><div class="da-row"><button class="btn-found-detail" onclick="closeDetail();showView(\'me\')">'+iconUser+' Log in to help</button></div></div>'}
     $('sheetBody').innerHTML='<div class="dphoto">'+(c.image?'<img src="'+esc(c.image)+'" alt="" loading="lazy">':'<div class="ph">'+iconChild+'</div>')+'<div class="dstatus"><span class="dbadge '+(c.found?'found':'missing')+'">'+(c.found?'FOUND':'MISSING')+'</span></div></div><div class="dbody"><div class="dname">'+(esc(c.fullName)||'Unknown')+'</div><div class="dsub">'+esc(c.uploadedBy?'Reported by '+c.uploadedBy:'')+(c.missingDate?' · '+esc(c.missingDate):'')+'</div>'+recoveredBlock+rows.join('')+renderNGOContacts(ngo)+'</div>'+(actions||'<div></div>');
     $('backdrop').classList.add('show');$('sheet').classList.add('show');document.body.style.overflow='hidden';
-  }catch(e){toast('Failed to load details','err')}
 }
 
 /* --- Boot --- */
