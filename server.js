@@ -811,16 +811,16 @@ app.post('/api/safechild/match', faceScanLimiter, async (req, res) => {
         const db = await fmcConnectMongoDB();
         const Child = db.success ? db.data : null;
 
-        // 1. Fetch pre-registered children
-        const preReg = await PreRegisteredChild.find({}).lean();
+        // 1. Fetch approved pre-registered children only.
+        const preReg = await PreRegisteredChild.find({ status: 'approved' }).lean();
 
-        // 2. Fetch standard missing children (not yet found, with valid face data)
+        // 2. Fetch approved standard missing children with valid face data.
         let missing = [];
         if (Child) {
-            // Search every reported child, including pending, approved, rejected,
-            // missing, and found records. The photo match is an internal lookup;
-            // public response fields remain sanitized below.
-            missing = await Child.find({ faceDescriptor: { $exists: true, $ne: [] } }).select(PUBLIC_CHILD_FIELDS + ' faceDescriptor').lean();
+            missing = await Child.find({
+                status: 'approved',
+                faceDescriptor: { $exists: true, $ne: [] }
+            }).select(PUBLIC_CHILD_FIELDS + ' faceDescriptor').lean();
         }
 
         // 3. Normalize into a single combined pool

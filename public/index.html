@@ -579,6 +579,7 @@ main{scroll-padding-top:10px}
 
 .sc-loading{display:none;text-align:center;padding:32px 20px}
 .sc-loading .spinner{width:48px;height:48px;border:4px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px}
+.inline-spinner{display:inline-block;width:14px;height:14px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:spin .8s linear infinite;vertical-align:-2px;margin-right:6px}
 @keyframes spin{to{transform:rotate(360deg)}}
 .sc-loading p{font-size:14px;color:var(--text2);font-weight:500}
 
@@ -1055,6 +1056,7 @@ main{scroll-padding-top:10px}
 <script>
 const socket=io();const $=id=>document.getElementById(id);
 let allData=[],messages=[],results=[],userToken=localStorage.getItem('fmc_user_token')||'',me=null;
+let ngoContactsCache=null;let ngoContactsPromise=null;let ngoContactsFailed=false;
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money=n=>'₹'+Number(n||0).toLocaleString('en-IN');
 const dateKey=c=>String(c.missingDate||'');
@@ -1146,33 +1148,34 @@ function searchCardHtml(c){
 let _detailReqId=0;
 function openDetail(id){
   const reqId=++_detailReqId;
-  const c=allData.concat(results).find(x=>String(x._id)===String(id));if(!c)return;track('detail_open',id,{name:c.fullName});
+  const detail=allData.concat(results).find(x=>String(x._id)===String(id));if(!detail)return;track('detail_open',id,{name:detail.fullName});
+  const contacts=ngoContactsCache||[];
+
   const rows=[];const add=(k,v)=>{if(v!=null&&String(v).trim()!=='')rows.push(`<div class="drow"><div class="k">${k}</div><div class="v">${v}</div></div>`)};
-  add('Gender',esc(c.gender||'Unknown'));add('Age',c.age?c.age+' years':'Not specified');
-  add('Address',esc(c.address));add('State',esc(c.state));
+  add('Gender',esc(detail.gender||'Unknown'));add('Age',detail.age?detail.age+' years':'Not specified');
+  add('Address',esc(detail.address));add('State',esc(detail.state));
   // Contact number hidden from public — use NGO contacts instead
-  if(c.missingDate)add('Missing on',esc(c.missingDate+(c.missingTime?' at '+c.missingTime:'')));
-  add('Location',esc(c.missingLocation));
-  if(c.found)add('Found by',`<span style="color:var(--green);font-weight:700">${esc(c.finderName||'Someone')}</span>`);
-  if(c.found&&c.foundLocation)add('Found at',esc(c.foundLocation));
+  if(detail.missingDate)add('Missing on',esc(detail.missingDate+(detail.missingTime?' at '+detail.missingTime:'')));
+  add('Location',esc(detail.missingLocation));
+  if(detail.found)add('Found by',`<span style="color:var(--green);font-weight:700">${esc(detail.finderName||'Someone')}</span>`);
+  if(detail.found&&detail.foundLocation)add('Found at',esc(detail.foundLocation));
   // Finder contact hidden from public — use NGO contacts instead
-  add('Disability',esc(c.disabilityInfo||c.disability||'None'));add('Info',esc(c.info));
+  add('Disability',esc(detail.disabilityInfo||detail.disability||'None'));add('Info',esc(detail.info));
   let recoveredBlock='';
-  if(c.found){
-    recoveredBlock=`<div class="found-status-card"><div class="fst-title"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>Child Recovered</div><div class="fst-row"><strong>Found By:</strong> ${esc(c.finderName||'Anonymous')}</div><div class="fst-row"><strong>Found At:</strong> ${esc(c.foundLocation||'Not specified')}</div></div>`;
+  if(detail.found){
+    recoveredBlock=`<div class="found-status-card"><div class="fst-title"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>Child Recovered</div><div class="fst-row"><strong>Found By:</strong> ${esc(detail.finderName||'Anonymous')}</div><div class="fst-row"><strong>Found At:</strong> ${esc(detail.foundLocation||'Not specified')}</div></div>`;
   }
   let actions='';
-  if(c.found){
-    actions=`<div class="detail-actions"><div class="da-row"><button class="btn-found-detail" onclick="closeDetail();openFoundFor('${esc(c._id)}')">${iconCheck} View praise & gifts</button></div></div>`;
+  if(detail.found){
+    actions=`<div class="detail-actions"><div class="da-row"><button class="btn-found-detail" onclick="closeDetail();openFoundFor('${esc(detail._id)}')">${iconCheck} View praise & gifts</button></div></div>`;
   } else if(me){
-    actions=`<div class="detail-actions"><div class="da-row"><button class="btn-found-detail" onclick="openFoundForm('${esc(c._id)}','${esc(c.fullName||'')}')">${iconFlag} Mark as found</button></div><div class="da-row"><button class="btn-praise-detail" onclick="closeDetail();openFoundFor('${esc(c._id)}')">${iconCheck} Praise & gifts</button></div></div>`;
+    actions=`<div class="detail-actions"><div class="da-row"><button class="btn-found-detail" onclick="openFoundForm('${esc(detail._id)}','${esc(detail.fullName||'')}')">${iconFlag} Mark as found</button></div><div class="da-row"><button class="btn-praise-detail" onclick="closeDetail();openFoundFor('${esc(detail._id)}')">${iconCheck} Praise & gifts</button></div></div>`;
   } else {
     actions=`<div class="detail-actions"><div class="da-row"><button class="btn-found-detail" onclick="closeDetail();showView('me')">${iconUser} Log in to help</button></div></div>`;
   }
-  $('sheetBody').innerHTML=`<div class="dphoto">${c.image?`<img src="${esc(c.image)}" alt="" loading="lazy">`:`<div class="ph">${iconChild}</div>`}<div class="dstatus"><span class="dbadge ${c.found?'found':'missing'}">${c.found?'FOUND':'MISSING'}</span></div></div><div class="dbody"><div class="dname">${esc(c.fullName)||'Unknown'}</div><div class="dsub">${esc(c.uploadedBy?'Reported by '+c.uploadedBy:'')}${c.missingDate?' · '+esc(c.missingDate):''}</div>${recoveredBlock}${rows.join('')}</div>${actions}`;
+  const fullHtml=`<div class="dphoto">${detail.image?`<img src="${esc(detail.image)}" alt="" loading="lazy">`:`<div class="ph">${iconChild}</div>`}<div class="dstatus"><span class="dbadge ${detail.found?'found':'missing'}">${detail.found?'FOUND':'MISSING'}</span></div></div><div class="dbody"><div class="dname">${esc(detail.fullName)||'Unknown'}</div><div class="dsub">${esc(detail.uploadedBy?'Reported by '+detail.uploadedBy:'')}${detail.missingDate?' · '+esc(detail.missingDate):''}</div>${recoveredBlock}${rows.join('')}${renderNGOContacts(contacts)}</div>${actions}`;
+  $('sheetBody').innerHTML=fullHtml;
   $('backdrop').classList.add('show');$('sheet').classList.add('show');document.body.style.overflow='hidden';
-  // Async load NGO contacts for this child
-  (async()=>{try{const j=await api('/api/children/'+c._id);if(reqId!==_detailReqId)return; if(j.success&&j.ngoContacts&&j.ngoContacts.length){const dbody=$('sheetBody').querySelector('.dbody');if(dbody)dbody.insertAdjacentHTML('beforeend',renderNGOContacts(j.ngoContacts))}}catch(e){}})();
 }
 function closeDetail(){$('backdrop').classList.remove('show');$('sheet').classList.remove('show');document.body.style.overflow=''}
 
@@ -1688,18 +1691,29 @@ async function submitRegistration(){
   finally{btn.disabled=false;btn.textContent='Register with AI'}
 }
 
+function renderMyRegisteredChildren(children){
+  const box=$('myRegisteredChildren');if(!box)return;
+  if(!children||!children.length){box.innerHTML='<p style="font-size:13px;color:var(--text3);text-align:center;padding:16px">No children registered yet.</p>';return}
+  box.innerHTML=children.map(c=>{
+      const imgHtml=c.photoUrl?'<img src="'+esc(c.photoUrl)+'" style="width:44px;height:44px;border-radius:12px;object-fit:cover">':'<div style="width:44px;height:44px;border-radius:12px;background:var(--bg);display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" style="width:22px;height:22px;fill:var(--text3)"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.26-5.33-4-8-4z"/></svg></div>';
+      return '<div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--bg);border-radius:12px;margin-bottom:8px;cursor:pointer;transition:transform 0.15s" onclick="openSafeChildDetail(\''+esc(c._id)+'\')" onmousedown="this.style.transform=\'scale(0.98)\'" onmouseup="this.style.transform=\'scale(1)\'" onmouseleave="this.style.transform=\'scale(1)\'">'+imgHtml+'<div style="flex:1"><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:14px;font-weight:700;color:var(--text)">'+esc(c.childName)+(c.status?'<span style="font-size:9px;font-weight:800;padding:3px 6px;border-radius:5px;text-transform:uppercase;background:'+(c.status==='approved'?'#eaf9ef':c.status==='rejected'?'var(--red-light)':'var(--orange-light)')+';color:'+(c.status==='approved'?'#16803c':c.status==='rejected'?'var(--red)':'#b45309')+'">'+esc(c.status)+'</span>':'')+'</div><div style="font-size:12px;color:var(--text3)">'+(c.age?esc(String(c.age))+' yrs · ':'')+(c.gender?esc(c.gender):'')+'</div></div><div style="display:flex;gap:6px;flex-shrink:0"><button onclick="event.stopPropagation();openSafeChildEdit(\''+esc(c._id)+'\',\''+esc(c.childName)+'\','+(c.age||'null')+',\''+esc(c.gender)+'\',\''+esc(c.address)+'\',\''+esc(c.parentContact)+'\',\''+esc(c.medicalInfo)+'\')" style="width:30px;height:30px;border:none;background:rgba(0,113,227,.1);border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:var(--accent)"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></button><button onclick="event.stopPropagation();deleteRegisteredChild(\''+esc(c._id)+'\')" style="width:30px;height:30px;border:none;background:rgba(255,59,48,.1);border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:var(--red)"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></button></div></div>';
+  }).join('');
+}
+
 async function loadMyRegisteredChildren(){
   const box=$('myRegisteredChildren');if(!box||!userToken)return;
   try{
     const r=await fetch('/api/safechild/children',{headers:{'Authorization':'Bearer '+userToken}});
     const j=await r.json().catch(()=>({}));
-    if(!j.success||!j.data||!j.data.length){box.innerHTML='<p style="font-size:13px;color:var(--text3);text-align:center;padding:16px">No children registered yet.</p>';return}
+    if(!j.success||!j.data){box.innerHTML='<p style="font-size:13px;color:var(--text3);text-align:center;padding:16px">No children registered yet.</p>';return}
     userActivity.safeChildren=j.data;
-    box.innerHTML=j.data.map(c=>{
-      const imgHtml=c.photoUrl?'<img src="'+esc(c.photoUrl)+'" style="width:44px;height:44px;border-radius:12px;object-fit:cover">':'<div style="width:44px;height:44px;border-radius:12px;background:var(--bg);display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" style="width:22px;height:22px;fill:var(--text3)"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.26-5.33-4-8-4z"/></svg></div>';
-      return '<div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--bg);border-radius:12px;margin-bottom:8px;cursor:pointer;transition:transform 0.15s" onclick="openSafeChildDetail(\''+esc(c._id)+'\')" onmousedown="this.style.transform=\'scale(0.98)\'" onmouseup="this.style.transform=\'scale(1)\'" onmouseleave="this.style.transform=\'scale(1)\'">'+imgHtml+'<div style="flex:1"><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:14px;font-weight:700;color:var(--text)">'+esc(c.childName)+(c.status?'<span style="font-size:9px;font-weight:800;padding:3px 6px;border-radius:5px;text-transform:uppercase;background:'+(c.status==='approved'?'#eaf9ef':c.status==='rejected'?'var(--red-light)':'var(--orange-light)')+';color:'+(c.status==='approved'?'#16803c':c.status==='rejected'?'var(--red)':'#b45309')+'">'+esc(c.status)+'</span>':'')+'</div><div style="font-size:12px;color:var(--text3)">'+(c.age?esc(String(c.age))+' yrs · ':'')+(c.gender?esc(c.gender):'')+'</div></div><div style="display:flex;gap:6px;flex-shrink:0"><button onclick="event.stopPropagation();openSafeChildEdit(\''+esc(c._id)+'\',\''+esc(c.childName)+'\','+(c.age||'null')+',\''+esc(c.gender)+'\',\''+esc(c.address)+'\',\''+esc(c.parentContact)+'\',\''+esc(c.medicalInfo)+'\')" style="width:30px;height:30px;border:none;background:rgba(0,113,227,.1);border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:var(--accent)"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></button><button onclick="event.stopPropagation();deleteRegisteredChild(\''+esc(c._id)+'\')" style="width:30px;height:30px;border:none;background:rgba(255,59,48,.1);border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:var(--red)"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></button></div></div>';
-    }).join('');
+    renderMyRegisteredChildren(userActivity.safeChildren);
   }catch(e){box.innerHTML='<p style="font-size:12px;color:var(--red);text-align:center">Failed to load.</p>'}
+}
+
+function renderSafeChildLists(){
+  renderMyRegisteredChildren(userActivity.safeChildren||[]);
+  if($('profSafe'))renderProfActivity();
 }
 
 function openSafeChildEdit(id,name,age,gender,address,contact,medical){
@@ -1755,9 +1769,13 @@ async function submitSafeChildEdit(id){
 async function deleteRegisteredChild(id){
   if(!confirm('Remove this child from SafeChild registry?'))return;
   try{
-    await fetch('/api/safechild/children/'+id,{method:'DELETE',headers:{'Authorization':'Bearer '+userToken}});
-    loadMyRegisteredChildren();
-  }catch(e){toast('Failed to delete','err')}
+    const r=await fetch('/api/safechild/children/'+id,{method:'DELETE',headers:{'Authorization':'Bearer '+userToken}});
+    const j=await r.json().catch(()=>({}));
+    if(!r.ok||!j.success)throw new Error(j.message||'Failed to delete');
+    userActivity.safeChildren=(userActivity.safeChildren||[]).filter(c=>String(c._id)!==String(id));
+    renderSafeChildLists();
+    toast('Child registration deleted.','ok');
+  }catch(e){toast(e.message||'Failed to delete','err')}
 }
 
 /* --- Face Scan (Finder) --- */
@@ -1834,7 +1852,7 @@ async function submitFaceScan(){
         '<div class="conf">✅ Child Identified — '+d.confidence+'% confidence</div>'+
         infoRows+
         '<div style="margin-top:8px;padding:10px 12px;background:var(--bg2);border-radius:10px;font-size:12px;color:var(--text2);line-height:1.6">📞 Contact the FindMyChild helpline to help reunite this child. NGO contact details are available on the child detail page.</div>'+
-        (d.id?'<button class="btn-outline" onclick="closeScanModal();openScanDetail(\''+esc(d.id)+'\',\''+esc(d.detailType||d.source||'child')+'\')" style="width:100%;padding:14px;border-radius:14px;margin-top:8px;font-weight:700;border:1.5px solid var(--accent);color:var(--accent);background:transparent;cursor:pointer">More Details</button>':'')+
+        (d.id?'<button class="btn-outline" onclick="openScanDetail(\''+esc(d.id)+'\',\''+esc(d.detailType||d.source||'child')+'\',this)" style="width:100%;padding:14px;border-radius:14px;margin-top:8px;font-weight:700;border:1.5px solid var(--accent);color:var(--accent);background:transparent;cursor:pointer">More Details</button>':'')+
         '<button class="btn-ghost" style="width:100%;margin-top:10px" onclick="closeScanModal()">Close</button>';
       $('scanResult').style.display='block';
     }else{
@@ -1854,12 +1872,17 @@ async function submitFaceScan(){
 }
 
 /* --- Report Form NGO Contacts --- */
-async function loadReportNGOContacts(){try{ngoContactsCache=null;ngoContactsFailed=false;const contacts=await loadNGOContacts();const box=$('r_ngo_contacts');if(contacts===null){box.innerHTML='<div style="padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--text3);display:flex;align-items:center;justify-content:space-between;gap:8px"><span>Could not load contacts.</span><button onclick="loadReportNGOContacts()" style="color:var(--accent);background:none;border:none;cursor:pointer;font-size:12px;font-weight:600;text-decoration:underline;white-space:nowrap">Retry</button></div>';return}if(!contacts.length){box.innerHTML='<div style="padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--text3)">No NGO contacts configured yet. A contact number is recommended.</div>';return}box.innerHTML=contacts.map(c=>'<label style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;cursor:pointer;transition:border-color 0.15s" onmouseover="this.style.borderColor=\'var(--accent)\'" onmouseout="this.style.borderColor=\'var(--border)\'" onmousedown="this.style.transform=\'scale(0.99)\'" onmouseup="this.style.transform=\'scale(1)\'" onmouseleave="this.style.transform=\'scale(1)\'"><input type="checkbox" data-ngo-id="'+c._id+'"'+(c.primary?' checked':'')+' style="width:16px;height:16px;accent-color:var(--accent);flex-shrink:0"><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px">'+esc(c.displayName)+'</div>'+(c.organization?'<div style="font-size:11px;color:var(--text3)">'+esc(c.organization)+'</div>':'')+'<div style="font-size:12px;color:var(--text2);margin-top:2px">📞 '+esc(c.phone)+'</div></div>'+(c.primary?'<span style="font-size:10px;font-weight:600;color:var(--accent);background:rgba(0,113,227,0.1);padding:2px 8px;border-radius:4px;white-space:nowrap">Primary</span>':'')+'</label>').join('')}catch(e){$('r_ngo_contacts').innerHTML='<div style="padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--text3);display:flex;align-items:center;justify-content:space-between;gap:8px"><span>Could not load contacts.</span><button onclick="loadReportNGOContacts()" style="color:var(--accent);background:none;border:none;cursor:pointer;font-size:12px;font-weight:600;text-decoration:underline;white-space:nowrap">Retry</button></div>'}}
+async function loadReportNGOContacts(){try{ngoContactsFailed=false;const contacts=await loadNGOContacts();const box=$('r_ngo_contacts');if(contacts===null){box.innerHTML='<div style="padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--text3);display:flex;align-items:center;justify-content:space-between;gap:8px"><span>Could not load contacts.</span><button onclick="loadReportNGOContacts()" style="color:var(--accent);background:none;border:none;cursor:pointer;font-size:12px;font-weight:600;text-decoration:underline;white-space:nowrap">Retry</button></div>';return}if(!contacts.length){box.innerHTML='<div style="padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--text3)">No NGO contacts configured yet. A contact number is recommended.</div>';return}box.innerHTML=contacts.map(c=>'<label style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;cursor:pointer;transition:border-color 0.15s" onmouseover="this.style.borderColor=\'var(--accent)\'" onmouseout="this.style.borderColor=\'var(--border)\'" onmousedown="this.style.transform=\'scale(0.99)\'" onmouseup="this.style.transform=\'scale(1)\'" onmouseleave="this.style.transform=\'scale(1)\'"><input type="checkbox" data-ngo-id="'+c._id+'"'+(c.primary?' checked':'')+' style="width:16px;height:16px;accent-color:var(--accent);flex-shrink:0"><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px">'+esc(c.displayName)+'</div>'+(c.organization?'<div style="font-size:11px;color:var(--text3)">'+esc(c.organization)+'</div>':'')+'<div style="font-size:12px;color:var(--text2);margin-top:2px">📞 '+esc(c.phone)+'</div></div>'+(c.primary?'<span style="font-size:10px;font-weight:600;color:var(--accent);background:rgba(0,113,227,0.1);padding:2px 8px;border-radius:4px;white-space:nowrap">Primary</span>':'')+'</label>').join('')}catch(e){$('r_ngo_contacts').innerHTML='<div style="padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--text3);display:flex;align-items:center;justify-content:space-between;gap:8px"><span>Could not load contacts.</span><button onclick="loadReportNGOContacts()" style="color:var(--accent);background:none;border:none;cursor:pointer;font-size:12px;font-weight:600;text-decoration:underline;white-space:nowrap">Retry</button></div>'}}
 if($('r_ngo_contacts'))loadReportNGOContacts();
 
 /* --- Scanner Detail (authenticated) --- */
-let ngoContactsCache=null;let ngoContactsFailed=false;
-async function loadNGOContacts(){try{if(ngoContactsCache)return ngoContactsCache;ngoContactsFailed=false;const j=await fetch('/api/ngo-contacts').then(r=>r.json());ngoContactsCache=j.data||[];return ngoContactsCache}catch(e){ngoContactsFailed=true;return null}}
+async function loadNGOContacts(){
+  if(ngoContactsCache!==null)return ngoContactsCache;
+  if(ngoContactsPromise)return ngoContactsPromise;
+  ngoContactsFailed=false;
+  ngoContactsPromise=fetch('/api/ngo-contacts').then(r=>r.json()).then(j=>{ngoContactsCache=j.data||[];return ngoContactsCache}).catch(e=>{ngoContactsFailed=true;ngoContactsPromise=null;return null});
+  return ngoContactsPromise;
+}
 function renderNGOContacts(contacts){
   if(!contacts||!contacts.length)return '<div class="ngo-contact-empty"><p>Contact information is currently unavailable. Please check back later.</p></div>';
   let h='<section class="ngo-contact-section"><div class="ngo-contact-heading"><div class="ngo-icon"><svg viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1C9.61 21 2 13.39 2 4c0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg></div><div><h4>Contact for this case</h4><p>Reach a verified support contact</p></div></div>';
@@ -1873,23 +1896,28 @@ function renderNGOContacts(contacts){
   });
   return h+'</section>';
 }
-async function openScanDetail(id,detailType){
-  closeScanModal();
-  const isSafeChild=detailType==='safechild';
-  const cached=!isSafeChild&&allData.concat(results).find(x=>String(x._id)===String(id));
-  if(cached){
-    renderScanDetail(cached, ngoContactsCache||[], isSafeChild);
-    // Refresh the detail in the background so NGO contacts stay current.
-    openScanDetail._refresh(id,detailType);
-    return;
-  }
+async function openScanDetail(id,detailType,btnElement){
+  btnElement=btnElement||document.activeElement;
+  if(btnElement&&btnElement.tagName==='BUTTON'){btnElement.disabled=true;btnElement.innerHTML='<span class="inline-spinner"></span>Loading...'}
   try{
+    const isSafeChild=detailType==='safechild';
+    const contacts=isSafeChild?[]:await loadNGOContacts();
+    const cached=!isSafeChild&&allData.concat(results).find(x=>String(x._id)===String(id));
+    if(cached){
+      closeScanModal();
+      renderScanDetail(cached,contacts||[],isSafeChild);
+      // Refresh the detail in the background so NGO contacts stay current.
+      openScanDetail._refresh(id,detailType);
+      return;
+    }
     const opts=isSafeChild?{}:userToken?{auth:true}:{headers:{}};
     const url=isSafeChild?'/api/safechild/children/'+id+'/public':userToken?'/api/children/'+id+'/detail':'/api/children/'+id;
     const j=await api(url,opts);
     if(!j.success||!j.data){toast('Child not found','err');return}
-    renderScanDetail(j.data,j.ngoContacts!=null?j.ngoContacts:null,isSafeChild);
+    closeScanModal();
+    renderScanDetail(j.data,j.ngoContacts!=null?j.ngoContacts:ngoContactsCache,isSafeChild);
   }catch(e){toast('Failed to load details','err')}
+  finally{if(btnElement){btnElement.disabled=false;btnElement.textContent='More Details'}}
 }
 openScanDetail._refresh=async function(id,detailType){
   try{
@@ -1897,11 +1925,11 @@ openScanDetail._refresh=async function(id,detailType){
     const opts=isSafeChild?{}:userToken?{auth:true}:{headers:{}};
     const url=isSafeChild?'/api/safechild/children/'+id+'/public':userToken?'/api/children/'+id+'/detail':'/api/children/'+id;
     const j=await api(url,opts);
-    if(j.success&&j.data&&$('sheet').classList.contains('show'))renderScanDetail(j.data,j.ngoContacts!=null?j.ngoContacts:null,isSafeChild);
+    if(j.success&&j.data&&$('sheet').classList.contains('show'))renderScanDetail(j.data,j.ngoContacts!=null?j.ngoContacts:ngoContactsCache,isSafeChild);
   }catch(e){/* Cached details remain usable if the background refresh fails. */}
 };
 function renderScanDetail(c,providedNgo,isSafeChild){
-    const ngo=providedNgo!=null?providedNgo:(ngoContactsCache!=null)?ngoContactsCache:[];
+    const ngo=providedNgo!=null?providedNgo:ngoContactsCache;
     if(isSafeChild||(!c.fullName&&c.childName))c={...c,fullName:c.childName,image:c.photoUrl,info:c.medicalInfo};
     // Build detail sheet
     const rows=[];const add=(k,v)=>{if(v!=null&&String(v).trim()!=='')rows.push('<div class="drow"><div class="k">'+k+'</div><div class="v">'+v+'</div></div>')};
@@ -1937,6 +1965,7 @@ if(cachedMsgs){messages=cachedMsgs;renderMessages()}
 track('pageview','home');
 loadAds();
 loadPaymentConfig();
+loadNGOContacts();
 scheduleBgRefresh();
 loadFaceApi().catch(()=>{});
 </script>
