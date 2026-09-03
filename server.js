@@ -1670,11 +1670,17 @@ app.put('/api/admin/safe-children/:id', requireAdmin, async (req, res) => {
     if (!hasPermission(req, 'users')) return res.status(403).json({ success: false, message: 'Permission denied.' });
     try {
         const { PreRegisteredChild } = await getModels();
-        const { status, rejectionReason } = req.body;
+        const { status, rejectionReason, childName, age, gender, address, parentContact, medicalInfo } = req.body;
         if (status !== undefined && !['pending', 'approved', 'rejected'].includes(status)) return res.status(400).json({ success: false, message: 'Invalid status.' });
         const update = {};
         if (status !== undefined) update.status = status;
         if (rejectionReason !== undefined) update.rejectionReason = String(rejectionReason).trim().slice(0, 500);
+        if (childName !== undefined) update.childName = String(childName).trim();
+        if (age !== undefined) update.age = age === '' || age === null ? undefined : Number(age);
+        if (gender !== undefined) update.gender = String(gender).trim();
+        if (address !== undefined) update.address = String(address).trim();
+        if (parentContact !== undefined) update.parentContact = String(parentContact).trim();
+        if (medicalInfo !== undefined) update.medicalInfo = String(medicalInfo).trim();
         update.reviewedBy = req.adminInfo.id || null;
         update.reviewedAt = new Date();
         const child = await PreRegisteredChild.findByIdAndUpdate(req.params.id, { $set: update }, { new: true }).select('-faceDescriptor');
