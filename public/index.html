@@ -395,7 +395,7 @@ main{max-width:100%;margin:0 auto;padding-bottom:calc(80px + env(safe-area-inset
 #toast{
   position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(80px);
   background:var(--dark);color:#fff;padding:14px 22px;border-radius:14px;
-  font-size:14px;font-weight:600;z-index:60;opacity:0;
+  font-size:14px;font-weight:600;z-index:99999 !important;opacity:0;
   transition:all .3s ease;max-width:90vw;text-align:center;box-shadow:var(--shadow-lg);
 }
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
@@ -578,6 +578,7 @@ main{scroll-padding-top:10px}
 .pre-register-banner .pr-btn:active{transform:scale(.97)}
 
 .sc-loading{display:none;text-align:center;padding:32px 20px}
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:spin .8s linear infinite;vertical-align:-3px;margin-right:7px}
 .sc-loading .spinner{width:48px;height:48px;border:4px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px}
 .inline-spinner{display:inline-block;width:14px;height:14px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:spin .8s linear infinite;vertical-align:-2px;margin-right:6px}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -989,6 +990,7 @@ main{scroll-padding-top:10px}
       <button onclick="closeScanModal()" style="width:32px;height:32px;border-radius:10px;border:none;background:var(--bg);cursor:pointer;display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:var(--text2)"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
     </div>
     <div id="scanContent" style="padding:20px">
+      <div id="scanErrorMsg" style="display:none;margin:12px 0;padding:10px 14px;background:var(--red-light);color:var(--red);border-radius:var(--radius-xs);font-size:13px;font-weight:600;text-align:center"></div>
       <div id="scanUploadStep">
         <div class="photo-upload" id="scanPhotoUpload" onclick="document.getElementById('scanPhoto').click()" style="margin-bottom:12px">
           <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
@@ -1147,10 +1149,14 @@ function searchCardHtml(c){
 
 /* --- Detail --- */
 let _detailReqId=0;
+function contactsForChild(child,fallback){
+  const selected=Array.isArray(child&&child.ngoContacts)&&child.ngoContacts.length?child.ngoContacts:Array.isArray(child&&child.selectedNGOContacts)?child.selectedNGOContacts:[];
+  return selected.length?selected:(Array.isArray(fallback)?fallback:[]);
+}
 function openDetail(id){
   const reqId=++_detailReqId;
   const detail=allData.concat(results).find(x=>String(x._id)===String(id));if(!detail)return;track('detail_open',id,{name:detail.fullName});
-  const contacts=ngoContactsCache||[];
+  const contacts=contactsForChild(detail,ngoContactsCache);
 
   const rows=[];const add=(k,v)=>{if(v!=null&&String(v).trim()!=='')rows.push(`<div class="drow"><div class="k">${k}</div><div class="v">${v}</div></div>`)};
   add('Gender',esc(detail.gender||'Unknown'));add('Age',detail.age?detail.age+' years':'Not specified');
@@ -1214,9 +1220,16 @@ async function toggleFound(id){const card=$('fcard-'+id);if(!card)return;card.cl
 function openFoundFor(id){showView('found');setTimeout(()=>{const card=$('fcard-'+id);if(!card)return;if(!card.classList.contains('open'))toggleFound(id);card.scrollIntoView({behavior:'smooth',block:'center'})},250)}
 
 /* --- Report --- */
-$('reportBtn').addEventListener('click',async()=>{
-  if(!userToken){openModal('Login Required',`<div style=\"text-align:center;padding:20px 0\"><div style=\"font-size:40px;margin-bottom:12px\">🔒</div><div style=\"font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px\">Login to submit a report</div><div style=\"font-size:13px;color:var(--text3);margin-bottom:20px\">You need an account to report a missing child</div><div class=\"actions\"><button class=\"btn\" style=\"margin:0\" onclick=\"closeModal();showView('me')\">Login / Sign Up</button><button class=\"btn-ghost\" onclick=\"closeModal()\">Cancel</button></div></div>`);return}
-  const name=$('r_name').value.trim(),contact=$('r_contact').value.trim(),msg=$('reportMsg');if(!name){msg.textContent='Enter the child\'s full name.';return}const fd=new FormData();fd.append('fullName',name);fd.append('gender',$('r_gender').value);fd.append('age',$('r_age').value);fd.append('address',$('r_address').value.trim());fd.append('state',$('r_state').value.trim());if(contact)fd.append('contactNumber',contact);fd.append('missingDate',$('r_date').value);fd.append('missingTime',$('r_time').value);fd.append('missingLocation',$('r_location').value.trim());fd.append('info',$('r_info').value.trim());const ngoCheckboxes=document.querySelectorAll('#r_ngo_contacts input[type=checkbox]:checked');const selectedNGOs=[];ngoCheckboxes.forEach(cb=>{if(cb.dataset.ngoId)selectedNGOs.push(cb.dataset.ngoId)});if(selectedNGOs.length)fd.append('selectedNGOContacts',JSON.stringify(selectedNGOs));const file=$('r_photo').files[0];if(file){fd.append('image',file);if(!faceApiLoaded){try{await loadFaceApi()}catch(e){}}if(faceApiLoaded){try{const desc=await extractFaceDescriptor(file);if(desc)fd.append('faceDescriptor',JSON.stringify(desc))}catch(e){console.warn('Face extraction skipped:',e)}}}const btn=$('reportBtn');btn.disabled=true;btn.textContent='Submitting...';msg.textContent='';try{const r=await fetch('/api/children',{method:'POST',headers:{'Authorization':'Bearer '+userToken},body:fd});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.message||'Failed');msg.textContent=j.message;$('r_name').value='';$('r_gender').value='';$('r_age').value='';$('r_address').value='';$('r_state').value='';$('r_contact').value='';$('r_date').value='';$('r_time').value='';$('r_location').value='';$('r_info').value='';$('r_photo').value='';if(typeof loadActivity==='function')loadActivity()}catch(e){msg.textContent=e.message}finally{btn.disabled=false;btn.textContent='Submit for review'}});
+function resetReportForm(){['r_name','r_gender','r_age','r_address','r_state','r_contact','r_date','r_time','r_location','r_info'].forEach(id=>{const el=$(id);if(el)el.value=''});const photo=$('r_photo');if(photo)photo.value='';document.querySelectorAll('#r_ngo_contacts input[type=checkbox]').forEach(cb=>{cb.checked=cb.dataset.primary==='true'});const msg=$('reportMsg');if(msg)msg.textContent=''}
+function showReportResult(success,message){const title=success?'Report Submitted':'Report Submission Failed';const body=success?'<div style="text-align:center;padding:8px 0 4px"><div style="display:inline-flex;align-items:center;justify-content:center;padding:6px 12px;border-radius:999px;background:var(--green-light,#eaf9ef);color:var(--green);font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.4px">✓ Report Submitted</div><p style="margin:16px 0 20px;font-size:14px;line-height:1.6;color:var(--text)">Your report has been submitted and is pending verification. It will appear publicly once approved by an admin.</p><button class="btn" style="width:100%;margin:0" onclick="closeModal();resetReportForm();showView(\'home\')">OK</button></div>':'<div style="text-align:center;padding:8px 0 4px"><div style="display:inline-flex;align-items:center;justify-content:center;padding:6px 12px;border-radius:999px;background:var(--red-light);color:var(--red);font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.4px">Report Failed</div><p style="margin:16px 0 20px;font-size:14px;line-height:1.6;color:var(--text)">'+esc(message||'Unable to submit the report.')+'</p><button class="btn" style="width:100%;margin:0" onclick="closeModal()">Try Again</button></div>';openModal(title,body)}
+$('reportBtn').addEventListener('click',submitReport);
+async function submitReport(){
+  const btn=$('reportBtn');
+  const restoreReportButton=()=>{if(btn){btn.disabled=false;btn.innerHTML=btn.getAttribute('data-original-text')||'Submit for review'}};
+  if(btn){btn.disabled=true;btn.setAttribute('data-original-text',btn.innerHTML);btn.innerHTML='<span class="spinner"></span> Submitting report...'}
+  if(!userToken){restoreReportButton();openModal('Login Required',`<div style=\"text-align:center;padding:20px 0\"><div style=\"font-size:40px;margin-bottom:12px\">🔒</div><div style=\"font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px\">Login to submit a report</div><div style=\"font-size:13px;color:var(--text3);margin-bottom:20px\">You need an account to report a missing child</div><div class=\"actions\"><button class=\"btn\" style=\"margin:0\" onclick=\"closeModal();showView('me')\">Login / Sign Up</button><button class=\"btn-ghost\" onclick=\"closeModal()\">Cancel</button></div></div>`);return}
+  const name=$('r_name').value.trim(),contact=$('r_contact').value.trim(),msg=$('reportMsg');if(!name){msg.textContent='Enter the child\'s full name.';restoreReportButton();return}const fd=new FormData();fd.append('fullName',name);fd.append('gender',$('r_gender').value);fd.append('age',$('r_age').value);fd.append('address',$('r_address').value.trim());fd.append('state',$('r_state').value.trim());if(contact)fd.append('contactNumber',contact);fd.append('missingDate',$('r_date').value);fd.append('missingTime',$('r_time').value);fd.append('missingLocation',$('r_location').value.trim());fd.append('info',$('r_info').value.trim());const ngoCheckboxes=document.querySelectorAll('#r_ngo_contacts input[type=checkbox]:checked');const selectedNGOs=[];ngoCheckboxes.forEach(cb=>{if(cb.dataset.ngoId)selectedNGOs.push(cb.dataset.ngoId)});if(selectedNGOs.length)fd.append('selectedNGOContacts',JSON.stringify(selectedNGOs));  const file=$('r_photo').files[0];if(file){fd.append('image',file);if(!faceApiLoaded){try{await loadFaceApi()}catch(e){}}if(faceApiLoaded){try{const desc=await extractFaceDescriptor(file);if(desc)fd.append('faceDescriptor',JSON.stringify(desc))}catch(e){console.warn('Face extraction skipped:',e)}}}msg.textContent='';try{const r=await fetch('/api/children',{method:'POST',headers:{'Authorization':'Bearer '+userToken},body:fd});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.message||'Failed');msg.textContent=j.message;showReportResult(true,j.message||'Your report has been submitted and is pending verification. It will appear publicly once approved by an admin.')}catch(e){msg.textContent=e.message;showReportResult(false,e.message||'Unable to submit the report.')}finally{restoreReportButton()}}
+
 
 /* --- Navigation --- */
 function showView(name){['home','search','found','report','me','donate','about','contact','legal','safechild-register'].forEach(v=>{var el=$('view-'+v);if(el)el.classList.toggle('active',v===name)});['navHome','navSearch','navFound','navReport','navMe'].forEach(n=>$(n).classList.toggle('active',n==='nav'+name.charAt(0).toUpperCase()+name.slice(1)));
@@ -1285,7 +1298,7 @@ async function doSignup(){try{const name=($('as_name')||{}).value||'';const phon
 function logoutUser(){if(userToken)fetch('/api/auth/logout',{method:'POST',headers:{Authorization:'Bearer '+userToken}}).catch(()=>{});localStorage.removeItem('fmc_user_token');userToken='';me=null;approvedFoundChildIds=new Set();ownFoundChildIdsReady=true;ownFoundChildIdsPromise=null;ownFoundChildIdsToken='';ownFoundChildIdsLoadedToken='';toast('Logged out.');renderMe()}
 function openProfileEdit(){openModal('Edit Profile',`<div class="field"><label>Full Name</label><input id="pe_name" type="text" value="${esc(me&&me.userFullName||'')}" placeholder="Your full name"></div><div class="field"><label>Phone Number</label><input id="pe_contact" type="tel" value="${esc(me&&me.userContactNumber||'')}" placeholder="Phone number" maxlength="20"></div><div class="actions"><button class="btn" style="margin:0" onclick="submitProfileEdit()">Save Changes</button><button class="btn-ghost" onclick="closeModal()">Cancel</button></div>`)}
 async function submitProfileEdit(){try{const j=await api('/api/auth/me',{method:'PUT',auth:true,headers:{'Content-Type':'application/json'},body:JSON.stringify({userFullName:$('pe_name').value.trim(),userContactNumber:$('pe_contact').value.trim()})});if(j.user){me=j.user}closeModal();toast(j.message||'Profile updated!');renderMe()}catch(e){toast(e.message,'err')}}
-function editMyPraise(id,currentText){openModal('Edit Praise',`<div class="field"><label>Your praise</label><textarea id="ep_text" rows="4" style="width:100%;padding:10px;border-radius:10px;border:1.5px solid var(--border);font-size:14px;resize:vertical">${esc(currentText)}</textarea></div><div style="font-size:11px;color:var(--text3);margin-bottom:12px">Editing will reset status to pending for admin re-approval.</div><div class="actions"><button class="btn" onclick="submitEditMyPraise('${id}')">Save</button><button class="btn-ghost" onclick="closeModal()">Cancel</button></div>`)}
+function editMyPraise(id,currentText){openModal('Edit Praise',`<div class="field"><label>Your praise</label><textarea id="ep_text" rows="4" style="width:100%;padding:10px;border-radius:10px;border:1.5px solid var(--border);font-size:14px;resize:vertical">${esc(currentText)}</textarea></div><div style="font-size:11px;color:var(--text3);margin-bottom:12px">Editing will reset status to pending for admin re-approval.</div><div style="display:flex;gap:12px;margin-top:20px"><button type="button" onclick="submitEditMyPraise('${id}')" style="flex:1;height:48px;border-radius:14px;background:var(--dark);color:#fff;border:none;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center">Save</button><button type="button" onclick="closeModal()" style="flex:1;height:48px;border-radius:14px;background:var(--border);color:var(--text);border:none;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center">Cancel</button></div>`)}
 async function submitEditMyPraise(id){try{const txt=$('ep_text').value.trim();if(!txt){toast('Praise text is required','err');return}await api('/api/praise/'+id,{method:'PUT',auth:true,headers:{'Content-Type':'application/json'},body:JSON.stringify({text:txt})});closeModal();toast('Praise updated!');loadActivity()}catch(e){toast(e.message,'err')}}
 async function deleteMyPraise(id){if(!confirm('Delete this praise?'))return;try{await api('/api/praise/'+id,{method:'DELETE',auth:true});toast('Praise deleted.');loadActivity()}catch(e){toast(e.message,'err')}}
 function profPagHtml(key,total){const tp=Math.ceil(total/PROF_PG);if(tp<=1)return'';const pg=profPages[key];let h='';h+='<button onclick="profPages.'+key+'='+(pg-1)+';renderProfActivity()" '+(pg<=1?'disabled':'')+' style="padding:6px 12px;margin:0 2px;border:1.5px solid var(--border);border-radius:8px;background:var(--card);color:var(--text);font-size:12px;cursor:pointer"'+(pg<=1?' disabled':'')+'>Prev</button>';
@@ -1806,6 +1819,7 @@ function startFaceScan(){
   $('scanPreview').style.display='none';
   $('scanBtn').style.display='none';
   $('scanPhoto').value='';
+  $('scanErrorMsg').style.display='none';$('scanErrorMsg').textContent='';
   $('scanModalTitle').textContent='AI Face Scan';
 }
 function closeScanModal(){$('scanModal').style.display='none';scanPhotoFile=null}
@@ -1823,6 +1837,7 @@ function previewScanPhoto(input){
   reader.readAsDataURL(file);
 }
 
+function showScanError(message){const el=$('scanErrorMsg');if(el){el.textContent=message;el.style.display='block'}toast(message,'err')}
 async function submitFaceScan(){
   if(!scanPhotoFile)return;
   $('scanUploadStep').style.display='none';
@@ -1832,18 +1847,24 @@ async function submitFaceScan(){
   if(!loaded){
     $('scanLoading').style.display='none';
     $('scanUploadStep').style.display='block';
-    toast('Failed to load AI. Check your connection.','err');
+    showScanError('Failed to load AI. Check your connection.');
     return;
   }
   
   let descriptor;
-  try{descriptor=await extractFaceDescriptor(scanPhotoFile)}catch(e){descriptor=null}
+  try{descriptor=await extractFaceDescriptor(scanPhotoFile)}catch(e){
+    $('scanLoading').style.display='none';
+    $('scanUploadStep').style.display='block';
+    $('scanPreview').style.display='block';$('scanBtn').style.display='block';
+    showScanError('Face processing failed: '+(e.message||'Please try another photo.'));
+    return;
+  }
   
   if(!descriptor){
     $('scanLoading').style.display='none';
     $('scanUploadStep').style.display='block';
     $('scanPreview').style.display='block';$('scanBtn').style.display='block';
-    toast('No face detected. Please use a clear photo.','err');
+    showScanError('No face detected. Please use a clear photo.');
     return;
   }
   
@@ -1852,6 +1873,7 @@ async function submitFaceScan(){
   try{
     const r=await fetch('/api/safechild/match',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({faceDescriptor:descriptor})});
     const j=await r.json().catch(()=>({}));
+    if(!r.ok)throw new Error(j.message||'Matching request failed.');
     $('scanLoading').style.display='none';
     
     if(j.matched&&j.data){
@@ -1883,12 +1905,12 @@ async function submitFaceScan(){
     $('scanLoading').style.display='none';
     $('scanUploadStep').style.display='block';
     $('scanPreview').style.display='block';$('scanBtn').style.display='block';
-    toast('Matching failed: '+e.message,'err');
+    showScanError('Matching failed: '+e.message);
   }
 }
 
 /* --- Report Form NGO Contacts --- */
-async function loadReportNGOContacts(){try{ngoContactsFailed=false;const contacts=await loadNGOContacts();const box=$('r_ngo_contacts');if(contacts===null){box.innerHTML='<div style="padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--text3);display:flex;align-items:center;justify-content:space-between;gap:8px"><span>Could not load contacts.</span><button onclick="loadReportNGOContacts()" style="color:var(--accent);background:none;border:none;cursor:pointer;font-size:12px;font-weight:600;text-decoration:underline;white-space:nowrap">Retry</button></div>';return}if(!contacts.length){box.innerHTML='<div style="padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--text3)">No NGO contacts configured yet. A contact number is recommended.</div>';return}box.innerHTML=contacts.map(c=>'<label style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;cursor:pointer;transition:border-color 0.15s" onmouseover="this.style.borderColor=\'var(--accent)\'" onmouseout="this.style.borderColor=\'var(--border)\'" onmousedown="this.style.transform=\'scale(0.99)\'" onmouseup="this.style.transform=\'scale(1)\'" onmouseleave="this.style.transform=\'scale(1)\'"><input type="checkbox" data-ngo-id="'+c._id+'"'+(c.primary?' checked':'')+' style="width:16px;height:16px;accent-color:var(--accent);flex-shrink:0"><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px">'+esc(c.displayName)+'</div>'+(c.organization?'<div style="font-size:11px;color:var(--text3)">'+esc(c.organization)+'</div>':'')+'<div style="font-size:12px;color:var(--text2);margin-top:2px">📞 '+esc(c.phone)+'</div></div>'+(c.primary?'<span style="font-size:10px;font-weight:600;color:var(--accent);background:rgba(0,113,227,0.1);padding:2px 8px;border-radius:4px;white-space:nowrap">Primary</span>':'')+'</label>').join('')}catch(e){$('r_ngo_contacts').innerHTML='<div style="padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--text3);display:flex;align-items:center;justify-content:space-between;gap:8px"><span>Could not load contacts.</span><button onclick="loadReportNGOContacts()" style="color:var(--accent);background:none;border:none;cursor:pointer;font-size:12px;font-weight:600;text-decoration:underline;white-space:nowrap">Retry</button></div>'}}
+async function loadReportNGOContacts(){try{ngoContactsFailed=false;const contacts=await loadNGOContacts();const box=$('r_ngo_contacts');if(contacts===null){box.innerHTML='<div style="padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--text3);display:flex;align-items:center;justify-content:space-between;gap:8px"><span>Could not load contacts.</span><button onclick="loadReportNGOContacts()" style="color:var(--accent);background:none;border:none;cursor:pointer;font-size:12px;font-weight:600;text-decoration:underline;white-space:nowrap">Retry</button></div>';return}if(!contacts.length){box.innerHTML='<div style="padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--text3)">No NGO contacts configured yet. A contact number is recommended.</div>';return}box.innerHTML=contacts.map(c=>'<label style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;cursor:pointer;transition:border-color 0.15s" onmouseover="this.style.borderColor=\'var(--accent)\'" onmouseout="this.style.borderColor=\'var(--border)\'" onmousedown="this.style.transform=\'scale(0.99)\'" onmouseup="this.style.transform=\'scale(1)\'" onmouseleave="this.style.transform=\'scale(1)\'"><input type="checkbox" data-ngo-id="'+c._id+'" data-primary="'+(c.primary?'true':'false')+'"'+(c.primary?' checked':'')+' style="width:16px;height:16px;accent-color:var(--accent);flex-shrink:0"><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px">'+esc(c.displayName)+'</div>'+(c.organization?'<div style="font-size:11px;color:var(--text3)">'+esc(c.organization)+'</div>':'')+'<div style="font-size:12px;color:var(--text2);margin-top:2px">📞 '+esc(c.phone)+'</div></div>'+(c.primary?'<span style="font-size:10px;font-weight:600;color:var(--accent);background:rgba(0,113,227,0.1);padding:2px 8px;border-radius:4px;white-space:nowrap">Primary</span>':'')+'</label>').join('')}catch(e){$('r_ngo_contacts').innerHTML='<div style="padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--text3);display:flex;align-items:center;justify-content:space-between;gap:8px"><span>Could not load contacts.</span><button onclick="loadReportNGOContacts()" style="color:var(--accent);background:none;border:none;cursor:pointer;font-size:12px;font-weight:600;text-decoration:underline;white-space:nowrap">Retry</button></div>'}}
 if($('r_ngo_contacts'))loadReportNGOContacts();
 
 /* --- Scanner Detail (authenticated) --- */
@@ -1945,8 +1967,8 @@ openScanDetail._refresh=async function(id,detailType){
   }catch(e){/* Cached details remain usable if the background refresh fails. */}
 };
 function renderScanDetail(c,providedNgo,isSafeChild){
-    const ngo=providedNgo!=null?providedNgo:ngoContactsCache;
     if(isSafeChild||(!c.fullName&&c.childName))c={...c,fullName:c.childName,image:c.photoUrl,info:c.medicalInfo};
+    const ngo=contactsForChild(c,providedNgo!=null?providedNgo:ngoContactsCache);
     // Build detail sheet
     const rows=[];const add=(k,v)=>{if(v!=null&&String(v).trim()!=='')rows.push('<div class="drow"><div class="k">'+k+'</div><div class="v">'+v+'</div></div>')};
     add('Gender',esc(c.gender||'Unknown'));add('Age',c.age?c.age+' years':'Not specified');
