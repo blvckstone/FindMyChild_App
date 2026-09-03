@@ -1809,6 +1809,7 @@ async function deleteRegisteredChild(id){
 
 /* --- Face Scan (Finder) --- */
 let scanPhotoFile=null;
+function clearScanError(){const errEl=document.getElementById('scanErrorMsg');if(errEl){errEl.style.display='none';errEl.textContent=''}}
 function startFaceScan(){
   scanPhotoFile=null;
   $('scanModal').style.display='flex';
@@ -1819,13 +1820,14 @@ function startFaceScan(){
   $('scanPreview').style.display='none';
   $('scanBtn').style.display='none';
   $('scanPhoto').value='';
-  $('scanErrorMsg').style.display='none';$('scanErrorMsg').textContent='';
+  clearScanError();
   $('scanModalTitle').textContent='AI Face Scan';
 }
-function closeScanModal(){$('scanModal').style.display='none';scanPhotoFile=null}
+function closeScanModal(){clearScanError();$('scanModal').style.display='none';scanPhotoFile=null}
 $('scanModal').addEventListener('click',function(e){if(e.target===$('scanModal'))closeScanModal()});
 
 function previewScanPhoto(input){
+  clearScanError();
   const file=input.files[0];if(!file)return;
   scanPhotoFile=file;
   const reader=new FileReader();
@@ -1839,6 +1841,7 @@ function previewScanPhoto(input){
 
 function showScanError(message){const el=$('scanErrorMsg');if(el){el.textContent=message;el.style.display='block'}toast(message,'err')}
 async function submitFaceScan(){
+  clearScanError();
   if(!scanPhotoFile)return;
   $('scanUploadStep').style.display='none';
   $('scanLoading').style.display='block';
@@ -1877,6 +1880,7 @@ async function submitFaceScan(){
     $('scanLoading').style.display='none';
     
     if(j.matched&&j.data){
+      clearScanError();
       const d=j.data;
       // Store matched child in allData so openDetail can find it
       // Do not store parentContact in allData — it's private
@@ -1894,6 +1898,7 @@ async function submitFaceScan(){
         '<button class="btn-ghost" style="width:100%;margin-top:10px" onclick="closeScanModal()">Close</button>';
       $('scanResult').style.display='block';
     }else{
+      clearScanError();
       $('scanNoMatch').innerHTML='<div class="nm-icon">🔍</div>'+
         '<h3>No Match Found</h3>'+
         '<p>This child is not yet registered in the SafeChild AI database. You can help by reporting them as a missing child.</p>'+
