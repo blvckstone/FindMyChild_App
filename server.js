@@ -1750,9 +1750,9 @@ app.get('/api/admin/users/:id/activity', requireAdmin, async (req, res) => {
         const { Analytics, Praise, Gift, FoundRequest, Child, PreRegisteredChild } = await getModels();
         const userId = req.params.id;
         const [praises, gifts, foundReqs, analytics, children, safeChildren] = await Promise.all([
-            Praise.find({ userId }).sort({ createdAt: -1 }).limit(20).lean(),
-            Gift.find({ userId }).sort({ createdAt: -1 }).limit(20).lean(),
-            FoundRequest.find({ userId }).sort({ createdAt: -1 }).limit(20).populate('childId', 'fullName').lean(),
+            Praise.find({ userId }).sort({ createdAt: -1 }).limit(20).populate('childId', 'fullName childName').lean(),
+            Gift.find({ userId }).sort({ createdAt: -1 }).limit(20).populate('childId', 'fullName childName').lean(),
+            FoundRequest.find({ userId }).sort({ createdAt: -1 }).limit(20).populate('childId', 'fullName childName').lean(),
             Analytics.find({ userId }).sort({ createdAt: -1 }).limit(20).lean(),
             Child.find({ userId }).select('-faceDescriptor').sort({ createdAt: -1 }).limit(100).lean(),
             PreRegisteredChild.find({ parentId: userId }).select('-faceDescriptor').sort({ createdAt: -1 }).limit(100).lean()
