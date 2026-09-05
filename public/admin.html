@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="admin-version" content="a8f2e7c1"><title>Admin — Gumshuda Bacho Ki Talash</title>
+<meta name="admin-version" content="a8f2e7c1"><script>(function(){var t=localStorage.getItem('fmc_admin_token');var m=document.cookie.match(/(^|;)\s*fmc_admin_token=([^;]+)/);if(t||(m&&m[2]))document.documentElement.classList.add('is-auth')})();</script><style>html.is-auth #loginView{display:none!important}html.is-auth #appView{display:block!important}</style><title>Admin — Gumshuda Bacho Ki Talash</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -415,7 +415,7 @@ button{font-family:inherit;cursor:pointer}input,select,textarea{font-family:inhe
       <!-- Section: Admin Support -->
       <div style="margin-bottom:16px">
         <div style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:.5px;text-transform:uppercase;margin-bottom:12px">Direct Admin Support</div>
-        <div style="max-width:400px"><label style="display:block;font-size:11px;font-weight:700;color:#64748b;letter-spacing:.5px;margin-bottom:6px">WhatsApp / Phone Number</label><input id="ps_adminPhone" type="text" placeholder="e.g. 919999999999" style="width:100%;border:1.5px solid #e2e8f0;border-radius:10px;padding:10px 14px;font-size:14px;transition:border-color .2s;outline:none" onfocus="this.style.borderColor='#2563eb';this.style.boxShadow='0 0 0 3px rgba(37,99,235,.1)'" onblur="this.style.borderColor='#e2e8f0';this.style.boxShadow='none'"></div>
+        <div style="max-width:400px"><label style="display:block;font-size:11px;font-weight:700;color:#64748b;letter-spacing:.5px;margin-bottom:6px">WhatsApp / Phone Number</label><input id="ps_adminPhone" type="text" placeholder="8055137760" style="width:100%;border:1.5px solid #e2e8f0;border-radius:10px;padding:10px 14px;font-size:14px;transition:border-color .2s;outline:none" onfocus="this.style.borderColor='#2563eb';this.style.boxShadow='0 0 0 3px rgba(37,99,235,.1)'" onblur="this.style.borderColor='#e2e8f0';this.style.boxShadow='none'"></div>
       </div>
       <div id="psMsg" style="font-size:13px;margin-top:4px"></div>
     </div>
@@ -988,7 +988,7 @@ function openSafeChildAdminEdit(id){const c=allSafeChildren.find(x=>x._id===id);
       <option value="Male" ${c.gender==='Male'?'selected':''}>Male</option>
       <option value="Female" ${c.gender==='Female'?'selected':''}>Female</option>
     </select></div>
-    <div class="field"><label>Parent Contact</label><input id="adminSafeContact" value="${esc(c.parentContact||'')}"></div>
+    <div class="field"><label>Parent Contact</label><input id="adminSafeContact" value="${esc(c.parentContact||'')}" placeholder="8055137760"></div>
   </div>
   <div class="field"><label>Address</label><input id="adminSafeAddress" value="${esc(c.address||'')}"></div>
   <div class="field"><label>Medical Info</label><textarea id="adminSafeMedical" rows="2">${esc(c.medicalInfo||'')}</textarea></div>
@@ -1068,7 +1068,7 @@ function formFields(c){
     <div class="field"><label>Gender</label><select id="f_gender"><option value="">Select</option><option ${c.gender==='Male'?'selected':''}>Male</option><option ${c.gender==='Female'?'selected':''}>Female</option></select></div>
     <div class="field"><label>State</label><input id="f_state" value="${esc(c.state)}" placeholder="State"></div>
     <div class="field" style="grid-column:1/-1"><label>Address</label><input id="f_address" value="${esc(c.address)}" placeholder="Full address"></div>
-    <div class="field"><label>Contact Number *</label><input id="f_contactNumber" value="${esc(c.contactNumber)}" placeholder="Phone number"></div>
+    <div class="field"><label>Contact Number *</label><input id="f_contactNumber" value="${esc(c.contactNumber)}" placeholder="8055137760"></div>
     <div class="field"><label>Missing Date</label><input id="f_missingDate" type="date" value="${esc(c.missingDate)}"></div>
     <div class="field"><label>Missing Time</label><input id="f_missingTime" type="time" value="${esc(c.missingTime)}"></div>
     <div class="field"><label>Last Seen Location</label><input id="f_missingLocation" value="${esc(c.missingLocation)}" placeholder="Where last seen"></div>
@@ -1472,7 +1472,7 @@ async function loadNGOContacts(){
   }catch(e){toast(e.message,'err')}}
 function showAddNGOModal(){
   $('modalTitle').textContent='Add NGO Contact';
-  $('modalBody').innerHTML=`<div class="field"><label>Display Name *</label><input id="ngo_name" placeholder="e.g. FindMyChild Helpline"></div><div class="field"><label>Organization</label><input id="ngo_org" placeholder="e.g. FindMyChild Foundation"></div><div class="field"><label>Phone Number *</label><input id="ngo_phone" placeholder="e.g. +91 98765 43210"></div><div class="field"><label>WhatsApp</label><input id="ngo_wa" placeholder="Optional"></div><div class="field"><label>Label</label><input id="ngo_label" placeholder="e.g. Primary Helpline"></div><div class="field"><label>Description</label><input id="ngo_desc" placeholder="Short description"></div><div class="grid2"><div class="field"><label>Priority (higher = shown first)</label><input id="ngo_priority" type="number" value="0"></div><div class="field"><label style="display:flex;align-items:center;gap:8px;margin-top:22px"><input id="ngo_active" type="checkbox" checked> Active</label><label style="display:flex;align-items:center;gap:8px;margin-top:8px"><input id="ngo_primary" type="checkbox"> Primary Contact</label></div></div><div style="display:flex;gap:10px;margin-top:16px"><button class="btn" onclick="submitNGOContact()" style="flex:1">Save Contact</button><button class="btn-outline" onclick="closeModal()" style="flex:1">Cancel</button></div>`;
+  $('modalBody').innerHTML=`<div class="field"><label>Display Name *</label><input id="ngo_name" placeholder="e.g. FindMyChild Helpline"></div><div class="field"><label>Organization</label><input id="ngo_org" placeholder="e.g. FindMyChild Foundation"></div><div class="field"><label>Phone Number *</label><input id="ngo_phone" placeholder="8055137760"></div><div class="field"><label>WhatsApp</label><input id="ngo_wa" placeholder="8055137760"></div><div class="field"><label>Label</label><input id="ngo_label" placeholder="e.g. Primary Helpline"></div><div class="field"><label>Description</label><input id="ngo_desc" placeholder="Short description"></div><div class="grid2"><div class="field"><label>Priority (higher = shown first)</label><input id="ngo_priority" type="number" value="0"></div><div class="field"><label style="display:flex;align-items:center;gap:8px;margin-top:22px"><input id="ngo_active" type="checkbox" checked> Active</label><label style="display:flex;align-items:center;gap:8px;margin-top:8px"><input id="ngo_primary" type="checkbox"> Primary Contact</label></div></div><div style="display:flex;gap:10px;margin-top:16px"><button class="btn" onclick="submitNGOContact()" style="flex:1">Save Contact</button><button class="btn-outline" onclick="closeModal()" style="flex:1">Cancel</button></div>`;
   $('modalBg').classList.add('show')}
 async function submitNGOContact(id){
   try{const body={displayName:($('ngo_name')||{}).value||'',organization:($('ngo_org')||{}).value||'',phone:($('ngo_phone')||{}).value||'',whatsapp:($('ngo_wa')||{}).value||'',label:($('ngo_label')||{}).value||'',description:($('ngo_desc')||{}).value||'',priority:Number(($('ngo_priority')||{}).value)||0,active:($('ngo_active')||{}).checked,primary:($('ngo_primary')||{}).checked};
@@ -1810,37 +1810,45 @@ applyPermissions().then(()=>{
 let _socketRefreshBusy=false,_socketRefreshPending=false;
 async function _doSocketRefresh(){
   try{
-    console.log('[SOCKET] Data changed, syncing live badges and active views...');
-    // 1. Refresh Pending and Found Badges (requires children permission)
+    console.log('[SOCKET] Data changed, refreshing live counters and active tab...');
+    // Refresh notification badges and their backing arrays.
     if(adminPerms.all||adminPerms.children){
       const stats=await api('/api/admin/stats').catch(()=>({}));
       if(stats&&stats.data&&$('badgePending'))$('badgePending').textContent=stats.data.pending||0;
       const fr=await api('/api/admin/found-requests').catch(()=>({}));
       if(fr&&fr.data){foundFilterData=fr.data;if($('badgeFound'))$('badgeFound').textContent=fr.data.filter(x=>x.status==='pending').length;}
     }
-    // 2. Refresh Praise & Gifts Badges (requires donations permission)
     if(adminPerms.all||adminPerms.donations){
       const p=await api('/api/admin/praise').catch(()=>({}));
       const g=await api('/api/admin/gifts').catch(()=>({}));
       if(p&&p.data&&g&&g.data){allPraise=p.data;allGifts=g.data;if($('badgePraise'))$('badgePraise').textContent=[...p.data,...g.data].filter(x=>x.status==='pending').length;}
     }
-    // 3. Auto-refresh the currently active view so tables update instantly
-    const activePage=document.querySelector('.page.active');
-    if(activePage){
-      const pid=activePage.id;
-      if(pid==='pg-dashboard')loadDashboard();
-      else if(pid==='pg-pending'||pid==='pg-history'||pid==='pg-children'){
-        const c=await api('/api/admin/children').catch(()=>({}));
-        if(c&&c.data)allChildren=c.data;
-        if(pid==='pg-pending')renderPending();else if(pid==='pg-history')renderHistory();else renderChildren();
-      }
-      else if(pid==='pg-found')renderFoundList();
-      else if(pid==='pg-praise')renderPraise();
-      else if(pid==='pg-donations')loadDonations();
-      else if(pid==='pg-revenue')loadRevenue();
-      else if(pid==='pg-ngo')loadNGOContacts();
+    if(adminPerms.all||adminPerms.admins){
+      const wa=await api('/api/admin/admins').catch(()=>({}));
+      if(wa&&wa.data){allAdmins=wa.data;if($('badgeWhitelist'))$('badgeWhitelist').textContent=wa.data.filter(a=>a.active).length;}
     }
-  }catch(e){console.warn('[SOCKET] Real-time sync failed:',e.message)}
+
+    // Refresh the active tab in place; each loader also refreshes its own data.
+    const activePage=document.querySelector('.page.active');
+    if(!activePage)return;
+    const pid=activePage.id;
+    if(pid==='pg-dashboard')loadDashboard();
+    else if(pid==='pg-pending')renderPending();
+    else if(pid==='pg-history')renderHistory();
+    else if(pid==='pg-children')renderChildren();
+    else if(pid==='pg-found')loadFoundReqs();
+    else if(pid==='pg-praise')renderPraise();
+    else if(pid==='pg-donations'){loadDonations();loadPaymentSettings();}
+    else if(pid==='pg-users')loadUsers();
+    else if(pid==='pg-analytics')loadAnalytics();
+    else if(pid==='pg-ads')loadAds();
+    else if(pid==='pg-whitelist')loadWhitelist();
+    else if(pid==='pg-revenue')loadRevenue();
+    else if(pid==='pg-ngo')loadNGOContacts();
+    else if(pid==='pg-pages')loadPages();
+    else if(pid==='pg-legal')loadLegal();
+    else if(pid==='pg-profile')loadProfile();
+  }catch(e){console.warn('[SOCKET] Real-time sync error:',e.message)}
 }
 if(socket){socket.on('dataChanged',async()=>{
   if(_socketRefreshBusy){_socketRefreshPending=true;return;}

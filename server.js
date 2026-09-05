@@ -92,6 +92,17 @@ const getMessages = require('./functions/getMessages/getMessages.js');
 
 // ---- Server-side cache for instant responses ----
 const dataCache = { data: null, ts: 0, messages: null, mts: 0, ads: null, ats: 0 };
+const verifiedSignups = new Map();
+const VERIFIED_SIGNUP_TTL = 15 * 60 * 1000;
+function hasVerifiedSignup(email) {
+    const key = String(email || '').trim().toLowerCase();
+    const expiresAt = verifiedSignups.get(key);
+    if (!expiresAt || expiresAt <= Date.now()) {
+        verifiedSignups.delete(key);
+        return false;
+    }
+    return true;
+}
 const CACHE_TTL = 30000; // 30 seconds
 function getCached(key) { return dataCache[key] && (Date.now() - dataCache[key + 'Ts'] < CACHE_TTL) ? dataCache[key] : null; }
 function setCache(key, val) { dataCache[key] = val; dataCache[key + 'Ts'] = Date.now(); }
@@ -130,6 +141,7 @@ passport.deserializeUser((obj, done) => done(null, obj));
 // Admin Google login handled via state parameter in strategy callback
 //-----------------------------------------------Socket.io---------------------------------------------------------------------->
 const io = new Server(server, { cors: { origin: "*" } });
+function notifyDataChanged() { io.emit('dataChanged'); clearDataCache(); }
 
 //-----------------------------------------------Cloudinary image storage------------------------------------------------------>
 const { uploadImage, deleteImage, replaceImage } = require('./functions/cloudinary');
@@ -272,8 +284,14 @@ app.post('/api/children', requireAuth, reportLimiter, async (req, res) => {
 // ---- User auth: signup / login / logout / me ----
 app.post('/api/auth/signup', authLimiter, async (req, res) => {
     try {
+        const email = String(req.body.emailId || '').trim().toLowerCase();
+        if (!email || !hasVerifiedSignup(email)) {
+            return res.status(400).json({ success: false, message: "Email verification required. Please verify your email with OTP first." });
+        }
         const r = await signupUser(req.body);
         if (r.error) return res.status(400).json({ success: false, message: r.error });
+        verifiedSignups.delete(email);
+        io.emit('dataChanged'); clearDataCache();
         res.status(201).json({ success: true, message: "Account created! Welcome to Find My Child.", token: r.token, user: r.user });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -317,6 +335,7 @@ app.put('/api/auth/me', requireAuth, async (req, res) => {
         if (Object.keys(update).length === 0) return res.status(400).json({ success: false, message: 'No fields to update.' });
         const user = await User.findByIdAndUpdate(req.userId, { $set: update }, { new: true });
         if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
+        notifyDataChanged();
         res.json({ success: true, message: 'Profile updated successfully.', user });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -362,8 +381,9 @@ app.post('/api/auth/send-otp', async (req, res) => {
         if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
             return res.status(400).json({ success: false, message: "Valid email required." });
         }
-        const r = await sendOTP(email.trim().toLowerCase());
-        res.json(r.success ? { success: true, message: "OTP sent to your email." } : { success: false, message: r.error });
+        const r = await sendOTP(email.trim().toLowerCase(), { ip: req.ip });
+        if (!r.success) return res.status(429).json({ success: false, message: r.error, retryAfter: r.retryAfter });
+        res.json({ success: true, message: "OTP sent to your email." });
     } catch (error) {
         res.status(500).json({ success: false, message: "Failed to send OTP." });
     }
@@ -375,8 +395,8 @@ app.post('/api/auth/verify-otp', async (req, res) => {
         if (!email || !code) return res.status(400).json({ success: false, message: "Email and code required." });
         const r = verifyOTP(email.trim().toLowerCase(), code);
         if (r.valid) {
-            const { User } = await getModels();
-            await User.updateOne({ email: email.toLowerCase() }, { $set: { verified: true } });
+            const normalizedEmail = email.trim().toLowerCase();
+            verifiedSignups.set(normalizedEmail, Date.now() + VERIFIED_SIGNUP_TTL);
             res.json({ success: true, message: "Email verified!" });
         } else {
             res.status(400).json({ success: false, message: r.error });
@@ -520,6 +540,7 @@ app.put('/api/admin/payment-settings', requireAdmin, requireSuperAdmin, async (r
         });
         updates.updatedAt = new Date();
         const settings = await PaymentSettings.findOneAndUpdate({}, { $set: updates }, { new: true, upsert: true });
+        notifyDataChanged();
         res.json({ success: true, message: 'Payment settings saved.', data: settings });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -573,7 +594,7 @@ app.post('/api/admin/ngo-contacts', requireAdmin, async (req, res) => {
             createdBy: req.adminInfo.id || null
         });
         await AuditLog.create({ action: 'ngo_contact_created', entityType: 'NGOContact', entityId: contact._id, performedBy: req.adminInfo.email, details: { displayName: contact.displayName } });
-        io.emit('dataChanged');
+        notifyDataChanged();
         res.status(201).json({ success: true, message: 'NGO contact created.', data: contact });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -602,7 +623,7 @@ app.put('/api/admin/ngo-contacts/:id', requireAdmin, async (req, res) => {
         const contact = await NGOContact.findByIdAndUpdate(req.params.id, { $set: update }, { new: true });
         if (!contact) return res.status(404).json({ success: false, message: 'Contact not found.' });
         await AuditLog.create({ action: 'ngo_contact_updated', entityType: 'NGOContact', entityId: contact._id, performedBy: req.adminInfo.email, details: { displayName: contact.displayName } });
-        io.emit('dataChanged');
+        notifyDataChanged();
         res.json({ success: true, message: 'Contact updated.', data: contact });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -616,7 +637,7 @@ app.delete('/api/admin/ngo-contacts/:id', requireAdmin, async (req, res) => {
         const contact = await NGOContact.findByIdAndDelete(req.params.id);
         if (!contact) return res.status(404).json({ success: false, message: 'Contact not found.' });
         await AuditLog.create({ action: 'ngo_contact_deleted', entityType: 'NGOContact', entityId: contact._id, performedBy: req.adminInfo.email, details: { displayName: contact.displayName } });
-        io.emit('dataChanged');
+        notifyDataChanged();
         res.json({ success: true, message: 'Contact deleted.' });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -741,6 +762,7 @@ app.post('/api/safechild/register', requireAuth, async (req, res) => {
             faceDescriptor: parsedDescriptor,
             status: 'approved'
         });
+        notifyDataChanged();
         res.status(201).json({ success: true, message: 'Child pre-registered successfully!', data: { id: child._id, childName: child.childName } });
     } catch (error) {
         console.error('SafeChild register error:', error.message);
@@ -791,6 +813,7 @@ app.put('/api/safechild/children/:id', requireAuth, async (req, res) => {
             { new: true }
         );
         if (!child) return res.status(404).json({ success: false, message: 'Child not found or access denied.' });
+        notifyDataChanged();
         res.json({ success: true, message: 'Child details updated.', data: { id: child._id, childName: child.childName } });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -803,6 +826,7 @@ app.delete('/api/safechild/children/:id', requireAuth, async (req, res) => {
         const child = await PreRegisteredChild.findOne({ _id: req.params.id, parentId: req.userId });
         if (!child) return res.status(404).json({ success: false, message: 'Child not found.' });
         await PreRegisteredChild.deleteOne({ _id: child._id });
+        notifyDataChanged();
         res.json({ success: true, message: 'Child removed from SafeChild registry.' });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -994,6 +1018,7 @@ app.put('/api/admin/me', requireAdmin, async (req, res) => {
             permissions: newPerms
         });
         adminTokens.set(newToken, { id: admin._id, email: admin.email, role: admin.role, permissions: newPerms });
+        notifyDataChanged();
         res.json({ success: true, admin, token: newToken });
     } catch (e) {
         res.status(500).json({ success: false, message: e.message });
@@ -1238,6 +1263,7 @@ app.delete('/api/admin/praise/:id', requireAdmin, async (req, res) => {
         const { Praise } = await getModels();
         const p = await Praise.findByIdAndDelete(req.params.id);
         if (!p) return res.status(404).json({ success: false, message: "Praise not found." });
+        notifyDataChanged();
         res.json({ success: true, message: "Praise deleted." });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -1277,6 +1303,7 @@ app.delete('/api/admin/gifts/:id', requireAdmin, async (req, res) => {
         const { Gift } = await getModels();
         const g = await Gift.findByIdAndDelete(req.params.id);
         if (!g) return res.status(404).json({ success: false, message: "Gift not found." });
+        notifyDataChanged();
         res.json({ success: true, message: "Gift deleted." });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -1302,6 +1329,7 @@ app.delete('/api/admin/donations/:id', requireAdmin, async (req, res) => {
         const { Donation } = await getModels();
         const d = await Donation.findByIdAndDelete(req.params.id);
         if (!d) return res.status(404).json({ success: false, message: "Donation not found." });
+        notifyDataChanged();
         res.json({ success: true, message: "Donation deleted." });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -1481,7 +1509,7 @@ app.post('/api/admin/ads', requireAdmin, async (req, res) => {
             startDate: b.startDate || null,
             endDate: b.endDate || null
         });
-        dataCache.ads = null;
+        notifyDataChanged();
         res.status(201).json({ success: true, message: 'Ad created.', data: ad });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -1526,7 +1554,7 @@ app.put('/api/admin/ads/:id', requireAdmin, async (req, res) => {
         }
         const ad = await Advertisement.findByIdAndUpdate(req.params.id, update, { new: true });
         if (!ad) return res.status(404).json({ success: false, message: 'Ad not found.' });
-        dataCache.ads = null;
+        notifyDataChanged();
         res.json({ success: true, message: 'Ad updated.', data: ad });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -1540,7 +1568,7 @@ app.delete('/api/admin/ads/:id', requireAdmin, async (req, res) => {
         const ad = await Advertisement.findByIdAndDelete(req.params.id);
         if (!ad) return res.status(404).json({ success: false, message: 'Ad not found.' });
         if (ad.imageUrl) await deleteImage(ad.imageUrl);
-        dataCache.ads = null;
+        notifyDataChanged();
         res.json({ success: true, message: 'Ad deleted.' });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -1581,6 +1609,7 @@ app.post('/api/admin/admins', requireAdmin, requireSuperAdmin, async (req, res) 
             canManageDonations: canManageDonations !== false,
             canManageAdmins: canManageAdmins === true
         });
+        notifyDataChanged();
         res.status(201).json({ success: true, data: admin });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -1617,6 +1646,7 @@ app.put('/api/admin/admins/:id', requireAdmin, requireSuperAdmin, async (req, re
         if (canManageDonations !== undefined) admin.canManageDonations = canManageDonations;
         if (canManageAdmins !== undefined) admin.canManageAdmins = canManageAdmins;
         await admin.save();
+        notifyDataChanged();
         res.json({ success: true, data: admin });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -1633,6 +1663,7 @@ app.delete('/api/admin/admins/:id', requireAdmin, requireSuperAdmin, async (req,
             return res.status(403).json({ success: false, message: 'Cannot delete the super admin.' });
         }
         await AdminUser.findByIdAndDelete(req.params.id);
+        notifyDataChanged();
         res.json({ success: true, message: 'Admin removed.' });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -1695,6 +1726,7 @@ app.put('/api/admin/safe-children/:id', requireAdmin, async (req, res) => {
         update.reviewedAt = new Date();
         const child = await PreRegisteredChild.findByIdAndUpdate(req.params.id, { $set: update }, { new: true }).select('-faceDescriptor');
         if (!child) return res.status(404).json({ success: false, message: 'SafeChild record not found.' });
+        notifyDataChanged();
         res.json({ success: true, message: 'SafeChild record updated.', data: child });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -1708,6 +1740,7 @@ app.delete('/api/admin/safe-children/:id', requireAdmin, async (req, res) => {
         const child = await PreRegisteredChild.findByIdAndDelete(req.params.id);
         if (!child) return res.status(404).json({ success: false, message: 'SafeChild record not found.' });
         if (child.photoUrl) await deleteImage(child.photoUrl);
+        notifyDataChanged();
         res.json({ success: true, message: 'SafeChild record deleted.' });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -1737,6 +1770,7 @@ app.put('/api/admin/users/:id', requireAdmin, async (req, res) => {
         if (b.blocked !== undefined) update.blocked = b.blocked === true || b.blocked === 'true';
         const user = await User.findByIdAndUpdate(req.params.id, update, { new: true }).select('-password');
         if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
+        notifyDataChanged();
         res.json({ success: true, message: 'User updated.', data: user });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -1749,6 +1783,7 @@ app.delete('/api/admin/users/:id', requireAdmin, async (req, res) => {
         const { User } = await getModels();
         const user = await User.findByIdAndDelete(req.params.id);
         if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
+        notifyDataChanged();
         res.json({ success: true, message: 'User deleted.' });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -1885,6 +1920,7 @@ app.post('/api/admin/revenue', requireAdmin, async (req, res) => {
         const { source, type, amount, description, donorName, emailId, status, date } = req.body;
         if (!source || !amount) return res.status(400).json({ success: false, message: 'Source and amount are required.' });
         const record = await Revenue.create({ source, type: type || 'other', amount: Number(amount), description, donorName, emailId, status: status || 'received', date: date || new Date() });
+        notifyDataChanged();
         res.status(201).json({ success: true, data: record });
     } catch (e) { res.status(500).json({ success: false, message: e.message }); }
 });
@@ -1894,6 +1930,7 @@ app.put('/api/admin/revenue/:id', requireAdmin, async (req, res) => {
         const { Revenue } = await getModels();
         const record = await Revenue.findByIdAndUpdate(req.params.id, req.body, { new: true });
         if (!record) return res.status(404).json({ success: false, message: 'Record not found.' });
+        notifyDataChanged();
         res.json({ success: true, data: record });
     } catch (e) { res.status(500).json({ success: false, message: e.message }); }
 });
@@ -1901,7 +1938,9 @@ app.delete('/api/admin/revenue/:id', requireAdmin, async (req, res) => {
     if (!hasPermission(req, 'donations')) return res.status(403).json({ success: false, message: 'Permission denied.' });
     try {
         const { Revenue } = await getModels();
-        await Revenue.findByIdAndDelete(req.params.id);
+        const record = await Revenue.findByIdAndDelete(req.params.id);
+        if (!record) return res.status(404).json({ success: false, message: 'Record not found.' });
+        notifyDataChanged();
         res.json({ success: true });
     } catch (e) { res.status(500).json({ success: false, message: e.message }); }
 });
@@ -1961,6 +2000,7 @@ app.put('/api/admin/pages/:slug', requireAdmin, requireSuperAdmin, async (req, r
             { $set: update },
             { new: true, upsert: true }
         );
+        notifyDataChanged();
         res.json({ success: true, data: page });
     } catch (e) { res.status(500).json({ success: false, message: e.message }); }
 });
@@ -1968,6 +2008,7 @@ app.delete('/api/admin/pages/:slug', requireAdmin, requireSuperAdmin, async (req
     try {
         const { PageContent } = await getModels();
         await PageContent.findOneAndDelete({ slug: req.params.slug });
+        notifyDataChanged();
         res.json({ success: true });
     } catch (e) { res.status(500).json({ success: false, message: e.message }); }
 });
@@ -2018,6 +2059,7 @@ app.put('/api/admin/legal/:slug', requireAdmin, requireSuperAdmin, async (req, r
             { $set: update },
             { new: true, upsert: true }
         );
+        notifyDataChanged();
         res.json({ success: true, data: page });
     } catch (e) { res.status(500).json({ success: false, message: e.message }); }
 });
@@ -2025,6 +2067,7 @@ app.delete('/api/admin/legal/:slug', requireAdmin, requireSuperAdmin, async (req
     try {
         const { LegalPage } = await getModels();
         await LegalPage.findOneAndDelete({ slug: req.params.slug });
+        notifyDataChanged();
         res.json({ success: true });
     } catch (e) { res.status(500).json({ success: false, message: e.message }); }
 });
