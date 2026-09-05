@@ -143,16 +143,22 @@ const signupUser = async ({ fullName, contactNumber, emailId, password } = {}) =
     const { User } = await getModels();
     if (!fullName || !String(fullName).trim()) return { error: "Full name is required." };
     if (!contactNumber || !String(contactNumber).trim()) return { error: "Contact number is required." };
+    if (!isValidPhone(contactNumber)) return { error: "Please enter a valid phone number." };
     if (!password || String(password).length < 6) return { error: "Password must be at least 6 characters." };
 
-    const contact = String(contactNumber).trim();
-    const exists = await User.findOne({ userContactNumber: contact });
-    if (exists) return { error: "An account with this contact number already exists." };
+    const rawContact = String(contactNumber).trim();
+    const normalizedPhone = normalizePhone(rawContact);
+    const phoneVariants = [...new Set([rawContact, normalizedPhone, '+91' + normalizedPhone, '91' + normalizedPhone, '0' + normalizedPhone].filter(Boolean))];
+    const email = emailId ? String(emailId).trim().toLowerCase() : '';
+    const duplicateChecks = [{ userContactNumber: { $in: phoneVariants } }];
+    if (email) duplicateChecks.push({ emailId: email });
+    const exists = await User.findOne({ $or: duplicateChecks });
+    if (exists) return { error: "An account with this contact number or email already exists." };
 
     const user = await User.create({
         userFullName: String(fullName).trim(),
-        userContactNumber: contact,
-        emailId: emailId ? String(emailId).trim() : '',
+        userContactNumber: normalizedPhone || rawContact,
+        emailId: email,
         password: hashPassword(password),
         createdAt: new Date().toISOString()
     });
@@ -164,9 +170,17 @@ const signupUser = async ({ fullName, contactNumber, emailId, password } = {}) =
 const loginUser = async (identifier, password) => {
     const { User } = await getModels();
     if (!identifier || !password) return { error: "Contact number / email and password are required." };
-    const user = await User.findOne({
-        $or: [{ userContactNumber: String(identifier).trim() }, { emailId: String(identifier).trim() }]
-    });
+    const raw = String(identifier).trim();
+    const isEmail = raw.includes('@');
+    let query;
+    if (isEmail) {
+        query = { emailId: raw.toLowerCase() };
+    } else {
+        const cleaned = normalizePhone(raw);
+        const phoneVariants = [...new Set([raw, cleaned, '+91' + cleaned, '91' + cleaned, '0' + cleaned].filter(Boolean))];
+        query = { $or: [{ userContactNumber: { $in: phoneVariants } }, { emailId: raw.toLowerCase() }] };
+    }
+    const user = await User.findOne(query);
     if (!user || !verifyPassword(password, user.password)) return { error: "Invalid credentials." };
     const token = crypto.randomBytes(24).toString('hex');
     userTokens.set(token, String(user._id));
@@ -242,10 +256,26 @@ const hasPermission = (req, perm) => {
     return false;
 };
 
-// Phone validation (Indian format)
+// Normalize common Indian phone formats while preserving other international numbers.
+const normalizePhone = (phone) => {
+    if (!phone) return '';
+    let cleaned = String(phone).trim().replace(/[\s\-().]/g, '');
+    if (cleaned.startsWith('+91') && cleaned.length === 13) {
+        cleaned = cleaned.slice(3);
+    } else if (cleaned.startsWith('91') && cleaned.length === 12 && /^[6-9]/.test(cleaned.slice(2))) {
+        cleaned = cleaned.slice(2);
+    } else if (cleaned.startsWith('0') && cleaned.length === 11) {
+        cleaned = cleaned.slice(1);
+    }
+    return cleaned;
+};
+
 const isValidPhone = (phone) => {
-    const cleaned = String(phone).replace(/[\s\-()]/g, '');
-    return /^(\+91|91|0)?[6-9]\d{9}$/.test(cleaned);
+    if (!phone) return false;
+    const cleaned = normalizePhone(phone);
+    if (/^[6-9]\d{9}$/.test(cleaned)) return true;
+    const intl = String(phone).trim().replace(/[\s\-()]/g, '');
+    return /^\+?[1-9]\d{6,14}$/.test(intl);
 };
 
 const sanitize = (str) => {
@@ -304,5 +334,5 @@ const findOrCreateGoogleUser = async (profile) => {
 module.exports = {
     loginAdmin, loginAdminGoogle, signupUser, loginUser, findOrCreateGoogleUser,
     logout, requireAuth, requireAdmin, requireSuperAdmin, hasPermission,
-    isValidPhone, sanitize, SUPER_ADMIN_EMAIL
+    normalizePhone, isValidPhone, sanitize, SUPER_ADMIN_EMAIL
 };

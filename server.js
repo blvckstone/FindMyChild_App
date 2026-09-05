@@ -242,6 +242,9 @@ app.post('/api/children', requireAuth, reportLimiter, async (req, res) => {
                             ngoId: c._id,
                             displayName: c.displayName,
                             phone: c.phone,
+                            whatsapp: c.whatsapp || '',
+                            label: c.label || '',
+                            description: c.description || '',
                             organization: c.organization || ''
                         }));
                     }
@@ -621,6 +624,19 @@ app.delete('/api/admin/ngo-contacts/:id', requireAdmin, async (req, res) => {
 });
 
 // ---- Public child detail (safe fields) ----
+const hydrateNGOContacts = (snapshots, activeNGOs) => snapshots.map(c => {
+    const match = activeNGOs.find(a => String(a._id) === String(c.ngoId || c._id) || a.phone === c.phone);
+    return {
+        _id: c.ngoId || c._id || (match && match._id),
+        displayName: c.displayName || (match && match.displayName) || '',
+        phone: c.phone || (match && match.phone) || '',
+        whatsapp: c.whatsapp || (match && match.whatsapp) || '',
+        organization: c.organization || (match && match.organization) || '',
+        label: c.label || (match && match.label) || '',
+        description: c.description || (match && match.description) || ''
+    };
+});
+
 app.get('/api/children/:id', async (req, res) => {
     try {
         const db = await fmcConnectMongoDB();
@@ -630,14 +646,12 @@ app.get('/api/children/:id', async (req, res) => {
         // Return only public-safe fields
         const safeChild = {};
         PUBLIC_CHILD_FIELDS.split(' ').filter(Boolean).forEach(f => { if (child[f] !== undefined) safeChild[f] = child[f]; });
-        // NGO contacts: prefer report's selected snapshots, fall back to all active
+        // NGO contacts: prefer report snapshots, hydrating legacy fields from active contacts.
         const { NGOContact } = await getModels();
-        let ngoContacts = [];
-        if (child.ngoContacts && child.ngoContacts.length > 0) {
-            ngoContacts = child.ngoContacts.map(c => ({ _id: c.ngoId, displayName: c.displayName, phone: c.phone, organization: c.organization }));
-        } else {
-            ngoContacts = await NGOContact.find({ active: true }).select(NGO_CONTACT_FIELDS).sort({ priority: -1 }).lean();
-        }
+        const activeNGOs = await NGOContact.find({ active: true }).select(NGO_CONTACT_FIELDS).sort({ priority: -1 }).lean();
+        const ngoContacts = child.ngoContacts && child.ngoContacts.length > 0
+            ? hydrateNGOContacts(child.ngoContacts, activeNGOs)
+            : activeNGOs;
         res.json({ success: true, data: safeChild, ngoContacts });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Failed to load child details.' });
@@ -656,16 +670,12 @@ app.get('/api/children/:id/detail', requireAuth, async (req, res) => {
         const safeFields = isOwner ? AUTHENTICATED_CHILD_FIELDS : PUBLIC_CHILD_FIELDS;
         const safeChild = {};
         safeFields.split(' ').filter(Boolean).forEach(f => { if (child[f] !== undefined) safeChild[f] = child[f]; });
-        // NGO contacts: prefer report's selected contacts (snapshots), fall back to all active
+        // NGO contacts: prefer report snapshots, hydrating legacy fields from active contacts.
         const { NGOContact } = await getModels();
-        let ngoContacts = [];
-        if (child.ngoContacts && child.ngoContacts.length > 0) {
-            // Report has selected contacts — return the snapshots
-            ngoContacts = child.ngoContacts.map(c => ({ _id: c.ngoId, displayName: c.displayName, phone: c.phone, organization: c.organization }));
-        } else {
-            // No selection — fall back to all active contacts
-            ngoContacts = await NGOContact.find({ active: true }).select(NGO_CONTACT_FIELDS).sort({ priority: -1 }).lean();
-        }
+        const activeNGOs = await NGOContact.find({ active: true }).select(NGO_CONTACT_FIELDS).sort({ priority: -1 }).lean();
+        const ngoContacts = child.ngoContacts && child.ngoContacts.length > 0
+            ? hydrateNGOContacts(child.ngoContacts, activeNGOs)
+            : activeNGOs;
         res.json({ success: true, data: safeChild, ngoContacts });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Failed to load child details.' });
