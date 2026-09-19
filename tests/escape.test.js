@@ -1,5 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 const { jsArg, escapeHtml } = require('../public/js/fmc-escape');
 
 // Reproduce what the browser does with an HTML attribute value before the JS engine sees it.
@@ -68,6 +70,30 @@ test('A4: jsArg round-trips values embedded in multi-argument handlers', () => {
 
     assert.deepEqual(alerts, []);
     assert.deepEqual(calls[0], [id, name, 9]);
+});
+
+test('A4: no user panel handler interpolates a value by hand', () => {
+    const page = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
+    const handlers = [...page.matchAll(/onclick="[^"]*"/g)].map((match) => match[0]);
+    assert.ok(handlers.length > 50, `expected many handlers, found ${handlers.length}`);
+
+    const escaped = handlers.filter((handler) => handler.includes('esc('));
+    assert.deepEqual(escaped, [], 'esc() decodes to a raw quote inside the handler — jsArg() is required');
+
+    // The only values allowed to be interpolated without jsArg() are page/carousel counters,
+    // which are numbers built by the page itself.
+    const raw = handlers.filter((handler) => /'\+|\$\{/.test(handler) && !handler.includes('jsArg('));
+    for (const handler of raw) {
+        assert.match(
+            handler,
+            /^onclick="(foundPage=|profPages\.|moveCarousel\()/,
+            `a non-numeric value is interpolated into a handler: ${handler}`
+        );
+    }
+    assert.ok(
+        handlers.filter((handler) => handler.includes('jsArg(')).length >= 20,
+        'the panel is expected to build its handler arguments through jsArg()'
+    );
 });
 
 test('A4: escapeHtml still escapes for HTML text contexts', () => {

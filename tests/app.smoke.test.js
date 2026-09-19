@@ -21,7 +21,8 @@ test('A1: /api/praise is wired to the public projection, not a raw document', ()
 
 test('A2/A5: the admin login route is rate limited and blocked users are revoked', () => {
     assert.match(SERVER_SOURCE, /app\.post\('\/api\/admin\/login',\s*adminLoginLimiter/, 'admin login is not rate limited');
-    assert.match(SERVER_SOURCE, /const adminLoginLimiter = rateLimit/, 'admin login limiter is not defined');
+    // Built by the shared-store factory (see tests/rateLimitStore.test.js for the backing store).
+    assert.match(SERVER_SOURCE, /const adminLoginLimiter = limiter\(\{ name: 'admin-login'/, 'admin login limiter is not defined');
     assert.ok(SERVER_SOURCE.includes('revokeUserTokens(req.params.id)'), 'blocking/deleting a user does not revoke sessions');
 });
 

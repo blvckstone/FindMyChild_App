@@ -21,12 +21,12 @@ if (!process.env.ADMIN_USERNAME || !process.env.ADMIN_PASS) {
     console.error('[SECURITY] WARNING: ADMIN_USERNAME / ADMIN_PASS not set. Legacy admin login disabled.');
 }
 console.log('[STARTUP] Environment audit complete.');
-// Sessions and the AI match pool are shared through MongoDB, so several replicas agree on who is
-// logged in and who has been blocked. Two pieces are still per-instance: socket.io fan-out (a
-// client connected to replica A does not hear replica B's notifications) and the in-process
-// rate-limit counters. Add the socket.io Redis adapter and a shared rate-limit store before
-// running more than one replica — see SCALING.md.
-console.log('[STARTUP] Sessions: MongoDB (shared). Socket fan-out: this instance only. Realtime requires a Redis adapter at >1 replica.');
+// Sessions, rate-limit counters and the AI match pool are shared through MongoDB, so several
+// replicas agree on who is logged in, who has been blocked and how many attempts a client has
+// made. One piece is still per-instance: socket.io fan-out, so a client connected to replica A
+// does not hear replica B's notifications. Add the socket.io Redis adapter before running more
+// than one replica — see SCALING.md.
+console.log('[STARTUP] Shared: sessions, rate-limit counters, AI match pool (MongoDB). Per-instance: socket fan-out — needs a Redis adapter at >1 replica.');
 // ───────────────────────────────────────────────────────────────────────────────
 
 const app = express();
@@ -76,14 +76,28 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 // Rate limiting
-const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 10, message: { success: false, message: 'Too many attempts. Try again in 15 minutes.' } });
-const faceScanLimiter = rateLimit({ windowMs: 60 * 1000, max: 10, message: { success: false, message: 'Too many scan requests. Please wait a minute.' } });
-const reportLimiter = rateLimit({ windowMs: 60 * 1000, max: 5, message: { success: false, message: 'Too many reports. Please wait a minute.' } });
-const donationLimiter = rateLimit({ windowMs: 5 * 60 * 1000, max: 5, message: { success: false, message: 'Too many donation attempts. Please wait.' } });
+// Counters live in shared storage (MongoDB) so the ceiling is global: with several
+// replicas an in-process counter would allow the limit once per replica, and a deploy
+// would clear an attacker's progress. See functions/rateLimitStore.js.
+const rateLimitStore = require('./functions/rateLimitStore');
+const getRateLimitModel = async () => (await getModels()).RateLimit;
+const limiter = ({ name, windowMs, max, message }) => rateLimit({
+    windowMs,
+    max,
+    message,
+    store: rateLimitStore({ prefix: name, windowMs, getModel: getRateLimitModel }),
+    // A broken counter must never take the endpoint down; the store itself already
+    // degrades to per-process counting.
+    passOnStoreError: true
+});
+const authLimiter = limiter({ name: 'auth', windowMs: 15 * 60 * 1000, max: 10, message: { success: false, message: 'Too many attempts. Try again in 15 minutes.' } });
+const faceScanLimiter = limiter({ name: 'face-scan', windowMs: 60 * 1000, max: 10, message: { success: false, message: 'Too many scan requests. Please wait a minute.' } });
+const reportLimiter = limiter({ name: 'report', windowMs: 60 * 1000, max: 5, message: { success: false, message: 'Too many reports. Please wait a minute.' } });
+const donationLimiter = limiter({ name: 'donation', windowMs: 5 * 60 * 1000, max: 5, message: { success: false, message: 'Too many donation attempts. Please wait.' } });
 // Admin login is a high-value brute-force target — never leave it unlimited.
-const adminLoginLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 10, message: { success: false, message: 'Too many admin login attempts. Try again in 15 minutes.' } });
+const adminLoginLimiter = limiter({ name: 'admin-login', windowMs: 15 * 60 * 1000, max: 10, message: { success: false, message: 'Too many admin login attempts. Try again in 15 minutes.' } });
 // Public read endpoints (listings/counters) get a generous ceiling so one client cannot hammer Mongo.
-const publicLimiter = rateLimit({ windowMs: 60 * 1000, max: 300, message: { success: false, message: 'Too many requests. Please slow down.' } });
+const publicLimiter = limiter({ name: 'public', windowMs: 60 * 1000, max: 300, message: { success: false, message: 'Too many requests. Please slow down.' } });
 
 //-----------------------------------------------Functions Module--------------------------------------------------------------->
 const fmcConnectMongoDB = require('./functions/fmcDB/fmcMongoDB');
@@ -1073,13 +1087,20 @@ app.get('/api/admin/stats', requireAdmin, async (req, res) => {
         const db = await fmcConnectMongoDB();
         if (!db.success) return res.status(500).json({ success: false, message: "Database unavailable." });
         const Child = db.data;
-        const [pending, approved, rejected, total] = await Promise.all([
+        const { User, FoundRequest } = await getModels();
+        // Every figure the dashboard shows is counted in the database. Deriving them from
+        // a fetched page of records made them wrong as soon as the collection outgrew it.
+        const [pending, approved, rejected, total, missing, found, users, foundRequests] = await Promise.all([
             Child.countDocuments({ status: 'pending' }),
             Child.countDocuments({ status: 'approved' }),
             Child.countDocuments({ status: 'rejected' }),
-            Child.countDocuments({})
+            Child.countDocuments({}),
+            Child.countDocuments({ status: 'approved', found: { $ne: true } }),
+            Child.countDocuments({ status: 'approved', found: true }),
+            User.countDocuments({}),
+            FoundRequest.countDocuments({ status: 'pending' })
         ]);
-        res.json({ success: true, data: { pending, approved, rejected, total } });
+        res.json({ success: true, data: { pending, approved, rejected, total, missing, found, users, foundRequests } });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }

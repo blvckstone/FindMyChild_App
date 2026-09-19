@@ -2,7 +2,9 @@
 // and expose the app's own mongoose models for seeding and assertions.
 const { spawn } = require('node:child_process');
 const path = require('node:path');
-const { MongoMemoryServer } = require('mongodb-memory-server');
+// The -core package has no install script, so a production `npm install` never downloads a
+// MongoDB binary to run the tests. It fetches the binary on first test run instead.
+const { MongoMemoryServer } = require('mongodb-memory-server-core');
 
 const ROOT = path.resolve(__dirname, '../..');
 

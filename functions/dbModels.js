@@ -119,6 +119,16 @@ const sessionSchema = mongoose.Schema({
 });
 sessionSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
+// Rate limit counters. Shared storage because an in-process counter gives every
+// replica its own ceiling (N replicas = N times the configured limit) and forgets
+// an attacker's progress on deploy. The TTL index reaps expired windows.
+const rateLimitSchema = mongoose.Schema({
+    key: { type: String, required: true, unique: true },
+    count: { type: Number, default: 0 },
+    resetAt: { type: Date, required: true }
+});
+rateLimitSchema.index({ resetAt: 1 }, { expireAfterSeconds: 0 });
+
 // Page content schema (About Us, Contact Us, etc.)
 const pageContentSchema = mongoose.Schema({
     slug: { type: String, required: true, unique: true, lowercase: true },
@@ -260,12 +270,13 @@ const getModels = async () => {
             const NGOContact = mongoose.models.NGOContact || mongoose.model('NGOContact', ngoContactSchema);
             const AuditLog = mongoose.models.AuditLog || mongoose.model('AuditLog', auditLogSchema);
             const Session = mongoose.models.Session || mongoose.model('Session', sessionSchema);
+            const RateLimit = mongoose.models.RateLimit || mongoose.model('RateLimit', rateLimitSchema);
             // Seed default payment settings if none exist
             const psCount = await PaymentSettings.countDocuments();
             if (psCount === 0) {
                 await PaymentSettings.create({});
             }
-            return { Child: db.data, User, FoundRequest, Praise, Gift, Donation, Analytics, Advertisement, AdminUser, PageContent, LegalPage, Revenue, PaymentSettings, PreRegisteredChild, NGOContact, AuditLog, Session };
+            return { Child: db.data, User, FoundRequest, Praise, Gift, Donation, Analytics, Advertisement, AdminUser, PageContent, LegalPage, Revenue, PaymentSettings, PreRegisteredChild, NGOContact, AuditLog, Session, RateLimit };
         })();
     }
     return modelsPromise;

@@ -604,26 +604,25 @@ $('logoutBtn').addEventListener('click',async()=>{try{await api('/api/admin/logo
 async function loadDashboard(){
   try{
     // Load each API independently — handle 403 gracefully
-    let stats={data:{pending:0,approved:0,rejected:0,total:0}},children={data:[]},foundReqs={data:[]};
+    let stats={data:{pending:0,approved:0,rejected:0,total:0,missing:0,found:0,users:0,foundRequests:0}},children={data:[]},foundReqs={data:[]};
     try{stats=await api('/api/admin/stats')}catch(e){console.warn('Stats blocked:',e.message)}
     try{children=await api('/api/admin/children')}catch(e){console.warn('Children blocked:',e.message)}
     try{foundReqs=await api('/api/admin/found-requests')}catch(e){console.warn('Found blocked:',e.message)}
     allChildren=children.data||[];
-    const s=stats.data||{pending:0,approved:0,rejected:0,total:0};
+    const s=stats.data||{pending:0,approved:0,rejected:0,total:0,missing:0,found:0,users:0,foundRequests:0};
     $('dashStats').innerHTML=`
       <div class="stat"><div class="icon orange"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg></div><div><div class="num" style="color:var(--orange)">${s.pending}</div><div class="lbl">Pending</div></div></div>
       <div class="stat"><div class="icon green"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg></div><div><div class="num" style="color:var(--green)">${s.approved}</div><div class="lbl">Approved</div></div></div>
       <div class="stat"><div class="icon red"><svg viewBox="0 0 24 24"><path d="M12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm5 13.59L15.59 17 12 13.41 8.41 17 7 15.59 10.59 12 7 8.41 8.41 7 12 10.59 15.59 7 17 8.41 13.41 12 17 15.59z"/></svg></div><div><div class="num" style="color:var(--red)">${s.rejected}</div><div class="lbl">Rejected</div></div></div>
       <div class="stat"><div class="icon blue"><svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg></div><div><div class="num" style="color:var(--accent)">${s.total}</div><div class="lbl">Total Children</div></div></div>
-      <div class="stat"><div class="icon purple"><svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg></div><div><div class="num" style="color:var(--purple)">${allUsers.length||'-'}</div><div class="lbl">Users</div></div></div>`;
+      <div class="stat"><div class="icon purple"><svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg></div><div><div class="num" style="color:var(--purple)">${s.users ?? '-'}</div><div class="lbl">Users</div></div></div>`;
     $('badgePending').textContent=s.pending;
     const recent=allChildren.slice().sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)).slice(0,5);
     $('dashRecent').innerHTML=recent.length?recent.map(c=>'<div class="item" style="padding:10px 16px"><div class="img-wrap" style="width:40px;height:40px;border-radius:8px">'+(c.image?'<img src="'+esc(c.image)+'" alt="" style="border-radius:8px">':'<div class="ph-icon"><svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg></div>')+'</div><div class="info"><div class="name" style="font-size:13px">'+(esc(c.fullName)||'Unknown')+' '+sbadge(c.status)+'</div><div class="meta">'+fmtDate(c.createdAt)+'</div></div></div>').join(''):'<div class="empty" style="padding:24px">No records yet.</div>';
-    const missing=allChildren.filter(c=>!c.found),found=allChildren.filter(c=>c.found);
     $('dashQuick').innerHTML=`
-      <div class="item" style="padding:10px 16px"><div class="info"><div class="sub">Missing Children</div><div class="num" style="font-size:20px;color:var(--red)">${missing.length}</div></div></div>
-      <div class="item" style="padding:10px 16px"><div class="info"><div class="sub">Found Children</div><div class="num" style="font-size:20px;color:var(--green)">${found.length}</div></div></div>
-      <div class="item" style="padding:10px 16px"><div class="info"><div class="sub">Found Requests</div><div class="num" style="font-size:20px;color:var(--orange)">${foundReqs.data.length}</div></div></div>`;
+      <div class="item" style="padding:10px 16px"><div class="info"><div class="sub">Missing Children</div><div class="num" style="font-size:20px;color:var(--red)">${s.missing ?? '-'}</div></div></div>
+      <div class="item" style="padding:10px 16px"><div class="info"><div class="sub">Found Children</div><div class="num" style="font-size:20px;color:var(--green)">${s.found ?? '-'}</div></div></div>
+      <div class="item" style="padding:10px 16px"><div class="info"><div class="sub">Pending Found Requests</div><div class="num" style="font-size:20px;color:var(--orange)">${s.foundRequests ?? '-'}</div></div></div>`;
     const recentFound=foundReqs.data.slice(0,5);
     $('dashFound').innerHTML=recentFound.length?recentFound.map(fr=>`<div class="item"><div class="info"><div class="top"><span class="name">${esc(childLabel(fr))}</span> ${sbadge(fr.status)}</div><div class="sub">Finder: ${esc(fr.finderName||'Anonymous')}</div><div class="meta">${fmtDate(fr.createdAt)}</div></div><div class="acts">${fr.status==='pending'?miniBtn('btn-green',iApprove,'Approve',`setFoundStatus('${fr._id}','approved')`)+miniBtn('btn-red',iReject,'Reject',`setFoundStatus('${fr._id}','rejected')`):''}</div></div>`).join(''):'<div class="empty" style="padding:24px">No found requests.</div>';
   }catch(e){toast(e.message,'err')}

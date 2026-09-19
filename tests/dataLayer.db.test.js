@@ -539,6 +539,50 @@ test('B1: the live scan matches a child who is outside the cached pool', async (
     );
 });
 
+// ------------------------------------------------------------------ C4: dashboard figures
+
+test('C4: the dashboard counts are database counts, not the length of a fetched page', async () => {
+    const { Child, User, FoundRequest } = ctx.models;
+
+    // The truth, straight from the database.
+    const expected = {
+        pending: await Child.countDocuments({ status: 'pending' }),
+        approved: await Child.countDocuments({ status: 'approved' }),
+        rejected: await Child.countDocuments({ status: 'rejected' }),
+        total: await Child.countDocuments({}),
+        missing: await Child.countDocuments({ status: 'approved', found: { $ne: true } }),
+        found: await Child.countDocuments({ status: 'approved', found: true }),
+        users: await User.countDocuments({}),
+        foundRequests: await FoundRequest.countDocuments({ status: 'pending' })
+    };
+
+    const res = await ctx.api('/api/admin/stats', { token: adminToken });
+    assert.equal(res.status, 200);
+    assert.deepEqual(res.json.data, expected, 'every dashboard figure must equal the database count');
+
+    // Proof the figures cannot be derived from a page of records: the listing is capped well
+    // below the number of approved children, so anything computed from it would be wrong.
+    const listing = await ctx.api('/api/admin/children', { token: adminToken });
+    assert.equal(listing.status, 200);
+    assert.ok(listing.json.data.length <= 50, 'the admin listing is still capped per request');
+    assert.ok(expected.total > listing.json.data.length, 'this database is larger than one page on purpose');
+    assert.notEqual(res.json.data.total, listing.json.data.length, 'the total must not be a page length');
+
+    // And the panel must actually read those fields instead of recomputing them from the page.
+    const fs = require('node:fs');
+    const path = require('node:path');
+    const admin = fs.readFileSync(path.join(__dirname, '../public/admin.html'), 'utf8');
+    assert.match(admin, /\$\{s\.missing \?\? '-'\}/, 'the missing-children card must use the server figure');
+    assert.match(admin, /\$\{s\.found \?\? '-'\}/, 'the found-children card must use the server figure');
+    assert.match(admin, /\$\{s\.users \?\? '-'\}/, 'the users card must use the server figure');
+    assert.match(admin, /\$\{s\.foundRequests \?\? '-'\}/, 'the pending found-requests card must use the server figure');
+    assert.doesNotMatch(
+        admin,
+        /allChildren\.filter\(c=>!c\.found\)/,
+        'the dashboard must not count from the fetched page'
+    );
+});
+
 test('B1: a child registered after the pool was built is immediately matchable', async () => {
     // The previous test built the cached window; this write bypasses the API entirely.
     await ctx.models.PreRegisteredChild.create({
