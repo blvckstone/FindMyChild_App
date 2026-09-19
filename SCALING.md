@@ -31,6 +31,20 @@ shared state); see `tests/` for the tests that pin each claim.
 | `SESSION_TTL_MS` | 30 days | Session lifetime. Tokens previously never expired. |
 | `FACEMATCH_MAX_POOL` | 20000 | How many descriptors stay in each instance's memory (~512 B each). Records beyond it are streamed per scan, so a larger pool costs memory, never correctness. |
 | `FACEMATCH_POOL_TTL_MS` | 5 min | How long an instance may serve a stale match pool after an out-of-band edit. |
+| `SOCKET_QUERY_LIMIT` | 60 | Realtime queries one socket connection may run per window. The sockets are anonymous, so this is the ceiling that keeps one client from looping database queries. |
+| `SOCKET_QUERY_WINDOW_MS` | 60 s | Length of that window. |
+| `SOCKET_MAX_IN_FLIGHT` | 4 | How many realtime queries one connection may have running at once; a client that pipelines without waiting is refused rather than queued. |
+| `DEBUG_SOCKET` | unset | Set to `1` to log socket connections and per-event activity. Off by default: realtime request payloads are user data and are never logged. |
+
+## Anonymous realtime traffic
+
+The realtime API is deliberately usable without an account (the home page lists public records
+with it), so it is guarded rather than authenticated: `functions/realtimeGuard.js` validates every
+payload into an allow-listed shape before a query sees it (`functions/realtimeGuard.js` drops
+unknown keys, caps text, requires real ISO dates and known enum values) and gives each connection
+a query budget plus a cap on queries in flight. Per-connection, not global, so one abusive client
+cannot starve the others. Every refusal is answered on the event the client is already listening
+for, so an older client degrades quietly.
 
 ## Verifying a multi-replica setup
 

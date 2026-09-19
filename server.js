@@ -112,6 +112,7 @@ const { parseFaceDescriptor } = require('./functions/face');
 const { normalizeYmd, normalizeTime } = require('./functions/dates');
 const { searchRegex } = require('./functions/textSearch');
 const { createChangeNotifier, scopeForPath, SCOPE_ALL } = require('./functions/changeNotifier');
+const { attachQueryHandlers } = require('./functions/realtimeGuard');
 const { AsyncLocalStorage } = require('node:async_hooks');
 const { findBestMatch, invalidateFacePool } = require('./functions/faceMatch');
 const getByDateData = require('./functions/getByDateData/getByDateData.js');
@@ -2252,95 +2253,24 @@ app.delete('/api/admin/legal/:slug', requireAdmin, requireSuperAdmin, async (req
     } catch (e) { res.status(500).json({ success: false, message: e.message }); }
 });
 
+// Realtime queries. Every payload is validated and every connection is budgeted
+// (functions/realtimeGuard.js) — these sockets are anonymous, and without this a single client
+// could drive unbounded database work and log volume by emitting in a loop.
 io.on("connection", function (socket) {
-    console.log("New socket user found", socket.id);
+    if (process.env.DEBUG_SOCKET === '1') console.log("New socket user found", socket.id);
 
-    socket.on("load", (opts) => {
-        getAllData(opts || {})
-            .then(function (data) {
-                socket.emit('getAllData', data)
-            })
-            .catch(function (error) {
-                console.error("load error:", error);
-                socket.emit('error', { message: "Failed to load data" });
-            })
-    });
-
-    socket.on("searchByDate", (searchingDate) => {
-        console.log("searchByDate:", searchingDate);
-        getByDateData(searchingDate)
-            .then(function (data) {
-                socket.emit('getByDateData', data)
-            })
-            .catch(function (error) {
-                console.error("searchByDate error:", error);
-                socket.emit('error', { message: "Failed to search by date" });
-            })
-    });
-
-    socket.on("searchByName", (searchingName) => {
-        console.log("searchByName:", searchingName);
-        getByNameData(searchingName)
-            .then(function (data) {
-                socket.emit('getByNameData', data)
-            })
-            .catch(function (error) {
-                console.error("searchByName error:", error);
-                socket.emit('error', { message: "Failed to search by name" });
-            })
-    });
-
-    socket.on("searchByRange", (obj) => {
-        console.log("searchByRange:", obj);
-        getByRangeData(obj)
-            .then(function (data) {
-                socket.emit('getByRangeData', data)
-            })
-            .catch(function (error) {
-                console.error("searchByRange error:", error);
-                socket.emit('error', { message: "Failed to search by range" });
-            })
-    });
-
-    socket.on("searchByAddress", (obj) => {
-        console.log("searchByAddress:", obj);
-        getByAddressData(obj)
-            .then(function (data) {
-                socket.emit('getByAddressData', data)
-            })
-            .catch(function (error) {
-                console.error("searchByAddress error:", error);
-                socket.emit('error', { message: "Failed to search by address" });
-            })
-    });
-
-    // Flexible search: name / address / age / anything.
-    socket.on("searchChildren", (obj) => {
-        console.log("searchChildren:", obj);
-        getBySearchData(obj)
-            .then(function (data) {
-                socket.emit('getSearchData', data)
-            })
-            .catch(function (error) {
-                console.error("searchChildren error:", error);
-                socket.emit('error', { message: "Failed to search" });
-            })
-    });
-
-    // Important messages / notices for the home page.
-    socket.on("loadMessages", () => {
-        getMessages()
-            .then(function (data) {
-                socket.emit('getMessages', data)
-            })
-            .catch(function (error) {
-                console.error("loadMessages error:", error);
-                socket.emit('error', { message: "Failed to load messages" });
-            })
+    attachQueryHandlers(socket, {
+        load: (args) => getAllData(args),
+        loadMessages: () => getMessages(),
+        searchByDate: ({ value, page, limit }) => getByDateData(value, { page, limit }),
+        searchByName: ({ value, page, limit }) => getByNameData(value, { page, limit }),
+        searchByRange: ({ from, to, page, limit }) => getByRangeData({ searchingDateFrom: from, searchingDateTo: to }, { page, limit }),
+        searchByAddress: ({ value, page, limit }) => getByAddressData(value, { page, limit }),
+        searchChildren: (args) => getBySearchData(args)
     });
 
     socket.on("disconnect", () => {
-        console.log(`${socket.id} User Disconnected!`);
+        if (process.env.DEBUG_SOCKET === '1') console.log(`${socket.id} User Disconnected!`);
     })
 });
 

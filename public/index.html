@@ -1087,7 +1087,7 @@ socket.on('disconnect',()=>{$('statusTxt').textContent='Offline';$('statusDot').
 socket.on('connect_error',()=>{$('statusTxt').textContent='Offline';$('statusDot').className='status-dot off'});
 socket.on('getAllData',d=>{allData=(d&&d.data)||[];saveCache('allData',allData);$('demoChip').classList.toggle('show',!!(d&&d.demo));renderHome();renderFound()});
 socket.on('getMessages',d=>{messages=(d&&d.data)||[];saveCache('messages',messages);renderMessages()});
-socket.on('getSearchData',d=>{results=(d&&d.data)||[];$('demoChip').classList.toggle('show',!!(d&&d.demo));renderResults()});
+socket.on('getSearchData',d=>{results=(d&&d.data)||[];$('demoChip').classList.toggle('show',!!(d&&d.demo));if(d&&d.success===false&&d.message){const info=$('resultInfo');if(info)info.textContent=d.message}renderResults()});
 /* Server data changed. The server already coalesces bursts, but two notifications can still
    land while a load is in flight, so this collapses them into one refresh. */
 let liveRefreshBusy=false,liveRefreshPending=false,liveRefreshTimer=null;
@@ -1098,6 +1098,9 @@ function liveRefresh(){
   setTimeout(()=>{liveRefreshBusy=false;if(liveRefreshPending){liveRefreshPending=false;liveRefresh()}},900);
 }
 socket.on('dataChanged',()=>{clearTimeout(liveRefreshTimer);liveRefreshTimer=setTimeout(liveRefresh,300)});
+/* The server validates and throttles these queries; a rejected one must not leave the search box stuck on "Searching...". */
+let lastRejectToast=0;
+socket.on('queryRejected',p=>{const m=(p&&p.message)||'Too many requests. Please slow down.';const info=$('resultInfo');if(info&&info.textContent==='Searching...')info.textContent=m;const now=Date.now();if(now-lastRejectToast>3000){lastRejectToast=now;toast(m,'err')}});
 
 /* --- Tab filtering --- */
 let activeFilter='all';
