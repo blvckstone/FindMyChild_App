@@ -1,7 +1,9 @@
 const crypto = require('crypto');
 const { Resend } = require('resend');
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Constructing Resend without a key throws, which would crash the whole server at boot.
+// Keep the client lazy so a missing key only disables the OTP endpoints.
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 const fromAddress = process.env.EMAIL_FROM || 'Find My Child <onboarding@resend.dev>';
 const otpStore = new Map();
 const requestStore = new Map();
@@ -27,22 +29,26 @@ const generateOTP = () => String(crypto.randomInt(100000, 1000000));
 
 const sendOTP = async (email, { ip = 'unknown' } = {}) => {
     const normalizedEmail = normalizeEmail(email);
+    if (!resend) {
+        console.error('[EMAIL] RESEND_API_KEY is not configured.');
+        return { success: false, providerError: true, error: 'Email service is not configured.' };
+    }
     const now = Date.now();
     cleanupRequests(now);
     const emailHistory = requestStore.get(normalizedEmail) || [];
     const lastEmailRequest = emailHistory[emailHistory.length - 1] || 0;
     if (now - lastEmailRequest < COOLDOWN) {
-        return { success: false, error: 'Please wait 60 seconds before requesting another OTP.', retryAfter: Math.ceil((COOLDOWN - (now - lastEmailRequest)) / 1000) };
+        return { success: false, rateLimited: true, error: 'Please wait 60 seconds before requesting another OTP.', retryAfter: Math.ceil((COOLDOWN - (now - lastEmailRequest)) / 1000) };
     }
     if (emailHistory.length >= MAX_REQUESTS) {
-        return { success: false, error: 'Too many OTP requests. Please try again later.' };
+        return { success: false, rateLimited: true, error: 'Too many OTP requests. Please try again later.' };
     }
     const ipKey = `ip:${String(ip)}`;
     const requestKey = `${String(ip)}:${normalizedEmail}`;
     const ipHistory = ipRequestStore.get(ipKey) || [];
     const requestHistory = requestStore.get(requestKey) || [];
     if (ipHistory.length >= MAX_REQUESTS || requestHistory.length >= MAX_REQUESTS) {
-        return { success: false, error: 'Too many OTP requests. Please try again later.' };
+        return { success: false, rateLimited: true, error: 'Too many OTP requests. Please try again later.' };
     }
 
     const code = generateOTP();
@@ -53,16 +59,27 @@ const sendOTP = async (email, { ip = 'unknown' } = {}) => {
     requestStore.set(requestKey, [...requestHistory, now]);
 
     try {
-        await resend.emails.send({
+        const result = await resend.emails.send({
             from: fromAddress,
             to: normalizedEmail,
             subject: 'Your Find My Child verification code',
             html: `<!doctype html><html><body style="margin:0;background:#f5f5f7;font-family:Arial,sans-serif;color:#1d1d1f;padding:24px 12px"><div style="max-width:520px;margin:0 auto;background:#fff;border:1px solid #e5e5ea;border-radius:18px;overflow:hidden;box-shadow:0 4px 18px rgba(0,0,0,.08)"><div style="background:#1d1d1f;color:#fff;padding:24px 28px"><div style="font-size:20px;font-weight:800">Gumshuda Bacho Ki Talash</div><div style="font-size:13px;color:rgba(255,255,255,.65);margin-top:5px">Find My Child</div></div><div style="padding:30px 28px;text-align:center"><h2 style="margin:0 0 10px;font-size:22px;color:#1d1d1f">Verify your email</h2><p style="margin:0;color:#636366;font-size:14px;line-height:1.6">Use the verification code below to complete your Find My Child signup.</p><div style="margin:24px 0;background:#f0f7ff;border-radius:12px;padding:14px;color:#0071e3;font:bold 32px/1 monospace;letter-spacing:6px">${code}</div><p style="margin:0;color:#636366;font-size:13px">Valid for 10 minutes.</p><p style="margin:18px 0 0;color:#636366;font-size:12px;line-height:1.6">Do not share this OTP with anyone. If you did not request this, please ignore this email.</p></div></div></body></html>`
         });
-        return { success: true };
+        if (result && result.error) {
+            console.error('[EMAIL] Resend rejected OTP:', result.error.message || result.error.name || 'unknown provider error');
+            otpStore.delete(normalizedEmail);
+            return { success: false, providerError: true, error: 'Email provider rejected the OTP request.' };
+        }
+        if (!result || !result.data || !result.data.id) {
+            console.error('[EMAIL] Resend returned no email ID.');
+            otpStore.delete(normalizedEmail);
+            return { success: false, providerError: true, error: 'Email provider did not confirm the OTP request.' };
+        }
+        return { success: true, emailId: result.data.id };
     } catch (e) {
+        console.error('[EMAIL] OTP send failed:', e.message || 'unknown error');
         otpStore.delete(normalizedEmail);
-        return { success: false, error: 'Failed to send email.' };
+        return { success: false, providerError: true, error: 'Failed to send email.' };
     }
 };
 
@@ -87,6 +104,7 @@ const verifyOTP = (email, code) => {
 };
 
 const sendWelcomeEmail = async (email, name) => {
+    if (!resend) return;
     try {
         await resend.emails.send({
             from: fromAddress,

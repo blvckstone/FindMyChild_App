@@ -425,10 +425,10 @@ button{font-family:inherit;cursor:pointer}input,select,textarea{font-family:inhe
 <!-- ===== USERS ===== -->
 <div class="page" id="pg-users">
   <div class="page-head"><h2>Registered Users</h2></div>
-  <div class="filter-bar"><input id="userSearch" placeholder="Search users..." oninput="renderUsersList()"></div>
+  <div class="filter-bar"><input id="userSearch" placeholder="Search users..." oninput="debouncedUserSearch()"></div>
   <div style="display:flex;gap:8px;margin-bottom:16px"><button id="usersDetailsTab" class="filter-btn active" onclick="switchUsersTab('details')">User Details</button><button id="usersChildrenTab" class="filter-btn" onclick="switchUsersTab('children')">User Children</button></div>
-  <div id="userDetailsPane"><div id="userList"></div></div>
-  <div id="userChildrenPane" style="display:none"><div class="filter-bar"><select id="safeChildStatusFilter" onchange="renderSafeChildren()"><option value="">All statuses</option><option value="approved">Approved</option><option value="pending">Pending</option><option value="rejected">Rejected</option></select><input id="safeChildSearch" placeholder="Search child or user..." oninput="renderSafeChildren()"></div><div id="safeChildrenList"></div></div>
+  <div id="userDetailsPane"><div id="userList"></div><div id="usersPageBar" style="display:flex;align-items:center;justify-content:center;padding:8px 0"></div></div>
+  <div id="userChildrenPane" style="display:none"><div class="filter-bar"><select id="safeChildStatusFilter" onchange="loadSafeChildren(1)"><option value="">All statuses</option><option value="approved">Approved</option><option value="pending">Pending</option><option value="rejected">Rejected</option></select><input id="safeChildSearch" placeholder="Search child or user..." oninput="debouncedSafeChildSearch()"></div><div id="safeChildrenList"></div><div id="safeChildPageBar" style="display:flex;align-items:center;justify-content:center;padding:8px 0"></div></div>
 </div>
 
 <!-- ===== ANALYTICS ===== -->
@@ -571,7 +571,7 @@ function navigateTo(page){
   if(page==='found')loadFoundReqs();
   if(page==='praise')renderPraise();
   if(page==='donations'){loadDonations();loadPaymentSettings()}
-  if(page==='users')loadUsers();
+  if(page==='users')loadUsersTab();
   if(page==='analytics')loadAnalytics();
   if(page==='ads')loadAds();
   if(page==='whitelist')loadWhitelist();
@@ -625,7 +625,7 @@ async function loadDashboard(){
       <div class="item" style="padding:10px 16px"><div class="info"><div class="sub">Found Children</div><div class="num" style="font-size:20px;color:var(--green)">${found.length}</div></div></div>
       <div class="item" style="padding:10px 16px"><div class="info"><div class="sub">Found Requests</div><div class="num" style="font-size:20px;color:var(--orange)">${foundReqs.data.length}</div></div></div>`;
     const recentFound=foundReqs.data.slice(0,5);
-    $('dashFound').innerHTML=recentFound.length?recentFound.map(fr=>`<div class="item"><div class="info"><div class="top"><span class="name">${esc(fr.childId&&fr.childId.fullName||'Unknown')}</span> ${sbadge(fr.status)}</div><div class="sub">Finder: ${esc(fr.finderName||'Anonymous')}</div><div class="meta">${fmtDate(fr.createdAt)}</div></div><div class="acts">${fr.status==='pending'?miniBtn('btn-green',iApprove,'Approve',`setFoundStatus('${fr._id}','approved')`)+miniBtn('btn-red',iReject,'Reject',`setFoundStatus('${fr._id}','rejected')`):''}</div></div>`).join(''):'<div class="empty" style="padding:24px">No found requests.</div>';
+    $('dashFound').innerHTML=recentFound.length?recentFound.map(fr=>`<div class="item"><div class="info"><div class="top"><span class="name">${esc(childLabel(fr))}</span> ${sbadge(fr.status)}</div><div class="sub">Finder: ${esc(fr.finderName||'Anonymous')}</div><div class="meta">${fmtDate(fr.createdAt)}</div></div><div class="acts">${fr.status==='pending'?miniBtn('btn-green',iApprove,'Approve',`setFoundStatus('${fr._id}','approved')`)+miniBtn('btn-red',iReject,'Reject',`setFoundStatus('${fr._id}','rejected')`):''}</div></div>`).join(''):'<div class="empty" style="padding:24px">No found requests.</div>';
   }catch(e){toast(e.message,'err')}
 }
 
@@ -859,13 +859,21 @@ async function delChild(id){if(!confirm('Delete this record permanently?'))retur
 let foundFilterData=[];
 async function loadFoundReqs(){try{const j=await api('/api/admin/found-requests');foundFilterData=j.data;$('badgeFound').textContent=j.data.filter(x=>x.status==='pending').length;renderFoundList()}catch(e){toast(e.message,'err')}}
 function filterFound(btn,f){currentFoundFilter=f;document.querySelectorAll('[data-frfilter]').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderFoundList()}
+// A deleted child leaves the stored name snapshot behind; prefer the live record while it
+// still exists (so renames show up) and fall back to the snapshot so the admin panel never
+// shows "Unknown" for work that was already done.
+function childLabel(record){
+  if(!record)return 'Unknown';
+  const live=record.childId&&typeof record.childId==='object'?(record.childId.fullName||record.childId.childName):'';
+  return live||record.childName||'Unknown';
+}
 function renderFoundList(){
   const list=currentFoundFilter?foundFilterData.filter(x=>x.status===currentFoundFilter):foundFilterData;
-  $('foundList').innerHTML=list.length?list.map(fr=>`<div class="card-section" style="margin-bottom:10px;cursor:pointer" onclick="openFoundDetail('${fr._id}')"><div class="item"><div class="info"><div class="top"><span class="name">${esc(fr.childId&&fr.childId.fullName||'Unknown')}</span> ${sbadge(fr.status)}</div><div class="sub"><strong>Finder:</strong> ${esc(fr.finderName||'Anonymous')}${fr.contactNumber?' · '+esc(fr.contactNumber):''}</div>${fr.details?'<div class="sub">'+esc(fr.details).slice(0,80)+(fr.details.length>80?'...':'')+'</div>':''}<div class="meta">${fmtDate(fr.createdAt)}</div></div><div class="acts">${fr.status==='pending'?miniBtn('btn-green',iApprove,'Approve',`event.stopPropagation();setFoundStatus('${fr._id}','approved')`)+miniBtn('btn-red',iReject,'Reject',`event.stopPropagation();setFoundStatus('${fr._id}','rejected')`):''}</div></div></div>`).join(''):'<div class="card-section"><div class="cs-body"><div class="empty">No found requests.</div></div></div>';
+  $('foundList').innerHTML=list.length?list.map(fr=>`<div class="card-section" style="margin-bottom:10px;cursor:pointer" onclick="openFoundDetail('${fr._id}')"><div class="item"><div class="info"><div class="top"><span class="name">${esc(childLabel(fr))}</span> ${sbadge(fr.status)}</div><div class="sub"><strong>Finder:</strong> ${esc(fr.finderName||'Anonymous')}${fr.contactNumber?' · '+esc(fr.contactNumber):''}</div>${fr.details?'<div class="sub">'+esc(fr.details).slice(0,80)+(fr.details.length>80?'...':'')+'</div>':''}<div class="meta">${fmtDate(fr.createdAt)}</div></div><div class="acts">${fr.status==='pending'?miniBtn('btn-green',iApprove,'Approve',`event.stopPropagation();setFoundStatus('${fr._id}','approved')`)+miniBtn('btn-red',iReject,'Reject',`event.stopPropagation();setFoundStatus('${fr._id}','rejected')`):''}</div></div></div>`).join(''):'<div class="card-section"><div class="cs-body"><div class="empty">No found requests.</div></div></div>';
 }
 function openFoundDetail(id){
   const fr=foundFilterData.find(x=>x._id===id);if(!fr)return;
-  const childName=fr.childId&&fr.childId.fullName?fr.childId.fullName:'Unknown';
+  const childName=childLabel(fr);
   const childImage=fr.childId&&fr.childId.image?fr.childId.image:'';
   const childId=fr.childId&&fr.childId._id?fr.childId._id:(typeof fr.childId==='string'?fr.childId:'');
   let html=`<div style="padding:4px 0">
@@ -916,7 +924,7 @@ async function renderPraise(){
       const label=isPraise?'<span class="sbadge praise">PRAISE</span>':'<span class="sbadge gift">GIFT'+(x.amount?' '+money(x.amount):'')+'</span>';
       const text=isPraise?x.text:x.message;
       const from=isPraise?x.userName:x.giverName;
-      const childName=esc(x.childId&&x.childId.fullName||'Unknown');
+      const childName=esc(childLabel(x));
       return`<div class="card-section" style="margin-bottom:10px;cursor:pointer" onclick="openPraiseDetail('${x._id}','${x.kind}')"><div class="item"><div class="info"><div class="top"><span class="name">${esc(from)}</span> ${sbadge(x.status)} ${label}</div><div class="sub">Child: ${childName}</div><div class="sub">\u201c${esc(text||'').slice(0,80)}${(text||'').length>80?'...':''}\u201d</div><div class="meta">${fmtDate(x.createdAt)}</div></div><div class="acts">${miniBtn('btn-green',iApprove,'Approve',`event.stopPropagation();setPraiseStatus('${x._id}','${x.kind}','approved')`)}${miniBtn('btn-red',iReject,'Reject',`event.stopPropagation();setPraiseStatus('${x._id}','${x.kind}','rejected')`)}${miniBtn('btn-red',iDelete,'Del',`event.stopPropagation();delPraise('${x._id}','${x.kind}')`)}</div></div></div>`;
     }).join(''):'<div class="card-section"><div class="cs-body"><div class="empty">No praise or gifts.</div></div></div>';
   }catch(e){toast(e.message,'err')}
@@ -933,7 +941,7 @@ function openPraiseDetail(id,kind){
   const isPraise=kind==='praise';
   const from=isPraise?x.userName:x.giverName;
   const text=isPraise?x.text:x.message;
-  const childName=x.childId&&x.childId.fullName?x.childId.fullName:'Unknown';
+  const childName=childLabel(x);
   const childId=x.childId&&x.childId._id?x.childId._id:(typeof x.childId==='string'?x.childId:'');
   let html=`<div style="padding:4px 0">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border)">
@@ -971,13 +979,42 @@ async function loadPaymentSettings(){const card=$('paymentSettingsCard');if(!adm
 async function savePaymentSettings(){const msg=$('psMsg');try{await api('/api/admin/payment-settings',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({upiId:$('ps_upiId').value.trim(),payeeName:$('ps_payeeName').value.trim(),bankAccountName:$('ps_bankAccountName').value.trim(),bankAccountNumber:$('ps_bankAccountNumber').value.trim(),bankIfscCode:$('ps_bankIfscCode').value.trim(),bankName:$('ps_bankName').value.trim(),adminPhone:$('ps_adminPhone').value.trim()})});msg.style.color='var(--green)';msg.textContent='Settings saved!';toast('Payment settings saved.');setTimeout(()=>msg.textContent='',3000)}catch(e){msg.style.color='var(--red)';msg.textContent=e.message;toast(e.message,'err')}}
 
 // Users
-async function loadUsers(){
-  try{const r=await api('/api/admin/users');allUsers=r.data||[]}catch(e){allUsers=[]}
-  try{const rows=await Promise.all(allUsers.map(async u=>{try{const r=await api('/api/admin/users/'+u._id+'/safe-children');return (r.data||[]).map(c=>({...c,user:u}))}catch(e){return []}}));allSafeChildren=rows.flat()}catch(e){allSafeChildren=[]}
-  renderUsersList();renderSafeChildren();
+// Search, filtering and paging are server-side: the panel used to download every account and
+// then issue one request per account for their SafeChild registrations.
+let usersPage=1,usersPages=1,usersTotal=0,safeChildPage=1,safeChildPages=1,safeChildTotal=0;
+function usersPageBarHtml(barId,current,totalPages,total,label,loader){
+  const bar=$(barId);if(!bar)return;
+  bar.innerHTML=(totalPages>1||total)
+    ? `<button class="btn-outline" style="padding:6px 12px;font-size:12px" onclick="${loader}(${current-1})" ${current<=1?'disabled':''}>Prev</button><span style="font-size:12px;color:var(--text3);margin:0 10px">Page ${current} of ${totalPages} · ${total} ${label}</span><button class="btn-outline" style="padding:6px 12px;font-size:12px" onclick="${loader}(${current+1})" ${current>=totalPages?'disabled':''}>Next</button>`
+    : '';
 }
+async function loadUsers(page){
+  if(page)usersPage=Math.max(1,page);
+  const q=$('userSearch')?.value.trim()||'';
+  try{
+    const u=await api('/api/admin/users?page='+usersPage+'&limit=25'+(q?'&q='+encodeURIComponent(q):''));
+    allUsers=u.data||[];usersTotal=u.total||0;usersPages=u.pages||1;usersPage=u.page||1;
+  }catch(e){allUsers=[];usersTotal=0;usersPages=1;toast(e.message,'err')}
+  renderUsersList();
+  usersPageBarHtml('usersPageBar',usersPage,usersPages,usersTotal,'users','loadUsers');
+}
+async function loadSafeChildren(page){
+  if(page)safeChildPage=Math.max(1,page);
+  const q=$('safeChildSearch')?.value.trim()||'';
+  const status=$('safeChildStatusFilter')?.value||'';
+  try{
+    const s=await api('/api/admin/safe-children?page='+safeChildPage+'&limit=50'+(q?'&q='+encodeURIComponent(q):'')+(status?'&status='+encodeURIComponent(status):''));
+    allSafeChildren=(s.data||[]).map(c=>({...c,user:c.user||null}));safeChildTotal=s.total||0;safeChildPages=s.pages||1;safeChildPage=s.page||1;
+  }catch(e){allSafeChildren=[];safeChildTotal=0;safeChildPages=1;toast(e.message,'err')}
+  renderSafeChildren();
+  usersPageBarHtml('safeChildPageBar',safeChildPage,safeChildPages,safeChildTotal,'registrations','loadSafeChildren');
+}
+let _userSearchTimer=null,_safeChildSearchTimer=null;
+function debouncedUserSearch(){clearTimeout(_userSearchTimer);_userSearchTimer=setTimeout(()=>loadUsers(1),350)}
+function debouncedSafeChildSearch(){clearTimeout(_safeChildSearchTimer);_safeChildSearchTimer=setTimeout(()=>loadSafeChildren(1),350)}
+async function loadUsersTab(){await Promise.all([loadUsers(),loadSafeChildren()])}
 function switchUsersTab(tab){const details=tab==='details';$('userDetailsPane').style.display=details?'block':'none';$('userChildrenPane').style.display=details?'none':'block';$('usersDetailsTab').classList.toggle('active',details);$('usersChildrenTab').classList.toggle('active',!details);if(!details)renderSafeChildren()}
-function renderSafeChildren(){const status=$('safeChildStatusFilter')?.value||'',q=($('safeChildSearch')?.value||'').toLowerCase();const list=allSafeChildren.filter(c=>(!status||c.status===status)&&(!q||[c.childName,c.user?.userFullName,c.user?.emailId].some(v=>String(v||'').toLowerCase().includes(q))));$('safeChildrenList').innerHTML=list.length?list.map(c=>'<div class="card-section" style="margin-bottom:10px;cursor:pointer" onclick="openSafeChildAdminDetail(\''+c._id+'\')"><div class="item">'+(c.photoUrl?'<img src="'+esc(c.photoUrl)+'" style="width:48px;height:48px;border-radius:12px;object-fit:cover">':'<div class="img-wrap" style="width:48px;height:48px;border-radius:12px;background:var(--border);display:flex;align-items:center;justify-content:center">👶</div>')+'<div class="info" style="flex:1;min-width:0"><div class="top"><span class="name">'+esc(c.childName||'Unknown')+'</span> '+sbadge(c.status||'approved')+'</div><div class="sub">User: '+esc(c.user?.userFullName||'Unknown')+'</div><div class="sub">'+esc(c.user?.emailId||c.user?.userContactNumber||'')+'</div><div class="meta">'+(c.age?c.age+' yrs · ':'')+fmtDate(c.createdAt)+'</div></div><div class="acts">'+miniBtn('btn-outline',iEdit,'Edit','event.stopPropagation();openSafeChildAdminEdit(\''+c._id+'\')')+miniBtn('btn-red',iDelete,'Del','event.stopPropagation();deleteSafeChildAdmin(\''+c._id+'\')')+'</div></div></div>').join(''):'<div class="card-section"><div class="cs-body"><div class="empty">No SafeChild registrations found.</div></div></div>'}
+function renderSafeChildren(){const list=allSafeChildren;$('safeChildrenList').innerHTML=list.length?list.map(c=>'<div class="card-section" style="margin-bottom:10px;cursor:pointer" onclick="openSafeChildAdminDetail(\''+c._id+'\')"><div class="item">'+(c.photoUrl?'<img src="'+esc(c.photoUrl)+'" style="width:48px;height:48px;border-radius:12px;object-fit:cover">':'<div class="img-wrap" style="width:48px;height:48px;border-radius:12px;background:var(--border);display:flex;align-items:center;justify-content:center">👶</div>')+'<div class="info" style="flex:1;min-width:0"><div class="top"><span class="name">'+esc(c.childName||'Unknown')+'</span> '+sbadge(c.status||'approved')+'</div><div class="sub">User: '+esc(c.user?.userFullName||'Unknown')+'</div><div class="sub">'+esc(c.user?.emailId||c.user?.userContactNumber||'')+'</div><div class="meta">'+(c.age?c.age+' yrs · ':'')+fmtDate(c.createdAt)+'</div></div><div class="acts">'+miniBtn('btn-outline',iEdit,'Edit','event.stopPropagation();openSafeChildAdminEdit(\''+c._id+'\')')+miniBtn('btn-red',iDelete,'Del','event.stopPropagation();deleteSafeChildAdmin(\''+c._id+'\')')+'</div></div></div>').join(''):'<div class="card-section"><div class="cs-body"><div class="empty">No SafeChild registrations found.</div></div></div>'}
 function openSafeChildAdminDetail(id){const c=allSafeChildren.find(x=>x._id===id);if(!c)return;const owner=c.user||{};const photo=c.photoUrl?'<img src="'+esc(c.photoUrl)+'" style="width:100%;height:100%;object-fit:cover">':'👶';$('modalTitle').textContent=c.childName||'SafeChild Details';$('modalBody').innerHTML='<div style="padding:4px 0"><div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border)"><div style="width:72px;height:72px;border-radius:16px;background:var(--border);overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:28px">'+photo+'</div><div><div style="font-size:18px;font-weight:800;color:var(--text)">'+esc(c.childName||'Unknown')+'</div><div style="margin-top:5px">'+sbadge(c.status||'approved')+'</div></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px"><div><div style="font-size:11px;color:var(--text3);text-transform:uppercase">Age</div><div style="font-size:14px;color:var(--text)">'+esc(c.age||'Not provided')+'</div></div><div><div style="font-size:11px;color:var(--text3);text-transform:uppercase">Gender</div><div style="font-size:14px;color:var(--text)">'+esc(c.gender||'Not provided')+'</div></div></div>'+(c.address?'<div style="margin-bottom:12px"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;margin-bottom:4px">Address</div><div style="font-size:13px;color:var(--text)">'+esc(c.address)+'</div></div>':'')+(c.medicalInfo?'<div style="margin-bottom:12px"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;margin-bottom:4px">Medical Information</div><div style="font-size:13px;color:var(--text);line-height:1.5">'+esc(c.medicalInfo)+'</div></div>':'')+'<div style="padding-top:12px;border-top:1px solid var(--border);font-size:12px;color:var(--text2)"><strong>Registered by:</strong> '+esc(owner.userFullName||'Unknown')+'<br>'+esc(owner.emailId||owner.userContactNumber||'')+'<br><span style="color:var(--text3)">Registered '+fmtDate(c.createdAt)+'</span></div><div style="display:flex;gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid var(--border)"><button class="btn btn-outline" onclick="openSafeChildAdminEdit(\''+c._id+'\')" style="flex:1">Edit</button><button class="btn btn-red" onclick="deleteSafeChildAdmin(\''+c._id+'\')" style="flex:1">Delete</button></div></div>';$('modalBg').classList.add('show')}
 function openSafeChildAdminEdit(id){const c=allSafeChildren.find(x=>x._id===id);if(!c)return;$('modalTitle').textContent='Manage SafeChild';$('modalBody').innerHTML=`
   <div class="grid2">
@@ -1007,11 +1044,10 @@ function openSafeChildAdminEdit(id){const c=allSafeChildren.find(x=>x._id===id);
   </div>
 `;$('modalBg').classList.add('show')}
 async function saveSafeChildAdmin(id){try{await api('/api/admin/safe-children/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:$('adminSafeStatus').value,rejectionReason:$('adminSafeReason').value,childName:$('adminSafeName').value,age:$('adminSafeAge').value,gender:$('adminSafeGender').value,address:$('adminSafeAddress').value,parentContact:$('adminSafeContact').value,medicalInfo:$('adminSafeMedical').value})});closeModal();toast('SafeChild updated.');loadUsers()}catch(e){toast(e.message,'err')}}
-async function deleteSafeChildAdmin(id){if(!confirm('Delete this SafeChild registration?'))return;try{await api('/api/admin/safe-children/'+id,{method:'DELETE'});toast('SafeChild deleted.');loadUsers()}catch(e){toast(e.message,'err')}}
+async function deleteSafeChildAdmin(id){if(!confirm('Delete this SafeChild registration?'))return;try{await api('/api/admin/safe-children/'+id,{method:'DELETE'});toast('SafeChild deleted.');loadSafeChildren()}catch(e){toast(e.message,'err')}}
 function renderUsersList(){
-  const q=($('userSearch')?.value||'').toLowerCase();
-  let list=allUsers;
-  if(q)list=list.filter(u=>(u.userFullName||'').toLowerCase().includes(q)||(u.emailId||'').toLowerCase().includes(q)||(u.userContactNumber||'').includes(q));
+  // Search and paging happen on the server; this only renders the page it was given.
+  const list=allUsers;
   if(!list.length){$('userList').innerHTML='<div class="card-section"><div class="cs-body"><div class="empty">No users found.</div></div></div>';return;}
   $('userList').innerHTML=list.map(u=>{
     const name=esc(u.userFullName||'Unknown');
@@ -1021,7 +1057,10 @@ function renderUsersList(){
     const blocked=u.blocked?'<span class="sbadge rejected">BLOCKED</span>':'';
     const google=u.googleId?'<span class="sbadge praise" style="font-size:9px">GOOGLE</span>':'';
     const date=u.createdAt?fmtDate(u.createdAt):'';
-    return`<div class="card-section" style="margin-bottom:10px;cursor:pointer" onclick="openUserDetail('${u._id}')"><div class="item"><div class="img-wrap" style="width:48px;height:48px;border-radius:12px;background:var(--border);overflow:hidden;display:flex;align-items:center;justify-content:center;flex-shrink:0">${photo||'<svg viewBox="0 0 24 24" style="width:22px;height:22px;fill:var(--text3)"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>'}</div><div class="info" style="min-width:0;flex:1;overflow:hidden"><div class="top"><span class="name">${name}</span><div class="badges">${blocked} ${google}</div></div>${contact?'<div class="sub">📞 '+contact+'</div>':''}${email?'<div class="sub">✉️ '+email+'</div>':''}<div class="meta">Joined ${date}</div></div><div class="acts"><button class="btn-sm btn-outline" onclick="event.stopPropagation();toggleBlockUser('${u._id}',${!u.blocked})" style="padding:7px 12px;font-size:11px">${u.blocked?'Unblock':'Block'}</button><button class="btn-sm btn-red" onclick="event.stopPropagation();deleteUser('${u._id}')" style="padding:7px 12px;font-size:11px">Del</button></div></div></div>`;
+    const a=u.activity||{};
+    const activity=[a.reports?a.reports+' reports':'',a.safeChildren?a.safeChildren+' SafeChild':'',a.foundRequests?a.foundRequests+' found reqs':''].filter(Boolean).join(' · ');
+    const dateRow=date+(activity?(date?' · ':'')+activity:'');
+    return`<div class="card-section" style="margin-bottom:10px;cursor:pointer" onclick="openUserDetail('${u._id}')"><div class="item"><div class="img-wrap" style="width:48px;height:48px;border-radius:12px;background:var(--border);overflow:hidden;display:flex;align-items:center;justify-content:center;flex-shrink:0">${photo||'<svg viewBox="0 0 24 24" style="width:22px;height:22px;fill:var(--text3)"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>'}</div><div class="info" style="min-width:0;flex:1;overflow:hidden"><div class="top"><span class="name">${name}</span><div class="badges">${blocked} ${google}</div></div>${contact?'<div class="sub">📞 '+contact+'</div>':''}${email?'<div class="sub">✉️ '+email+'</div>':''}<div class="meta">Joined ${dateRow}</div></div><div class="acts"><button class="btn-sm btn-outline" onclick="event.stopPropagation();toggleBlockUser('${u._id}',${!u.blocked})" style="padding:7px 12px;font-size:11px">${u.blocked?'Unblock':'Block'}</button><button class="btn-sm btn-red" onclick="event.stopPropagation();deleteUser('${u._id}')" style="padding:7px 12px;font-size:11px">Del</button></div></div></div>`;
   }).join('');
 }
 async function toggleBlockUser(id,blocked){try{await api('/api/admin/users/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({blocked})});toast(blocked?'User blocked!':'User unblocked!');loadUsers()}catch(e){toast(e.message,'err')}}
@@ -1807,31 +1846,38 @@ applyPermissions().then(()=>{
 }else{console.log('[ADMIN] No token, showing login');showLogin()}
 
 // Real-time badge updates + active view sync via Socket.io
-let _socketRefreshBusy=false,_socketRefreshPending=false;
-async function _doSocketRefresh(){
+let _socketRefreshBusy=false,_socketRefreshPending=false,_socketRefreshScopes=null;
+// Which scopes each tab actually displays. A change outside them only needs the badge counters,
+// not a rebuild of the tab.
+const PAGE_SCOPES={
+  'pg-dashboard':['children','safechildren','users','found-requests','praise','gifts','donations','admins'],
+  'pg-pending':['children'],'pg-history':['children'],'pg-children':['children'],'pg-add':['children'],
+  'pg-found':['found-requests','children'],'pg-praise':['praise','gifts'],
+  'pg-donations':['donations','payment-settings'],'pg-users':['users','safechildren'],
+  'pg-analytics':['analytics','children','found-requests'],'pg-ads':['ads'],'pg-whitelist':['admins'],
+  'pg-revenue':['revenue','donations'],'pg-ngo':['ngo-contacts'],'pg-pages':['pages'],'pg-legal':['legal']
+};
+async function _doSocketRefresh(scopes){
   try{
-    console.log('[SOCKET] Data changed, refreshing live counters and active tab...');
-    // Refresh notification badges and their backing arrays.
-    if(adminPerms.all||adminPerms.children){
-      const stats=await api('/api/admin/stats').catch(()=>({}));
-      if(stats&&stats.data&&$('badgePending'))$('badgePending').textContent=stats.data.pending||0;
-      const fr=await api('/api/admin/found-requests').catch(()=>({}));
-      if(fr&&fr.data){foundFilterData=fr.data;if($('badgeFound'))$('badgeFound').textContent=fr.data.filter(x=>x.status==='pending').length;}
-    }
-    if(adminPerms.all||adminPerms.donations){
-      const p=await api('/api/admin/praise').catch(()=>({}));
-      const g=await api('/api/admin/gifts').catch(()=>({}));
-      if(p&&p.data&&g&&g.data){allPraise=p.data;allGifts=g.data;if($('badgePraise'))$('badgePraise').textContent=[...p.data,...g.data].filter(x=>x.status==='pending').length;}
-    }
-    if(adminPerms.all||adminPerms.admins){
-      const wa=await api('/api/admin/admins').catch(()=>({}));
-      if(wa&&wa.data){allAdmins=wa.data;if($('badgeWhitelist'))$('badgeWhitelist').textContent=wa.data.filter(a=>a.active).length;}
+    const all=!scopes||!scopes.length||scopes.includes('all');
+    const hit=(...names)=>all||names.some(n=>scopes.includes(n));
+
+    // Badges come from one indexed counts call. They used to require downloading the full
+    // found-request, praise, gift and admin lists on every single change event.
+    const counts=await api('/api/admin/counts').catch(()=>({}));
+    if(counts&&counts.data){
+      if($('badgePending'))$('badgePending').textContent=counts.data.pendingChildren||0;
+      if($('badgeFound'))$('badgeFound').textContent=counts.data.pendingFound||0;
+      if($('badgePraise'))$('badgePraise').textContent=(counts.data.pendingPraise||0)+(counts.data.pendingGifts||0);
+      if($('badgeWhitelist'))$('badgeWhitelist').textContent=counts.data.activeAdmins||0;
+      if($('badgeDonations'))$('badgeDonations').textContent=counts.data.pendingDonations||0;
     }
 
-    // Refresh the active tab in place; each loader also refreshes its own data.
+    // Rebuild the active tab only when the change can affect it.
     const activePage=document.querySelector('.page.active');
     if(!activePage)return;
     const pid=activePage.id;
+    if(!hit(...(PAGE_SCOPES[pid]||['all'])))return;
     if(pid==='pg-dashboard')loadDashboard();
     else if(pid==='pg-pending')renderPending();
     else if(pid==='pg-history')renderHistory();
@@ -1839,7 +1885,7 @@ async function _doSocketRefresh(){
     else if(pid==='pg-found')loadFoundReqs();
     else if(pid==='pg-praise')renderPraise();
     else if(pid==='pg-donations'){loadDonations();loadPaymentSettings();}
-    else if(pid==='pg-users')loadUsers();
+    else if(pid==='pg-users')loadUsersTab();
     else if(pid==='pg-analytics')loadAnalytics();
     else if(pid==='pg-ads')loadAds();
     else if(pid==='pg-whitelist')loadWhitelist();
@@ -1850,12 +1896,20 @@ async function _doSocketRefresh(){
     else if(pid==='pg-profile')loadProfile();
   }catch(e){console.warn('[SOCKET] Real-time sync error:',e.message)}
 }
-if(socket){socket.on('dataChanged',async()=>{
+if(socket){socket.on('dataChanged',(payload)=>{
+  const scopes=payload&&Array.isArray(payload.scopes)?payload.scopes:null;
+  _socketRefreshScopes=_socketRefreshScopes?[...new Set([..._socketRefreshScopes,...(scopes||['all'])])]:(scopes||['all']);
   if(_socketRefreshBusy){_socketRefreshPending=true;return;}
   _socketRefreshBusy=true;_socketRefreshPending=false;
-  await _doSocketRefresh();
-  _socketRefreshBusy=false;
-  if(_socketRefreshPending){_socketRefreshPending=false;_socketRefreshBusy=true;await _doSocketRefresh();_socketRefreshBusy=false;}
+  const run=async()=>{
+    while(true){
+      const batch=_socketRefreshScopes||['all'];_socketRefreshScopes=null;
+      await _doSocketRefresh(batch);
+      if(!_socketRefreshPending){_socketRefreshBusy=false;return;}
+      _socketRefreshPending=false;
+    }
+  };
+  run();
 })}
 </script>
 </body>

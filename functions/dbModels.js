@@ -13,10 +13,15 @@ const userSchema = mongoose.Schema({
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now }
 });
+// Login looks users up by email or phone; email must be unique per account going forward.
+userSchema.index({ emailId: 1 });
+userSchema.index({ googleId: 1 }, { sparse: true });
 
 const foundRequestSchema = mongoose.Schema({
     childId: { type: mongoose.Schema.Types.ObjectId, ref: 'Child' },
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    // Snapshot of the child's name so admin activity stays readable after a record is deleted.
+    childName: { type: String, default: '' },
     finderName: String,
     claimType: { type: String, enum: ['me', 'someone'], default: 'me' },
     contactNumber: String,
@@ -24,25 +29,36 @@ const foundRequestSchema = mongoose.Schema({
     status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
     createdAt: { type: Date, default: Date.now }
 });
+foundRequestSchema.index({ status: 1, createdAt: -1 });
+foundRequestSchema.index({ userId: 1, createdAt: -1 });
+foundRequestSchema.index({ childId: 1, userId: 1, status: 1 });
 
 const praiseSchema = mongoose.Schema({
     childId: { type: mongoose.Schema.Types.ObjectId, ref: 'Child' },
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     userName: String,
+    // Snapshot of the child's name so admin activity stays readable after a record is deleted.
+    childName: { type: String, default: '' },
     text: String,
     status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
     createdAt: { type: Date, default: Date.now }
 });
+praiseSchema.index({ childId: 1, status: 1, createdAt: -1 });
+praiseSchema.index({ userId: 1, createdAt: -1 });
 
 const giftSchema = mongoose.Schema({
     childId: { type: mongoose.Schema.Types.ObjectId, ref: 'Child' },
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     giverName: String,
+    // Snapshot of the child's name so admin activity stays readable after a record is deleted.
+    childName: { type: String, default: '' },
     message: String,
     amount: Number,
     status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
     createdAt: { type: Date, default: Date.now }
 });
+giftSchema.index({ childId: 1, status: 1, createdAt: -1 });
+giftSchema.index({ userId: 1, createdAt: -1 });
 
 const donationSchema = mongoose.Schema({
     donorName: String,
@@ -54,6 +70,8 @@ const donationSchema = mongoose.Schema({
     status: { type: String, enum: ['pending', 'verified', 'failed'], default: 'pending' },
     createdAt: { type: Date, default: Date.now }
 });
+donationSchema.index({ createdAt: -1 });
+donationSchema.index({ status: 1 });
 
 const analyticsSchema = mongoose.Schema({
     sessionId: String,
@@ -63,8 +81,13 @@ const analyticsSchema = mongoose.Schema({
     data: mongoose.Schema.Types.Mixed,
     userAgent: String,
     ip: String,
-    createdAt: { type: Date, default: Date.now, index: true }
+    createdAt: { type: Date, default: Date.now }
 });
+analyticsSchema.index({ type: 1, createdAt: -1 });
+analyticsSchema.index({ sessionId: 1, createdAt: -1 });
+// Analytics rows are high-volume and disposable — expire them automatically.
+// (This TTL index also serves createdAt range queries, so no separate plain index.)
+analyticsSchema.index({ createdAt: 1 }, { expireAfterSeconds: 90 * 24 * 60 * 60 });
 
 // Admin whitelist schema - emails allowed to access admin panel
 const adminUserSchema = mongoose.Schema({
@@ -83,6 +106,18 @@ const adminUserSchema = mongoose.Schema({
     active: { type: Boolean, default: true },
     createdAt: { type: Date, default: Date.now }
 });
+
+// Session tokens. Shared storage so every instance recognises the same logins and a
+// revocation (block/delete/logout) takes effect everywhere. The TTL index clears expired ones.
+const sessionSchema = mongoose.Schema({
+    token: { type: String, required: true, unique: true },
+    userId: { type: String, required: true, index: true },
+    kind: { type: String, enum: ['user', 'admin'], default: 'user' },
+    lastSeenAt: { type: Date, default: Date.now },
+    createdAt: { type: Date, default: Date.now },
+    expiresAt: { type: Date, required: true }
+});
+sessionSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 // Page content schema (About Us, Contact Us, etc.)
 const pageContentSchema = mongoose.Schema({
@@ -118,6 +153,7 @@ const revenueSchema = mongoose.Schema({
     date: { type: Date, default: Date.now },
     createdAt: { type: Date, default: Date.now }
 });
+revenueSchema.index({ date: -1 });
 
 const adSchema = mongoose.Schema({
     title: String,
@@ -136,6 +172,8 @@ const adSchema = mongoose.Schema({
     endDate: Date,
     createdAt: { type: Date, default: Date.now }
 });
+adSchema.index({ active: 1, priority: -1 });
+adSchema.index({ position: 1, type: 1, active: 1 });
 
 const paymentSettingsSchema = mongoose.Schema({
     upiId: { type: String, default: '' },
@@ -167,6 +205,8 @@ const preRegisteredChildSchema = mongoose.Schema({
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now }
 });
+preRegisteredChildSchema.index({ status: 1, createdAt: -1 });
+preRegisteredChildSchema.index({ parentId: 1, createdAt: -1 });
 
 // NGO Contact — centrally managed contact numbers for the application
 const ngoContactSchema = mongoose.Schema({
@@ -219,12 +259,13 @@ const getModels = async () => {
             const PreRegisteredChild = mongoose.models.PreRegisteredChild || mongoose.model('PreRegisteredChild', preRegisteredChildSchema);
             const NGOContact = mongoose.models.NGOContact || mongoose.model('NGOContact', ngoContactSchema);
             const AuditLog = mongoose.models.AuditLog || mongoose.model('AuditLog', auditLogSchema);
+            const Session = mongoose.models.Session || mongoose.model('Session', sessionSchema);
             // Seed default payment settings if none exist
             const psCount = await PaymentSettings.countDocuments();
             if (psCount === 0) {
                 await PaymentSettings.create({});
             }
-            return { Child: db.data, User, FoundRequest, Praise, Gift, Donation, Analytics, Advertisement, AdminUser, PageContent, LegalPage, Revenue, PaymentSettings, PreRegisteredChild, NGOContact, AuditLog };
+            return { Child: db.data, User, FoundRequest, Praise, Gift, Donation, Analytics, Advertisement, AdminUser, PageContent, LegalPage, Revenue, PaymentSettings, PreRegisteredChild, NGOContact, AuditLog, Session };
         })();
     }
     return modelsPromise;

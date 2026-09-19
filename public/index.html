@@ -8,7 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
-<script src="/js/face-api.js"></script>
+<!-- face-api.js and its 13 MB of models are loaded on demand by /js/fmc-face.js -->
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{height:auto;min-height:100%}
@@ -1054,6 +1054,8 @@ main{scroll-padding-top:10px}
 
 <div id="toast"></div>
 
+<script src="/js/fmc-escape.js"></script>
+<script src="/js/fmc-face.js"></script>
 <script src="/socket.io/socket.io.js"></script>
 <script>
 const socket=io();const $=id=>document.getElementById(id);
@@ -1086,7 +1088,16 @@ socket.on('connect_error',()=>{$('statusTxt').textContent='Offline';$('statusDot
 socket.on('getAllData',d=>{allData=(d&&d.data)||[];saveCache('allData',allData);$('demoChip').classList.toggle('show',!!(d&&d.demo));renderHome();renderFound()});
 socket.on('getMessages',d=>{messages=(d&&d.data)||[];saveCache('messages',messages);renderMessages()});
 socket.on('getSearchData',d=>{results=(d&&d.data)||[];$('demoChip').classList.toggle('show',!!(d&&d.demo));renderResults()});
-socket.on('dataChanged',()=>socket.emit('load'));
+/* Server data changed. The server already coalesces bursts, but two notifications can still
+   land while a load is in flight, so this collapses them into one refresh. */
+let liveRefreshBusy=false,liveRefreshPending=false,liveRefreshTimer=null;
+function liveRefresh(){
+  if(document.hidden||liveRefreshBusy){liveRefreshPending=true;return;}
+  liveRefreshBusy=true;
+  socket.emit('load');socket.emit('loadMessages');
+  setTimeout(()=>{liveRefreshBusy=false;if(liveRefreshPending){liveRefreshPending=false;liveRefresh()}},900);
+}
+socket.on('dataChanged',()=>{clearTimeout(liveRefreshTimer);liveRefreshTimer=setTimeout(liveRefresh,300)});
 
 /* --- Tab filtering --- */
 let activeFilter='all';
@@ -1191,7 +1202,7 @@ function openDetail(id){
   if(detail.found){
     actions=`<div class="detail-actions"><div class="da-row"><button class="btn-found-detail" onclick="closeDetail();openFoundFor('${esc(detail._id)}')">${iconCheck} View praise & gifts</button></div></div>`;
   } else if(me){
-    actions=`<div class="detail-actions"><div class="da-row"><button class="btn-found-detail" onclick="openFoundForm('${esc(detail._id)}','${esc(detail.fullName||'')}')">${iconFlag} Mark as found</button></div><div class="da-row"><button class="btn-praise-detail" onclick="closeDetail();openFoundFor('${esc(detail._id)}')">${iconCheck} Praise & gifts</button></div></div>`;
+    actions=`<div class="detail-actions"><div class="da-row"><button class="btn-found-detail" onclick="openFoundForm(${jsArg(detail._id)},${jsArg(detail.fullName||'')})">${iconFlag} Mark as found</button></div><div class="da-row"><button class="btn-praise-detail" onclick="closeDetail();openFoundFor('${esc(detail._id)}')">${iconCheck} Praise & gifts</button></div></div>`;
   } else {
     actions=`<div class="detail-actions"><div class="da-row"><button class="btn-found-detail" onclick="closeDetail();showView('me')">${iconUser} Log in to help</button></div></div>`;
   }
@@ -1222,7 +1233,7 @@ function renderFound(){
   $('foundList').innerHTML=paged.map(c=>{
     const imgTag=c.image?'<img src="'+esc(c.image)+'" loading="lazy" onerror="this.style.display=\'none\'">':'';
     const isFinder=!!(userToken&&ownFoundChildIdsReady&&approvedFoundChildIds.has(String(c._id)));
-    const actionsHtml=!ownFoundChildIdsReady&&userToken?'<div class="factions" style="justify-content:center"><span style="font-size:12px;color:var(--text3);font-style:italic">Checking your finder status...</span></div>':isFinder?'<div class="factions" style="justify-content:center"><span style="font-size:12px;color:var(--text3);font-style:italic">You are the finder — you cannot praise or gift yourself</span></div>':'<div class="factions"><button class="action-btn gold" onclick="openPraiseForm(\''+esc(c._id)+'\',\''+esc(c.fullName||'')+'\')">Praise</button><button class="action-btn green" onclick="openGiftForm(\''+esc(c._id)+'\',\''+esc(c.fullName||'')+'\')">Give a gift</button></div>';
+    const actionsHtml=!ownFoundChildIdsReady&&userToken?'<div class="factions" style="justify-content:center"><span style="font-size:12px;color:var(--text3);font-style:italic">Checking your finder status...</span></div>':isFinder?'<div class="factions" style="justify-content:center"><span style="font-size:12px;color:var(--text3);font-style:italic">You are the finder — you cannot praise or gift yourself</span></div>':'<div class="factions"><button class="action-btn gold" onclick="openPraiseForm(\''+esc(c._id)+'\','+jsArg(c.fullName||'')+')">Praise</button><button class="action-btn green" onclick="openGiftForm(\''+esc(c._id)+'\','+jsArg(c.fullName||'')+')">Give a gift</button></div>';
     return '<div class="fcard" id="fcard-'+esc(c._id)+'"><div class="fhead" onclick="toggleFound(\''+esc(c._id)+'\')"><div class="favatar"><div class="ph">'+iconChild+'</div>'+imgTag+'</div><div class="finfo"><div class="fname">'+(esc(c.fullName)||'Unknown')+'</div><div class="finder"><svg viewBox="0 0 24 24" style="width:13px;height:13px;fill:var(--green);vertical-align:middle"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> Found by '+(esc(c.finderName||'Someone'))+'</div><div class="fdate">'+fmtDate(c.foundDate||c.createdAt)+'</div></div><div class="farrow" id="fcarrow-'+esc(c._id)+'">&#9662;</div></div><div class="fbody" id="fbody-'+esc(c._id)+'"><div id="praiseBox-'+esc(c._id)+'"><div class="empty"><p style="font-size:12px">Loading...</p></div></div>'+actionsHtml+'</div></div>'
   }).join('');
   // Pagination
@@ -1243,7 +1254,7 @@ async function submitReport(){
   const restoreReportButton=()=>{if(btn){btn.disabled=false;btn.innerHTML=btn.getAttribute('data-original-text')||'Submit for review'}};
   if(btn){btn.disabled=true;btn.setAttribute('data-original-text',btn.innerHTML);btn.innerHTML='<span class="spinner"></span> Submitting report...'}
   if(!userToken){restoreReportButton();openModal('Login Required',`<div style=\"text-align:center;padding:20px 0\"><div style=\"font-size:40px;margin-bottom:12px\">🔒</div><div style=\"font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px\">Login to submit a report</div><div style=\"font-size:13px;color:var(--text3);margin-bottom:20px\">You need an account to report a missing child</div><div class=\"actions\"><button class=\"btn\" style=\"margin:0\" onclick=\"closeModal();showView('me')\">Login / Sign Up</button><button class=\"btn-ghost\" onclick=\"closeModal()\">Cancel</button></div></div>`);return}
-  const name=$('r_name').value.trim(),contact=$('r_contact').value.trim(),msg=$('reportMsg');if(!name){msg.textContent='Enter the child\'s full name.';restoreReportButton();return}const fd=new FormData();fd.append('fullName',name);fd.append('gender',$('r_gender').value);fd.append('age',$('r_age').value);fd.append('address',$('r_address').value.trim());fd.append('state',$('r_state').value.trim());if(contact)fd.append('contactNumber',contact);fd.append('missingDate',$('r_date').value);fd.append('missingTime',$('r_time').value);fd.append('missingLocation',$('r_location').value.trim());fd.append('info',$('r_info').value.trim());const ngoCheckboxes=document.querySelectorAll('#r_ngo_contacts input[type=checkbox]:checked');const selectedNGOs=[];ngoCheckboxes.forEach(cb=>{if(cb.dataset.ngoId)selectedNGOs.push(cb.dataset.ngoId)});if(selectedNGOs.length)fd.append('selectedNGOContacts',JSON.stringify(selectedNGOs));  const file=$('r_photo').files[0];if(file){fd.append('image',file);if(!faceApiLoaded){try{await loadFaceApi()}catch(e){}}if(faceApiLoaded){try{const desc=await extractFaceDescriptor(file);if(desc)fd.append('faceDescriptor',JSON.stringify(desc))}catch(e){console.warn('Face extraction skipped:',e)}}}msg.textContent='';try{const r=await fetch('/api/children',{method:'POST',headers:{'Authorization':'Bearer '+userToken},body:fd});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.message||'Failed');msg.textContent=j.message;showReportResult(true,j.message||'Your report has been submitted and is pending verification. It will appear publicly once approved by an admin.')}catch(e){msg.textContent=e.message;showReportResult(false,e.message||'Unable to submit the report.')}finally{restoreReportButton()}}
+  const name=$('r_name').value.trim(),contact=$('r_contact').value.trim(),msg=$('reportMsg');if(!name){msg.textContent='Enter the child\'s full name.';restoreReportButton();return}const fd=new FormData();fd.append('fullName',name);fd.append('gender',$('r_gender').value);fd.append('age',$('r_age').value);fd.append('address',$('r_address').value.trim());fd.append('state',$('r_state').value.trim());if(contact)fd.append('contactNumber',contact);fd.append('missingDate',$('r_date').value);fd.append('missingTime',$('r_time').value);fd.append('missingLocation',$('r_location').value.trim());fd.append('info',$('r_info').value.trim());const ngoCheckboxes=document.querySelectorAll('#r_ngo_contacts input[type=checkbox]:checked');const selectedNGOs=[];ngoCheckboxes.forEach(cb=>{if(cb.dataset.ngoId)selectedNGOs.push(cb.dataset.ngoId)});if(selectedNGOs.length)fd.append('selectedNGOContacts',JSON.stringify(selectedNGOs));  const file=$('r_photo').files[0];if(file){fd.append('image',file);try{await fmcFace.loadFaceApi();const desc=await fmcFace.extractFaceDescriptor(file);if(desc)fd.append('faceDescriptor',JSON.stringify(desc))}catch(e){console.warn('Face extraction skipped:',e)}}msg.textContent='';try{const r=await fetch('/api/children',{method:'POST',headers:{'Authorization':'Bearer '+userToken},body:fd});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.message||'Failed');msg.textContent=j.message;showReportResult(true,j.message||'Your report has been submitted and is pending verification. It will appear publicly once approved by an admin.')}catch(e){msg.textContent=e.message;showReportResult(false,e.message||'Unable to submit the report.')}finally{restoreReportButton()}}
 
 
 /* --- Navigation --- */
@@ -1335,7 +1346,7 @@ $('profFound').innerHTML=pgd.length?pgd.map(r=>{const fn=(r.childId&&(r.childId.
 $('profFoundPag').innerHTML=profPagHtml('found',d.length)}
 // Praises
 if($('profPraise')){let d=s.praises||[];const pq=profFilter.praise.q;const ps=profFilter.praise.status;if(pq)d=d.filter(p=>{const cn=(p.childId&&(p.childId.fullName||p.childId.childName))||'';return(p.text||'').toLowerCase().includes(pq)||cn.toLowerCase().includes(pq)});if(ps)d=d.filter(p=>p.status===ps);const pg=profPages.praise;const pgd=d.slice((pg-1)*PROF_PG,pg*PROF_PG);
-$('profPraise').innerHTML=pgd.length?pgd.map(p=>{const cn=(p.childId&&(p.childId.fullName||p.childId.childName))||'';return '<div style="padding:10px 0;border-bottom:1px solid var(--border)"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div style="flex:1"><div style="font-size:13px;color:var(--text)">'+esc(p.text||'No comment')+'</div><div style="font-size:11px;color:var(--text3);margin-top:4px">'+(cn?'For '+esc(cn)+' · ':'')+fmtDate(p.createdAt)+' · <span style="color:'+(p.status==='approved'?'var(--green)':'var(--text3)')+'">'+p.status+'</span></div></div><div style="display:flex;gap:6px;flex-shrink:0;margin-left:8px"><button onclick="editMyPraise(\''+p._id+'\',\''+esc(p.text||'').replace(/'/g,"\\'")+'\')" style="font-size:11px;color:var(--accent);background:none;border:1px solid var(--accent);border-radius:6px;padding:4px 8px;cursor:pointer">Edit</button><button onclick="deleteMyPraise(\''+p._id+'\')" style="font-size:11px;color:var(--red);background:none;border:1px solid var(--red);border-radius:6px;padding:4px 8px;cursor:pointer">Del</button></div></div></div>'}).join(''):'<div style="padding:12px 0;text-align:center;font-size:13px;color:var(--text3)">No praises sent yet.</div>';
+$('profPraise').innerHTML=pgd.length?pgd.map(p=>{const cn=(p.childId&&(p.childId.fullName||p.childId.childName))||'';return '<div style="padding:10px 0;border-bottom:1px solid var(--border)"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div style="flex:1"><div style="font-size:13px;color:var(--text)">'+esc(p.text||'No comment')+'</div><div style="font-size:11px;color:var(--text3);margin-top:4px">'+(cn?'For '+esc(cn)+' · ':'')+fmtDate(p.createdAt)+' · <span style="color:'+(p.status==='approved'?'var(--green)':'var(--text3)')+'">'+p.status+'</span></div></div><div style="display:flex;gap:6px;flex-shrink:0;margin-left:8px"><button onclick="editMyPraise(\''+p._id+'\','+jsArg(p.text||'')+')" style="font-size:11px;color:var(--accent);background:none;border:1px solid var(--accent);border-radius:6px;padding:4px 8px;cursor:pointer">Edit</button><button onclick="deleteMyPraise(\''+p._id+'\')" style="font-size:11px;color:var(--red);background:none;border:1px solid var(--red);border-radius:6px;padding:4px 8px;cursor:pointer">Del</button></div></div></div>'}).join(''):'<div style="padding:12px 0;text-align:center;font-size:13px;color:var(--text3)">No praises sent yet.</div>';
 $('profPraisePag').innerHTML=profPagHtml('praise',d.length)}
 // Gifts
 if($('profGifts')){const d=s.gifts||[];const pg=profPages.gift;const pgd=d.slice((pg-1)*PROF_PG,pg*PROF_PG);
@@ -1343,7 +1354,7 @@ $('profGifts').innerHTML=pgd.length?pgd.map(g=>{const cn=(g.childId&&(g.childId.
 $('profGiftsPag').innerHTML=profPagHtml('gift',d.length)}
 // SafeChild registrations
 if($('profSafe')){const d=s.safeChildren||[];const pg=profPages.safe;const pgd=d.slice((pg-1)*PROF_PG,pg*PROF_PG);
-$('profSafe').innerHTML=pgd.length?pgd.map(c=>'<div style="display:flex;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer;transition:transform 0.15s" onclick="openSafeChildDetail(\''+c._id+'\')" onmousedown="this.style.transform=\'scale(0.98)\'" onmouseup="this.style.transform=\'scale(1)\'" onmouseleave="this.style.transform=\'scale(1)\'">'+(c.photoUrl?'<img src="'+esc(c.photoUrl)+'" style="width:40px;height:40px;border-radius:8px;object-fit:cover;margin-right:12px;flex-shrink:0">':'<div style="width:40px;height:40px;border-radius:8px;background:var(--bg2);display:flex;align-items:center;justify-content:center;margin-right:12px;flex-shrink:0;font-size:18px">👶</div>')+'<div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-weight:600;font-size:13px">'+esc(c.childName||'Unknown')+(c.status?'<span style="font-size:9px;font-weight:800;padding:3px 6px;border-radius:5px;text-transform:uppercase;background:'+(c.status==='approved'?'#eaf9ef':c.status==='rejected'?'var(--red-light)':'var(--orange-light)')+';color:'+(c.status==='approved'?'#16803c':c.status==='rejected'?'var(--red)':'#b45309')+'">'+esc(c.status)+'</span>':'')+'</div><div style="font-size:11px;color:var(--text3)">'+fmtDate(c.createdAt)+(c.age?' · '+c.age+' yrs':'')+(c.gender?' · '+esc(c.gender):'')+'</div></div><div style="display:flex;gap:6px;flex-shrink:0;margin-left:8px"><button onclick="event.stopPropagation();openSafeChildEdit(\''+c._id+'\',\''+esc(c.childName||'')+'\','+(c.age||'null')+',\''+esc(c.gender||'')+'\',\''+esc(c.address||'')+'\',\''+esc(c.parentContact||'')+'\',\''+esc(c.medicalInfo||'')+'\')" style="font-size:11px;color:var(--accent);background:none;border:1px solid var(--accent);border-radius:6px;padding:4px 8px;cursor:pointer">Edit</button><button onclick="event.stopPropagation();deleteRegisteredChild(\''+c._id+'\')" style="font-size:11px;color:var(--red);background:none;border:1px solid var(--red);border-radius:6px;padding:4px 8px;cursor:pointer">Del</button></div></div>').join(''):'<div style="padding:12px 0;text-align:center;font-size:13px;color:var(--text3)">No SafeChild registrations yet.</div>';
+$('profSafe').innerHTML=pgd.length?pgd.map(c=>'<div style="display:flex;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer;transition:transform 0.15s" onclick="openSafeChildDetail(\''+c._id+'\')" onmousedown="this.style.transform=\'scale(0.98)\'" onmouseup="this.style.transform=\'scale(1)\'" onmouseleave="this.style.transform=\'scale(1)\'">'+(c.photoUrl?'<img src="'+esc(c.photoUrl)+'" style="width:40px;height:40px;border-radius:8px;object-fit:cover;margin-right:12px;flex-shrink:0">':'<div style="width:40px;height:40px;border-radius:8px;background:var(--bg2);display:flex;align-items:center;justify-content:center;margin-right:12px;flex-shrink:0;font-size:18px">👶</div>')+'<div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-weight:600;font-size:13px">'+esc(c.childName||'Unknown')+(c.status?'<span style="font-size:9px;font-weight:800;padding:3px 6px;border-radius:5px;text-transform:uppercase;background:'+(c.status==='approved'?'#eaf9ef':c.status==='rejected'?'var(--red-light)':'var(--orange-light)')+';color:'+(c.status==='approved'?'#16803c':c.status==='rejected'?'var(--red)':'#b45309')+'">'+esc(c.status)+'</span>':'')+'</div><div style="font-size:11px;color:var(--text3)">'+fmtDate(c.createdAt)+(c.age?' · '+c.age+' yrs':'')+(c.gender?' · '+esc(c.gender):'')+'</div></div><div style="display:flex;gap:6px;flex-shrink:0;margin-left:8px"><button onclick="event.stopPropagation();openSafeChildEdit('+jsArg(c._id)+','+jsArg(c.childName||'')+','+(c.age||'null')+','+jsArg(c.gender||'')+','+jsArg(c.address||'')+','+jsArg(c.parentContact||'')+','+jsArg(c.medicalInfo||'')+')" style="font-size:11px;color:var(--accent);background:none;border:1px solid var(--accent);border-radius:6px;padding:4px 8px;cursor:pointer">Edit</button><button onclick="event.stopPropagation();deleteRegisteredChild(\''+c._id+'\')" style="font-size:11px;color:var(--red);background:none;border:1px solid var(--red);border-radius:6px;padding:4px 8px;cursor:pointer">Del</button></div></div>').join(''):'<div style="padding:12px 0;text-align:center;font-size:13px;color:var(--text3)">No SafeChild registrations yet.</div>';
 $('profSafePag').innerHTML=profPagHtml('safe',d.length)}}
 async function loadMyRequests2(){
   if(!userToken){approvedFoundChildIds=new Set();ownFoundChildIdsReady=true;ownFoundChildIdsLoadedToken='';renderFound();return Promise.resolve()}
@@ -1530,7 +1541,21 @@ function loadCache(key,maxAge){try{const r=JSON.parse(localStorage.getItem('fmc_
 
 /* --- Background refresh --- */
 let bgRefreshTimer=null;
-function scheduleBgRefresh(){if(bgRefreshTimer)clearTimeout(bgRefreshTimer);bgRefreshTimer=setTimeout(()=>{socket.emit('load');socket.emit('loadMessages');loadAds()},30000)}
+/* Periodic safety net for clients that miss a notification. Jittered so all open tabs do not
+   wake up together, and skipped entirely while the tab is in the background. */
+function scheduleBgRefresh(){
+  if(bgRefreshTimer)clearTimeout(bgRefreshTimer);
+  const delay=30000+Math.floor(Math.random()*20000);
+  bgRefreshTimer=setTimeout(()=>{
+    if(!document.hidden){socket.emit('load');socket.emit('loadMessages');loadAds()}
+    scheduleBgRefresh();
+  },delay);
+}
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden)return;
+  if(!socket.connected)socket.connect();
+  if(liveRefreshPending){liveRefreshPending=false;liveRefresh()}
+});
 
 /* --- Load ads --- */
 let activeAds=[],carouselIdx=0,carouselTimer=null;
@@ -1641,46 +1666,9 @@ function showAdOverlay(a){
   box.innerHTML='<a onclick="adClick(activeAds.find(function(x){return x._id==\''+a._id+'\'}));closeAdOverlay()" style="display:block;text-decoration:none;border-radius:16px;overflow:hidden;background:var(--card);box-shadow:0 8px 40px rgba(0,0,0,.4)"><img src="'+esc(a.imageUrl)+'" style="width:100%;'+imgH+';display:block"><div style="padding:16px;text-align:center"><div style="font-size:18px;font-weight:800;color:var(--text);margin-bottom:6px">'+esc(a.title||'Advertisement')+'</div>'+(a.advertiserName?'<div style="font-size:13px;color:var(--text2)">By '+esc(a.advertiserName)+'</div>':'')+'<div style="margin-top:12px;padding:10px;background:var(--accent);color:#fff;border-radius:10px;font-size:14px;font-weight:700">Visit Now</div></div></a>';
   $('adOverlay').style.display='flex';
 }
-/* === SAFECHILD: AI Face Detection & Matching === */
-let faceApiLoaded=false;let faceApiLoading=false;
-async function loadFaceApi(){
-  if(faceApiLoaded)return true;
-  if(faceApiLoading)return false;
-  faceApiLoading=true;
-  try{
-    await faceapi.nets.ssdMobilenetv1.loadFromUri('/models');
-    await faceapi.nets.faceLandmark68Net.loadFromUri('/models');
-    await faceapi.nets.faceRecognitionNet.loadFromUri('/models');
-    faceApiLoaded=true;faceApiLoading=false;
-    console.log('[SAFECHILD] Face API models loaded');
-    return true;
-  }catch(e){console.error('[SAFECHILD] Model load failed:',e);faceApiLoading=false;return false}
-}
+/* === SAFECHILD: AI face helpers now live in js/fmc-face.js (lazy-loaded) === */
 
-async function extractFaceDescriptor(file){
-  return new Promise((resolve,reject)=>{
-    const img=new Image();
-    const url=URL.createObjectURL(file);
-    img.onload=async()=>{
-      try{
-        // Downscale massive smartphone photos to prevent WebGL crashes
-        const canvas=document.createElement('canvas');
-        const MAX=800;
-        let w=img.width,h=img.height;
-        if(w>h&&w>MAX){h*=MAX/w;w=MAX}else if(h>MAX){w*=MAX/h;h=MAX}
-        canvas.width=w;canvas.height=h;
-        canvas.getContext('2d').drawImage(img,0,0,w,h);
-        // Use 0.35 confidence to improve detection on varied mobile cameras
-        const detection=await faceapi.detectSingleFace(canvas,new faceapi.SsdMobilenetv1Options({minConfidence:0.35})).withFaceLandmarks().withFaceDescriptor();
-        URL.revokeObjectURL(url);
-        if(!detection)resolve(null);
-        else resolve(Array.from(detection.descriptor));
-      }catch(e){URL.revokeObjectURL(url);reject(e)}
-    };
-    img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('Failed to load image file.'))};
-    img.src=url;
-  });
-}
+
 
 /* --- Registration Flow --- */
 let regPhotoFile=null;
@@ -1708,12 +1696,12 @@ async function submitRegistration(){
   const btn=$('regSubmitBtn');btn.disabled=true;btn.textContent='Processing face...';
   $('regStatus').textContent='Loading AI models...';$('regStatus').style.color='var(--accent)';
   
-  const loaded=await loadFaceApi();
+  const loaded=await fmcFace.loadFaceApi();
   if(!loaded){btn.disabled=false;btn.textContent='Register with AI';$('regStatus').textContent='Failed to load AI. Check your connection.';$('regStatus').style.color='var(--red)';return}
   
   $('regStatus').textContent='Detecting face...';
   let descriptor;
-  try{descriptor=await extractFaceDescriptor(regPhotoFile)}catch(e){descriptor=null}
+  try{descriptor=await fmcFace.extractFaceDescriptor(regPhotoFile)}catch(e){descriptor=null}
   if(!descriptor){btn.disabled=false;btn.textContent='Register with AI';$('regStatus').textContent='No face detected. Please ensure the child is facing the camera clearly with good lighting.';$('regStatus').style.color='var(--red)';return}
   
   $('regStatus').textContent='Registering child...';
@@ -1743,7 +1731,7 @@ function renderMyRegisteredChildren(children){
   if(!children||!children.length){box.innerHTML='<p style="font-size:13px;color:var(--text3);text-align:center;padding:16px">No children registered yet.</p>';return}
   box.innerHTML=children.map(c=>{
       const imgHtml=c.photoUrl?'<img src="'+esc(c.photoUrl)+'" style="width:44px;height:44px;border-radius:12px;object-fit:cover">':'<div style="width:44px;height:44px;border-radius:12px;background:var(--bg);display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" style="width:22px;height:22px;fill:var(--text3)"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.26-5.33-4-8-4z"/></svg></div>';
-      return '<div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--bg);border-radius:12px;margin-bottom:8px;cursor:pointer;transition:transform 0.15s" onclick="openSafeChildDetail(\''+esc(c._id)+'\')" onmousedown="this.style.transform=\'scale(0.98)\'" onmouseup="this.style.transform=\'scale(1)\'" onmouseleave="this.style.transform=\'scale(1)\'">'+imgHtml+'<div style="flex:1"><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:14px;font-weight:700;color:var(--text)">'+esc(c.childName)+(c.status?'<span style="font-size:9px;font-weight:800;padding:3px 6px;border-radius:5px;text-transform:uppercase;background:'+(c.status==='approved'?'#eaf9ef':c.status==='rejected'?'var(--red-light)':'var(--orange-light)')+';color:'+(c.status==='approved'?'#16803c':c.status==='rejected'?'var(--red)':'#b45309')+'">'+esc(c.status)+'</span>':'')+'</div><div style="font-size:12px;color:var(--text3)">'+(c.age?esc(String(c.age))+' yrs · ':'')+(c.gender?esc(c.gender):'')+'</div></div><div style="display:flex;gap:6px;flex-shrink:0"><button onclick="event.stopPropagation();openSafeChildEdit(\''+esc(c._id)+'\',\''+esc(c.childName)+'\','+(c.age||'null')+',\''+esc(c.gender)+'\',\''+esc(c.address)+'\',\''+esc(c.parentContact)+'\',\''+esc(c.medicalInfo)+'\')" style="width:30px;height:30px;border:none;background:rgba(0,113,227,.1);border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:var(--accent)"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></button><button onclick="event.stopPropagation();deleteRegisteredChild(\''+esc(c._id)+'\')" style="width:30px;height:30px;border:none;background:rgba(255,59,48,.1);border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:var(--red)"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></button></div></div>';
+      return '<div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--bg);border-radius:12px;margin-bottom:8px;cursor:pointer;transition:transform 0.15s" onclick="openSafeChildDetail(\''+esc(c._id)+'\')" onmousedown="this.style.transform=\'scale(0.98)\'" onmouseup="this.style.transform=\'scale(1)\'" onmouseleave="this.style.transform=\'scale(1)\'">'+imgHtml+'<div style="flex:1"><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:14px;font-weight:700;color:var(--text)">'+esc(c.childName)+(c.status?'<span style="font-size:9px;font-weight:800;padding:3px 6px;border-radius:5px;text-transform:uppercase;background:'+(c.status==='approved'?'#eaf9ef':c.status==='rejected'?'var(--red-light)':'var(--orange-light)')+';color:'+(c.status==='approved'?'#16803c':c.status==='rejected'?'var(--red)':'#b45309')+'">'+esc(c.status)+'</span>':'')+'</div><div style="font-size:12px;color:var(--text3)">'+(c.age?esc(String(c.age))+' yrs · ':'')+(c.gender?esc(c.gender):'')+'</div></div><div style="display:flex;gap:6px;flex-shrink:0"><button onclick="event.stopPropagation();openSafeChildEdit('+jsArg(c._id)+','+jsArg(c.childName)+','+(c.age||'null')+','+jsArg(c.gender)+','+jsArg(c.address)+','+jsArg(c.parentContact)+','+jsArg(c.medicalInfo)+')" style="width:30px;height:30px;border:none;background:rgba(0,113,227,.1);border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:var(--accent)"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></button><button onclick="event.stopPropagation();deleteRegisteredChild(\''+esc(c._id)+'\')" style="width:30px;height:30px;border:none;background:rgba(255,59,48,.1);border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:var(--red)"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></button></div></div>';
   }).join('');
 }
 
@@ -1797,9 +1785,9 @@ async function submitSafeChildEdit(id){
     const fileInput=$('editPhoto');
     if(fileInput&&fileInput.files.length>0){
       const file=fileInput.files[0];
-      if(faceApiLoaded){
+      if(fmcFace.isFaceApiLoaded()){
         status.textContent='Detecting face in new photo...';status.style.color='var(--accent)';
-        const desc=await extractFaceDescriptor(file);
+        const desc=await fmcFace.extractFaceDescriptor(file);
         if(!desc){if(btn)btn.disabled=false;status.textContent='No face detected. Use a clear face photo.';status.style.color='var(--red)';return}
         fd.append('faceDescriptor',JSON.stringify(desc));
       }
@@ -1864,7 +1852,7 @@ async function submitFaceScan(){
   $('scanUploadStep').style.display='none';
   $('scanLoading').style.display='block';
   
-  const loaded=await loadFaceApi();
+  const loaded=await fmcFace.loadFaceApi();
   if(!loaded){
     $('scanLoading').style.display='none';
     $('scanUploadStep').style.display='block';
@@ -1873,7 +1861,7 @@ async function submitFaceScan(){
   }
   
   let descriptor;
-  try{descriptor=await extractFaceDescriptor(scanPhotoFile)}catch(e){
+  try{descriptor=await fmcFace.extractFaceDescriptor(scanPhotoFile)}catch(e){
     $('scanLoading').style.display='none';
     $('scanUploadStep').style.display='block';
     $('scanPreview').style.display='block';$('scanBtn').style.display='block';
@@ -2028,7 +2016,6 @@ loadAds();
 loadPaymentConfig();
 loadNGOContacts();
 scheduleBgRefresh();
-loadFaceApi().catch(()=>{});
 </script>
 
 </body>

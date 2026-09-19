@@ -21,6 +21,12 @@ if (!process.env.ADMIN_USERNAME || !process.env.ADMIN_PASS) {
     console.error('[SECURITY] WARNING: ADMIN_USERNAME / ADMIN_PASS not set. Legacy admin login disabled.');
 }
 console.log('[STARTUP] Environment audit complete.');
+// Sessions and the AI match pool are shared through MongoDB, so several replicas agree on who is
+// logged in and who has been blocked. Two pieces are still per-instance: socket.io fan-out (a
+// client connected to replica A does not hear replica B's notifications) and the in-process
+// rate-limit counters. Add the socket.io Redis adapter and a shared rate-limit store before
+// running more than one replica — see SCALING.md.
+console.log('[STARTUP] Sessions: MongoDB (shared). Socket fan-out: this instance only. Realtime requires a Redis adapter at >1 replica.');
 // ───────────────────────────────────────────────────────────────────────────────
 
 const app = express();
@@ -74,15 +80,26 @@ const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 10, message: { su
 const faceScanLimiter = rateLimit({ windowMs: 60 * 1000, max: 10, message: { success: false, message: 'Too many scan requests. Please wait a minute.' } });
 const reportLimiter = rateLimit({ windowMs: 60 * 1000, max: 5, message: { success: false, message: 'Too many reports. Please wait a minute.' } });
 const donationLimiter = rateLimit({ windowMs: 5 * 60 * 1000, max: 5, message: { success: false, message: 'Too many donation attempts. Please wait.' } });
+// Admin login is a high-value brute-force target — never leave it unlimited.
+const adminLoginLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 10, message: { success: false, message: 'Too many admin login attempts. Try again in 15 minutes.' } });
+// Public read endpoints (listings/counters) get a generous ceiling so one client cannot hammer Mongo.
+const publicLimiter = rateLimit({ windowMs: 60 * 1000, max: 300, message: { success: false, message: 'Too many requests. Please slow down.' } });
 
 //-----------------------------------------------Functions Module--------------------------------------------------------------->
 const fmcConnectMongoDB = require('./functions/fmcDB/fmcMongoDB');
 const getModels = require('./functions/dbModels');
-const { loginAdmin, loginAdminGoogle, signupUser, loginUser, findOrCreateGoogleUser, logout, requireAuth, requireAdmin, requireSuperAdmin, hasPermission, isValidPhone, sanitize, SUPER_ADMIN_EMAIL } = require('./functions/auth');
-const { PUBLIC_CHILD_FIELDS, AUTHENTICATED_CHILD_FIELDS, ADMIN_CHILD_FIELDS, NGO_CONTACT_FIELDS } = require('./functions/publicProjection');
+const { loginAdmin, loginAdminGoogle, signupUser, loginUser, findOrCreateGoogleUser, logout, revokeUserTokens, requireAuth, requireAdmin, requireSuperAdmin, hasPermission, isValidPhone, sanitize, SUPER_ADMIN_EMAIL } = require('./functions/auth');
+const { PUBLIC_CHILD_FIELDS, AUTHENTICATED_CHILD_FIELDS, ADMIN_CHILD_FIELDS, NGO_CONTACT_FIELDS, PRAISE_CHILD_FIELDS, pickFields } = require('./functions/publicProjection');
 const { sendOTP, verifyOTP, sendWelcomeEmail } = require('./functions/email');
 // const userConnectMongoDB = require('./functions/userDB/userMongoDB');
 const getAllData = require('./functions/getAllData/getAllData.js');
+const getStats = require('./functions/getStats/getStats.js');
+const { parseFaceDescriptor } = require('./functions/face');
+const { normalizeYmd, normalizeTime } = require('./functions/dates');
+const { searchRegex } = require('./functions/textSearch');
+const { createChangeNotifier, scopeForPath, SCOPE_ALL } = require('./functions/changeNotifier');
+const { AsyncLocalStorage } = require('node:async_hooks');
+const { findBestMatch, invalidateFacePool } = require('./functions/faceMatch');
 const getByDateData = require('./functions/getByDateData/getByDateData.js');
 const getByNameData = require('./functions/getByNameData/getByNameData.js');
 const getByRangeData = require('./functions/getByRangeData/getByRangeData.js');
@@ -141,7 +158,26 @@ passport.deserializeUser((obj, done) => done(null, obj));
 // Admin Google login handled via state parameter in strategy callback
 //-----------------------------------------------Socket.io---------------------------------------------------------------------->
 const io = new Server(server, { cors: { origin: "*" } });
-function notifyDataChanged() { io.emit('dataChanged'); clearDataCache(); }
+
+// Which slice of the data the in-flight request writes to. Populated by the middleware below,
+// so a route only has to call notifyDataChanged() and gets scoped notifications for free.
+const changeScope = new AsyncLocalStorage();
+app.use((req, res, next) => changeScope.run(scopeForPath(req.originalUrl || req.url), next));
+
+const changeNotifier = createChangeNotifier({
+    emit: (payload) => io.emit('dataChanged', payload)
+});
+
+// Coalesced: many writes in the same window produce one client notification carrying the
+// scopes that changed. The caches are still cleared immediately — they are process-local and
+// free to reset, and a stale cache must never outlive the write that invalidated it.
+function notifyDataChanged(scope) {
+    changeNotifier.notify(scope || changeScope.getStore() || SCOPE_ALL);
+    clearDataCache();
+    // Keep the AI match pool in step with the data. Writes that do not go through the API
+    // (scripts, another instance) are covered by the pool's own TTL.
+    invalidateFacePool();
+}
 
 //-----------------------------------------------Cloudinary image storage------------------------------------------------------>
 const { uploadImage, deleteImage, replaceImage } = require('./functions/cloudinary');
@@ -208,6 +244,10 @@ const pickChildFields = (body) => {
     for (const f of childFields) {
         if (body[f] !== undefined) data[f] = body[f];
     }
+    // Date fields are stored as strings and compared with string operators, so they must be
+    // canonical. Anything else would silently fall out of date/range searches.
+    if (data.missingDate !== undefined) data.missingDate = normalizeYmd(data.missingDate);
+    if (data.missingTime !== undefined) data.missingTime = normalizeTime(data.missingTime);
     return data;
 };
 
@@ -272,7 +312,7 @@ app.post('/api/children', requireAuth, reportLimiter, async (req, res) => {
         if (!db.success) return res.status(500).json({ success: false, message: "Database unavailable." });
         const Child = db.data;
         const child = await Child.create(data);
-        io.emit('dataChanged'); clearDataCache();
+        notifyDataChanged();
         dataCache.data = null; dataCache.messages = null;
         res.status(201).json({ success: true, message: "Report submitted! It will be published after admin approval.", data: child });
     } catch (error) {
@@ -291,7 +331,7 @@ app.post('/api/auth/signup', authLimiter, async (req, res) => {
         const r = await signupUser(req.body);
         if (r.error) return res.status(400).json({ success: false, message: r.error });
         verifiedSignups.delete(email);
-        io.emit('dataChanged'); clearDataCache();
+        notifyDataChanged();
         res.status(201).json({ success: true, message: "Account created! Welcome to Find My Child.", token: r.token, user: r.user });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -308,9 +348,9 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
     }
 });
 
-app.post('/api/auth/logout', (req, res) => {
+app.post('/api/auth/logout', async (req, res) => {
     const header = req.headers.authorization || '';
-    logout(header.slice(7));
+    await logout(header.slice(7));
     res.json({ success: true });
 });
 
@@ -382,7 +422,9 @@ app.post('/api/auth/send-otp', async (req, res) => {
             return res.status(400).json({ success: false, message: "Valid email required." });
         }
         const r = await sendOTP(email.trim().toLowerCase(), { ip: req.ip });
-        if (!r.success) return res.status(429).json({ success: false, message: r.error, retryAfter: r.retryAfter });
+        if (!r.success) {
+            return res.status(r.rateLimited ? 429 : 502).json({ success: false, message: r.error, retryAfter: r.retryAfter });
+        }
         res.json({ success: true, message: "OTP sent to your email." });
     } catch (error) {
         res.status(500).json({ success: false, message: "Failed to send OTP." });
@@ -419,12 +461,13 @@ app.post('/api/found-requests', requireAuth, async (req, res) => {
         const fr = await FoundRequest.create({
             childId: child._id,
             userId: req.userId,
+            childName: child.fullName || '',
             finderName: String(req.body.finderName || 'Anonymous').trim().slice(0, 80),
             claimType: req.body.claimType === 'someone' ? 'someone' : 'me',
             contactNumber: req.body.contactNumber ? String(req.body.contactNumber).trim() : '',
             details: req.body.details ? String(req.body.details).trim().slice(0, 500) : ''
         });
-        io.emit('dataChanged'); clearDataCache();
+        notifyDataChanged();
         res.status(201).json({ success: true, message: "Found request submitted! Admin will verify and approve it.", data: fr });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -445,13 +488,14 @@ app.get('/api/found-requests/me', requireAuth, async (req, res) => {
 app.get('/api/praise', async (req, res) => {
     try {
         const { Praise, Gift, Child } = await getModels();
-        const child = await Child.findById(req.query.childId);
+        const child = await Child.findById(req.query.childId).lean();
         if (!child) return res.status(404).json({ success: false, message: "Child not found." });
         const [praises, gifts] = await Promise.all([
             Praise.find({ childId: child._id, status: 'approved' }).sort({ createdAt: -1 }).limit(100),
             Gift.find({ childId: child._id, status: 'approved' }).sort({ createdAt: -1 }).limit(100)
         ]);
-        res.json({ success: true, data: { child, praises, gifts } });
+        // Only the child's public identity is returned — never contacts or biometrics.
+        res.json({ success: true, data: { child: pickFields(child, PRAISE_CHILD_FIELDS), praises, gifts } });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
@@ -476,7 +520,7 @@ app.post('/api/donations', donationLimiter, async (req, res) => {
             paymentMethod: req.body.paymentMethod || 'upi',
             status: 'pending'
         });
-        io.emit('dataChanged'); clearDataCache();
+        notifyDataChanged();
         res.status(201).json({ success: true, message: "Thank you for your generous support! ❤️", data: donation });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -665,8 +709,7 @@ app.get('/api/children/:id', async (req, res) => {
         const child = await db.data.findOne({ _id: req.params.id, status: 'approved' }).lean();
         if (!child) return res.status(404).json({ success: false, message: 'Child not found.' });
         // Return only public-safe fields
-        const safeChild = {};
-        PUBLIC_CHILD_FIELDS.split(' ').filter(Boolean).forEach(f => { if (child[f] !== undefined) safeChild[f] = child[f]; });
+        const safeChild = pickFields(child, PUBLIC_CHILD_FIELDS);
         // NGO contacts: prefer report snapshots, hydrating legacy fields from active contacts.
         const { NGOContact } = await getModels();
         const activeNGOs = await NGOContact.find({ active: true }).select(NGO_CONTACT_FIELDS).sort({ priority: -1 }).lean();
@@ -689,8 +732,7 @@ app.get('/api/children/:id/detail', requireAuth, async (req, res) => {
         // Only the report owner gets private contact fields; others see public fields only
         const isOwner = child.userId && String(child.userId) === String(req.userId);
         const safeFields = isOwner ? AUTHENTICATED_CHILD_FIELDS : PUBLIC_CHILD_FIELDS;
-        const safeChild = {};
-        safeFields.split(' ').filter(Boolean).forEach(f => { if (child[f] !== undefined) safeChild[f] = child[f]; });
+        const safeChild = pickFields(child, safeFields);
         // NGO contacts: prefer report snapshots, hydrating legacy fields from active contacts.
         const { NGOContact } = await getModels();
         const activeNGOs = await NGOContact.find({ active: true }).select(NGO_CONTACT_FIELDS).sort({ priority: -1 }).lean();
@@ -718,15 +760,7 @@ app.get('/api/safechild/children/:id/public', async (req, res) => {
     }
 });
 
-// Safely parse face descriptor from FormData string, JSON string, or array
-function parseFaceDescriptor(raw) {
-    let d = raw;
-    if (typeof d === 'string') {
-        try { d = JSON.parse(d); } catch (e) { d = d.split(',').map(Number); }
-    }
-    if (!Array.isArray(d) || d.length !== 128 || d.some(isNaN)) return null;
-    return d.map(Number);
-}
+// parseFaceDescriptor() lives in functions/face.js so it can be unit tested.
 
 // Public: no auth needed for matching
 app.get('/api/safechild/config', async (req, res) => {
@@ -845,63 +879,25 @@ app.post('/api/safechild/match', faceScanLimiter, async (req, res) => {
         const db = await fmcConnectMongoDB();
         const Child = db.success ? db.data : null;
 
-        // 1. Fetch approved pre-registered children only.
-        const preReg = await PreRegisteredChild.find({ status: 'approved' }).lean();
+        // The comparison pool is cached and memory-bounded; anything past the cap is streamed
+        // in batches by functions/faceMatch.js so no record is ever skipped.
+        const startedAt = Date.now();
+        const result = await findBestMatch(parsedDescriptor, { Child, PreRegisteredChild });
+        const bestMatch = result.entry;
+        const bestDistance = result.distance;
+        console.log(`[faceMatch] scanned=${result.scanned} streamed=${result.streamed} truncated=${result.truncated} streamAll=${result.streamAll} ms=${Date.now() - startedAt}`);
 
-        // 2. Fetch approved standard missing children with valid face data.
-        let missing = [];
-        if (Child) {
-            missing = await Child.find({
-                status: 'approved',
-                faceDescriptor: { $exists: true, $ne: [] }
-            }).select(PUBLIC_CHILD_FIELDS + ' faceDescriptor').lean();
-        }
-
-        // 3. Normalize into a single combined pool
-        const combinedList = [
-            ...preReg.map(c => ({ ...c, source: 'safechild' })),
-            ...missing.map(c => ({
-                _id: c._id,
-                childName: c.fullName,
-                age: c.age,
-                gender: c.gender,
-                address: c.address,
-                parentContact: c.contactNumber,
-                medicalInfo: c.info || '',
-                photoUrl: c.image,
-                faceDescriptor: c.faceDescriptor,
-                source: 'missing_report'
-            }))
-        ];
-        if (!combinedList.length) {
+        if (!result.scanned) {
             return res.json({ success: true, matched: false, message: 'No records available for matching.' });
         }
-        // Euclidean distance matching across both pools
-        let bestMatch = null;
-        let bestDistance = Infinity;
-        const THRESHOLD = 0.65;
-        const uploaded = parsedDescriptor;
-        for (const child of combinedList) {
-            if (!child.faceDescriptor || child.faceDescriptor.length !== 128) continue;
-            let sumSq = 0;
-            for (let i = 0; i < 128; i++) {
-                const diff = uploaded[i] - child.faceDescriptor[i];
-                sumSq += diff * diff;
-            }
-            const dist = Math.sqrt(sumSq);
-            if (dist < bestDistance) {
-                bestDistance = dist;
-                bestMatch = child;
-            }
-        }
-        if (bestMatch && bestDistance < THRESHOLD) {
+        if (result.matched) {
             // Return only safe public fields — no parentContact, no faceDescriptor
             res.json({
                 success: true,
                 matched: true,
                 distance: Math.round(bestDistance * 1000) / 1000,
                 data: {
-                    id: bestMatch._id,
+                    id: bestMatch.id,
                     childName: bestMatch.childName,
                     age: bestMatch.age,
                     gender: bestMatch.gender,
@@ -921,7 +917,7 @@ app.post('/api/safechild/match', faceScanLimiter, async (req, res) => {
 });
 
 // ---- Admin: login / logout ----
-app.post('/api/admin/login', (req, res) => {
+app.post('/api/admin/login', adminLoginLimiter, (req, res) => {
     const result = loginAdmin(req.body.username, req.body.password);
     if (result) {
         res.json({ success: true, token: result.token, role: result.role, name: result.name });
@@ -1042,13 +1038,36 @@ app.get('/api/admin/debug', (req, res) => {
     }
 });
 
-app.post('/api/admin/logout', requireAdmin, (req, res) => {
-    logout(req.token);
+app.post('/api/admin/logout', requireAdmin, async (req, res) => {
+    await logout(req.token);
     res.clearCookie('fmc_admin_token', { path: '/' });
     res.json({ success: true });
 });
 
 // ---- Admin: statistics ----
+// Cheap badge counters. The admin panel used to recompute these by downloading the full
+// found-request, praise, gift and admin lists on every change event; this answers with six
+// indexed countDocuments calls instead.
+app.get('/api/admin/counts', requireAdmin, async (req, res) => {
+    try {
+        const { Child, FoundRequest, Praise, Gift, AdminUser, Donation } = await getModels();
+        const [pendingChildren, pendingFound, pendingPraise, pendingGifts, activeAdmins, pendingDonations] = await Promise.all([
+            Child.countDocuments({ status: 'pending' }),
+            FoundRequest.countDocuments({ status: 'pending' }),
+            Praise.countDocuments({ status: 'pending' }),
+            Gift.countDocuments({ status: 'pending' }),
+            AdminUser.countDocuments({ active: true }),
+            Donation.countDocuments({ status: 'pending' })
+        ]);
+        res.json({
+            success: true,
+            data: { pendingChildren, pendingFound, pendingPraise, pendingGifts, activeAdmins, pendingDonations }
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
 app.get('/api/admin/stats', requireAdmin, async (req, res) => {
     try {
         const db = await fmcConnectMongoDB();
@@ -1110,13 +1129,20 @@ app.post('/api/admin/children', requireAdmin, async (req, res) => {
         if (data.found === undefined) data.found = false;
         data.uploadedBy = data.uploadedBy || 'Admin';
 
+        // Face data is what makes AI search find this record — accept it from the admin form.
+        if (data.faceDescriptor !== undefined) {
+            const parsed = parseFaceDescriptor(data.faceDescriptor);
+            if (parsed) data.faceDescriptor = parsed;
+            else delete data.faceDescriptor;
+        }
+
         const imagePath = await saveImage(req.files && req.files.image);
         if (imagePath) data.image = imagePath;
 
         const db = await fmcConnectMongoDB();
         if (!db.success) return res.status(500).json({ success: false, message: "Database unavailable." });
         const child = await db.data.create(data);
-        io.emit('dataChanged'); clearDataCache();
+        notifyDataChanged();
         res.status(201).json({ success: true, message: "Child added.", data: child });
     } catch (error) {
         console.error("POST /api/admin/children error:", error.message);
@@ -1140,10 +1166,12 @@ app.put('/api/admin/children/:id', requireAdmin, async (req, res) => {
         if (data.status !== undefined && !['pending', 'approved', 'rejected'].includes(data.status)) {
             delete data.status;
         }
-        // Parse face descriptor if provided by admin
-        if (data.faceDescriptor) {
+        // Parse face descriptor if provided by admin. An unparsable value must never
+        // overwrite good biometric data with an empty array.
+        if (data.faceDescriptor !== undefined) {
             const parsed = parseFaceDescriptor(data.faceDescriptor);
-            data.faceDescriptor = parsed || [];
+            if (parsed) data.faceDescriptor = parsed;
+            else delete data.faceDescriptor;
         }
 
         // Handle image replacement: upload new, delete old from Cloudinary
@@ -1159,7 +1187,7 @@ app.put('/api/admin/children/:id', requireAdmin, async (req, res) => {
 
         const child = await Child.findByIdAndUpdate(req.params.id, data, { new: true, runValidators: true });
         if (!child) return res.status(404).json({ success: false, message: "Child not found." });
-        io.emit('dataChanged'); clearDataCache();
+        notifyDataChanged();
         res.json({ success: true, message: "Child updated.", data: child });
     } catch (error) {
         console.error("PUT /api/admin/children error:", error.message);
@@ -1177,7 +1205,7 @@ app.delete('/api/admin/children/:id', requireAdmin, async (req, res) => {
         if (!child) return res.status(404).json({ success: false, message: "Child not found." });
         // Clean up Cloudinary image to save storage
         if (child.image) await deleteImage(child.image);
-        io.emit('dataChanged'); clearDataCache();
+        notifyDataChanged();
         res.json({ success: true, message: "Child deleted." });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -1223,7 +1251,7 @@ app.put('/api/admin/found-requests/:id', requireAdmin, async (req, res) => {
                 }
             );
         }
-        io.emit('dataChanged'); clearDataCache();
+        notifyDataChanged();
         res.json({ success: true, message: status === 'approved' ? "Marked as found. The finder is now praised on the Found page." : "Found request rejected." });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -1250,7 +1278,7 @@ app.put('/api/admin/praise/:id', requireAdmin, async (req, res) => {
         const { Praise } = await getModels();
         const p = await Praise.findByIdAndUpdate(req.params.id, { status: req.body.status }, { new: true });
         if (!p) return res.status(404).json({ success: false, message: "Praise not found." });
-        io.emit('dataChanged'); clearDataCache();
+        notifyDataChanged();
         res.json({ success: true, message: "Praise updated." });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -1290,7 +1318,7 @@ app.put('/api/admin/gifts/:id', requireAdmin, async (req, res) => {
         const { Gift } = await getModels();
         const g = await Gift.findByIdAndUpdate(req.params.id, { status: req.body.status }, { new: true });
         if (!g) return res.status(404).json({ success: false, message: "Gift not found." });
-        io.emit('dataChanged'); clearDataCache();
+        notifyDataChanged();
         res.json({ success: true, message: "Gift updated." });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -1405,6 +1433,38 @@ app.get('/api/data', async (req, res) => {
         const data = await getAllData({ page, limit });
         res.json({ success: true, data });
     } catch (e) { res.json({ success: false, data: { data: [], total: 0 } }); }
+});
+
+// ---- Public: paginated listing of approved children (home / found / search) ----
+// Never capped at a single page in the UI: callers page through `pages`.
+app.get('/api/children', publicLimiter, async (req, res) => {
+    try {
+        const result = await getAllData({
+            page: req.query.page,
+            limit: req.query.limit,
+            found: req.query.found,
+            gender: req.query.gender,
+            ageMin: req.query.ageMin,
+            ageMax: req.query.ageMax,
+            sortBy: req.query.sortBy,
+            q: req.query.q
+        });
+        if (!result.success) return res.status(503).json({ success: false, message: result.message });
+        res.json({ success: true, data: result.data, total: result.total, page: result.page, limit: result.limit, pages: result.pages });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Failed to load records.' });
+    }
+});
+
+// ---- Public: headline counters (aggregated in Mongo, not derived from one page) ----
+app.get('/api/stats', publicLimiter, async (req, res) => {
+    try {
+        const stats = await getStats();
+        if (!stats.success) return res.status(503).json({ success: false, message: stats.message });
+        res.json({ success: true, data: stats.data });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Failed to load statistics.' });
+    }
 });
 
 app.get('/api/messages', async (req, res) => {
@@ -1747,12 +1807,106 @@ app.delete('/api/admin/safe-children/:id', requireAdmin, async (req, res) => {
     }
 });
 
+// Paginated user list. It used to return every account in the database, and the admin panel
+// then issued one request per account to fetch their SafeChild registrations.
 app.get('/api/admin/users', requireAdmin, async (req, res) => {
     if (!hasPermission(req, 'users')) return res.status(403).json({ success: false, message: 'Permission denied.' });
     try {
-        const { User } = await getModels();
-        const users = await User.find().sort({ createdAt: -1 }).select('-password').lean();
-        res.json({ success: true, data: users });
+        const { User, Child, FoundRequest, Praise, Gift, PreRegisteredChild } = await getModels();
+        const limit = Math.min(Math.max(1, parseInt(req.query.limit) || 25), 100);
+        const page = Math.max(1, parseInt(req.query.page) || 1);
+        const skip = (page - 1) * limit;
+
+        const filter = {};
+        const userSearch = searchRegex(req.query.q);
+        if (userSearch) {
+            filter.$or = [{ userFullName: userSearch }, { emailId: userSearch }, { userContactNumber: userSearch }];
+        }
+        if (req.query.blocked === 'true' || req.query.blocked === 'false') {
+            filter.blocked = req.query.blocked === 'true';
+        }
+
+        const [users, total] = await Promise.all([
+            User.find(filter).sort({ createdAt: -1, _id: -1 }).skip(skip).limit(limit).select('-password').lean(),
+            User.countDocuments(filter)
+        ]);
+
+        // Per-user activity totals for this page only, in four grouped queries rather than
+        // four queries per user.
+        const ids = users.map((user) => user._id);
+        const groupCounts = async (Model, field, name) => {
+            if (!ids.length) return { name, rows: [] };
+            const rows = await Model.aggregate([
+                { $match: { [field]: { $in: ids } } },
+                { $group: { _id: `$${field}`, count: { $sum: 1 } } }
+            ]);
+            return { name, rows };
+        };
+        const grouped = ids.length
+            ? await Promise.all([
+                groupCounts(Child, 'userId', 'reports'),
+                groupCounts(FoundRequest, 'userId', 'foundRequests'),
+                groupCounts(Praise, 'userId', 'praise'),
+                groupCounts(Gift, 'userId', 'gifts'),
+                groupCounts(PreRegisteredChild, 'parentId', 'safeChildren')
+            ])
+            : [];
+
+        const counts = new Map();
+        for (const { name, rows } of grouped) {
+            for (const row of rows) {
+                const key = String(row._id);
+                const entry = counts.get(key) || { reports: 0, foundRequests: 0, praise: 0, gifts: 0, safeChildren: 0 };
+                entry[name] = row.count;
+                counts.set(key, entry);
+            }
+        }
+        const emptyCounts = { reports: 0, foundRequests: 0, praise: 0, gifts: 0, safeChildren: 0 };
+        const data = users.map((user) => ({ ...user, activity: counts.get(String(user._id)) || emptyCounts }));
+
+        res.json({ success: true, data, total, page, limit, pages: Math.max(1, Math.ceil(total / limit)) });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// Every SafeChild registration with its owner attached, so the admin panel needs one request
+// instead of one per user. Supports the status filter and a name/owner search.
+app.get('/api/admin/safe-children', requireAdmin, async (req, res) => {
+    try {
+        const { PreRegisteredChild } = await getModels();
+        const limit = Math.min(Math.max(1, parseInt(req.query.limit) || 50), 200);
+        const page = Math.max(1, parseInt(req.query.page) || 1);
+        const skip = (page - 1) * limit;
+
+        const filter = {};
+        if (req.query.status && ['pending', 'approved', 'rejected'].includes(req.query.status)) {
+            filter.status = req.query.status;
+        }
+        const safeChildSearch = searchRegex(req.query.q);
+        if (safeChildSearch) {
+            filter.$or = [{ childName: safeChildSearch }, { parentContact: safeChildSearch }, { address: safeChildSearch }];
+        }
+
+        const [rows, total] = await Promise.all([
+            PreRegisteredChild.find(filter)
+                .sort({ createdAt: -1, _id: -1 })
+                .skip(skip)
+                .limit(limit)
+                .populate('parentId', 'userFullName emailId userContactNumber blocked')
+                .select('-faceDescriptor')
+                .lean(),
+            PreRegisteredChild.countDocuments(filter)
+        ]);
+
+        res.json({
+            success: true,
+            data: rows.map((row) => ({ ...row, user: row.parentId && typeof row.parentId === 'object' ? row.parentId : null })),
+            total,
+            page,
+            limit,
+            pages: Math.max(1, Math.ceil(total / limit))
+        });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
@@ -1770,6 +1924,8 @@ app.put('/api/admin/users/:id', requireAdmin, async (req, res) => {
         if (b.blocked !== undefined) update.blocked = b.blocked === true || b.blocked === 'true';
         const user = await User.findByIdAndUpdate(req.params.id, update, { new: true }).select('-password');
         if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
+        // Blocking a user must also kill the sessions they already hold — on every instance.
+        if (update.blocked === true) await revokeUserTokens(req.params.id);
         notifyDataChanged();
         res.json({ success: true, message: 'User updated.', data: user });
     } catch (error) {
@@ -1783,6 +1939,7 @@ app.delete('/api/admin/users/:id', requireAdmin, async (req, res) => {
         const { User } = await getModels();
         const user = await User.findByIdAndDelete(req.params.id);
         if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
+        await revokeUserTokens(req.params.id);
         notifyDataChanged();
         res.json({ success: true, message: 'User deleted.' });
     } catch (error) {
@@ -1831,7 +1988,7 @@ app.put('/api/praise/:id', requireAuth, async (req, res) => {
             { new: true }
         );
         if (!praise) return res.status(404).json({ success: false, message: 'Praise not found or unauthorized.' });
-        io.emit('dataChanged'); clearDataCache();
+        notifyDataChanged();
         res.json({ success: true, message: 'Praise updated and pending approval.', data: praise });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -1844,7 +2001,7 @@ app.delete('/api/praise/:id', requireAuth, async (req, res) => {
         const { Praise } = await getModels();
         const praise = await Praise.findOneAndDelete({ _id: req.params.id, userId: req.userId });
         if (!praise) return res.status(404).json({ success: false, message: 'Praise not found or unauthorized.' });
-        io.emit('dataChanged'); clearDataCache();
+        notifyDataChanged();
         res.json({ success: true, message: 'Praise deleted.' });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -1865,11 +2022,12 @@ app.post('/api/praise', requireAuth, async (req, res) => {
         const praise = await Praise.create({
             childId: child._id,
             userId: req.userId,
+            childName: child.fullName || child.childName || '',
             userName: String(req.body.userName || 'Anonymous').trim().slice(0, 60),
             text: text.slice(0, 500),
             status: 'pending'
         });
-        io.emit('dataChanged'); clearDataCache();
+        notifyDataChanged();
         res.status(201).json({ success: true, message: "Thank you! Your praise will appear after admin approval.", data: praise });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -1892,12 +2050,13 @@ app.post('/api/gifts', requireAuth, async (req, res) => {
         const gift = await Gift.create({
             childId: child._id,
             userId: req.userId,
+            childName: child.fullName || child.childName || '',
             giverName: String(req.body.giverName || 'Anonymous').trim().slice(0, 60),
             message: message.slice(0, 500),
             amount: amount || 0,
             status: 'pending'
         });
-        io.emit('dataChanged'); clearDataCache();
+        notifyDataChanged();
         res.status(201).json({ success: true, message: "Thank you for your generous gift!", data: gift });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });

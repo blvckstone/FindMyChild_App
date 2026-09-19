@@ -3,6 +3,10 @@ const { PUBLIC_CHILD_FIELDS } = require('../publicProjection');
 
 const MAX_PAGE_SIZE = 100;
 
+// Escape user input before it becomes a RegExp: prevents runaway patterns (ReDoS)
+// and keeps "search" meaning literal text.
+const escapeRegex = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 const getBySearchData = async ({ query, age, gender, ageMin, ageMax, filter, sortBy, page, limit } = {}) => {
     const safeLimit = Math.min(Math.max(1, parseInt(limit) || 50), MAX_PAGE_SIZE);
     const safePage = Math.max(1, parseInt(page) || 1);
@@ -17,7 +21,7 @@ const getBySearchData = async ({ query, age, gender, ageMin, ageMax, filter, sor
 
             if (query && String(query).trim() !== "") {
                 const q = String(query).trim().slice(0, 200);
-                const regex = { $regex: q, $options: "i" };
+                const regex = { $regex: escapeRegex(q), $options: "i" };
                 conditions.push({
                     $or: [
                         { fullName: regex },
@@ -46,7 +50,7 @@ const getBySearchData = async ({ query, age, gender, ageMin, ageMax, filter, sor
             }
 
             if (gender && String(gender).trim() !== "") {
-                conditions.push({ gender: { $regex: String(gender).slice(0, 20), $options: "i" } });
+                conditions.push({ gender: { $regex: escapeRegex(String(gender).slice(0, 20)), $options: "i" } });
             }
 
             if (filter === 'missing') {

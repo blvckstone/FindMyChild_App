@@ -2,12 +2,23 @@ const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const { hashPassword, verifyPassword } = require('./passwords');
 const getModels = require('./dbModels');
+const {
+    createSession,
+    lookupSession,
+    deleteSession,
+    deleteUserSessions
+} = require('./sessions');
 
 // Legacy admin login (username/password) — MUST be set in environment variables
-const ADMIN_USERNAME = process.env.ADMIN_USERNAME;
-const ADMIN_PASS = process.env.ADMIN_PASS;
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME || '';
+const ADMIN_PASS = process.env.ADMIN_PASS || '';
 
-if (!ADMIN_USERNAME || !ADMIN_PASS) {
+// Legacy login is only usable when BOTH credentials are explicitly configured.
+// Without this guard an unset ADMIN_PASS compares equal to the literal string "undefined,"
+// which would let anyone sign in as super admin (safeEqual does String(undefined)).
+const LEGACY_ADMIN_ENABLED = ADMIN_USERNAME.length > 0 && ADMIN_PASS.length > 0;
+
+if (!LEGACY_ADMIN_ENABLED) {
     console.error('[SECURITY] CRITICAL: ADMIN_USERNAME and/or ADMIN_PASS not set in environment. Legacy admin login will be DISABLED.');
 }
 
@@ -24,7 +35,6 @@ if (!JWT_SECRET) {
 
 // Admin tokens: token -> { email, role, permissions } (kept as cache, but JWT is primary)
 const adminTokens = new Map();
-const userTokens = new Map();
 
 // Create admin JWT token
 function signAdminToken(payload) {
@@ -49,6 +59,8 @@ const safeEqual = (a, b) => {
 
 // Legacy admin login (username/password)
 const loginAdmin = (username, password) => {
+    if (!LEGACY_ADMIN_ENABLED) return null;
+    if (!username || !password) return null;
     if (safeEqual(username, ADMIN_USERNAME) && safeEqual(password, ADMIN_PASS)) {
         const adminPayload = {
             id: 'super_admin_legacy',
@@ -59,6 +71,7 @@ const loginAdmin = (username, password) => {
         const token = signAdminToken(adminPayload);
         // Also cache in Map for backward compat
         adminTokens.set(token, adminPayload);
+        console.log('[AUTH] Legacy admin login succeeded for', adminPayload.email);
         return { token, role: 'super_admin', email: SUPER_ADMIN_EMAIL, name: 'Admin' };
     }
     return null;
@@ -163,7 +176,7 @@ const signupUser = async ({ fullName, contactNumber, emailId, password } = {}) =
         createdAt: new Date().toISOString()
     });
     const token = crypto.randomBytes(24).toString('hex');
-    userTokens.set(token, String(user._id));
+    await registerUserToken(token, user._id);
     return { user, token };
 };
 
@@ -182,27 +195,56 @@ const loginUser = async (identifier, password) => {
     }
     const user = await User.findOne(query);
     if (!user || !verifyPassword(password, user.password)) return { error: "Invalid credentials." };
+    if (user.blocked) return { error: "This account has been blocked. Please contact support." };
     const token = crypto.randomBytes(24).toString('hex');
-    userTokens.set(token, String(user._id));
+    await registerUserToken(token, user._id);
     return { user, token };
 };
 
-const logout = (token) => {
+const logout = async (token) => {
     adminTokens.delete(token);
-    userTokens.delete(token);
+    if (!token) return 0;
+    try {
+        const { Session } = await getModels();
+        return await deleteSession(Session, token);
+    } catch (error) {
+        // Logging out must never fail loudly; the token still expires on its own.
+        console.error('[auth] logout could not clear the session:', error.message);
+        return 0;
+    }
+};
+
+// Record a user session token. Sessions live in shared storage, so every instance sees the
+// same login and a revocation applies everywhere (and survives a restart).
+const registerUserToken = async (token, userId) => {
+    const { Session } = await getModels();
+    await createSession(Session, { token, userId: String(userId), kind: 'user' });
+    return token;
+};
+
+// Drop every live session token belonging to a user (used when an admin blocks/deletes them).
+const revokeUserTokens = async (userId) => {
+    const { Session } = await getModels();
+    return deleteUserSessions(Session, String(userId));
 };
 
 // Express middleware: requires a valid USER token. Sets req.userId.
-const requireAuth = (req, res, next) => {
+const requireAuth = async (req, res, next) => {
     const header = req.headers.authorization || '';
     const token = header.startsWith('Bearer ') ? header.slice(7) : '';
-    const userId = userTokens.get(token);
-    if (userId) {
-        req.userId = userId;
+    if (!token) return res.status(401).json({ success: false, message: "Please log in first." });
+    try {
+        const { Session } = await getModels();
+        const session = await lookupSession(Session, token);
+        if (!session) return res.status(401).json({ success: false, message: "Please log in first." });
+        req.userId = session.userId;
         req.token = token;
         return next();
+    } catch (error) {
+        // Fail closed: an unreachable session store must never mean "authenticated".
+        console.error('[auth] session lookup failed:', error.message);
+        return res.status(401).json({ success: false, message: "Please log in first." });
     }
-    return res.status(401).json({ success: false, message: "Please log in first." });
 };
 
 // Express middleware: requires a valid ADMIN token. Sets req.adminInfo.
@@ -327,12 +369,12 @@ const findOrCreateGoogleUser = async (profile) => {
         }
     }
     const token = crypto.randomBytes(24).toString('hex');
-    userTokens.set(token, String(user._id));
+    await registerUserToken(token, user._id);
     return { user: { _id: user._id, userFullName: user.userFullName, emailId: user.emailId, photo: user.photo }, token };
 };
 
 module.exports = {
     loginAdmin, loginAdminGoogle, signupUser, loginUser, findOrCreateGoogleUser,
-    logout, requireAuth, requireAdmin, requireSuperAdmin, hasPermission,
+    logout, registerUserToken, revokeUserTokens, requireAuth, requireAdmin, requireSuperAdmin, hasPermission,
     normalizePhone, isValidPhone, sanitize, SUPER_ADMIN_EMAIL
 };

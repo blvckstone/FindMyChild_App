@@ -31,11 +31,21 @@ const dataSchema = mongoose.Schema({
     // pending = waiting for admin approval, approved = visible publicly, rejected = denied
     status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' }
 }, { timestamps: true });
-dataSchema.index({ status: 1 });
-dataSchema.index({ createdAt: -1 });
+// Public listing, admin lists and pagination all filter status then sort by createdAt/_id.
+dataSchema.index({ status: 1, createdAt: -1, _id: -1 });
+// Found/missing tabs, stat counters and the found filter.
+dataSchema.index({ status: 1, found: 1, createdAt: -1 });
+// Search filters.
+dataSchema.index({ status: 1, gender: 1 });
+dataSchema.index({ status: 1, age: 1 });
+dataSchema.index({ status: 1, missingDate: 1 });
+// "My reports" and the admin user-activity view.
+dataSchema.index({ userId: 1, createdAt: -1 });
+// Praise/gift self-action checks compare finderUserId.
+dataSchema.index({ finderUserId: 1 });
+// Existing text index — left exactly as-is: MongoDB allows only one text index per
+// collection, so changing its fields would require a drop + rebuild on the live database.
 dataSchema.index({ fullName: 'text', address: 'text', contactNumber: 'text' });
-dataSchema.index({ gender: 1 });
-dataSchema.index({ age: 1 });
 
 // Cache the connection so we only connect to the database once.
 let connectionPromise = null;
