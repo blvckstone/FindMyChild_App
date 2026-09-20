@@ -42,4 +42,14 @@ const bearerStatus = async (auth, token) => {
     return status;
 };
 
-module.exports = { loadAuth, bearerStatus };
+// Run requireAdmin with a bearer token and report the HTTP status it produced.
+// requireAdmin resolves an admin session from shared storage, so this awaits it too.
+const adminStatus = async (auth, token) => {
+    let status = 200;
+    const req = { headers: token ? { authorization: 'Bearer ' + token } : {} };
+    const res = { status(code) { status = code; return { json() {} }; } };
+    await auth.requireAdmin(req, res, () => {});
+    return status;
+};
+
+module.exports = { loadAuth, bearerStatus, adminStatus };

@@ -58,6 +58,18 @@ const deleteUserSessions = async (Session, userId) => {
     return result && typeof result.deletedCount === 'number' ? result.deletedCount : 0;
 };
 
+/**
+ * Forget every admin token belonging to one admin.
+ *
+ * Narrowed to `kind: 'admin'` so revoking an admin can never touch a user's sessions, even in
+ * the unlikely event the two collections ever produced the same id string.
+ */
+const deleteAdminSessions = async (Session, adminId) => {
+    if (!Session || !adminId) return 0;
+    const result = await Session.deleteMany({ userId: String(adminId), kind: 'admin' });
+    return result && typeof result.deletedCount === 'number' ? result.deletedCount : 0;
+};
+
 /** Housekeeping for environments where the TTL monitor has not run yet. */
 const pruneExpiredSessions = async (Session, now = Date.now()) => {
     if (!Session) return 0;
@@ -72,5 +84,6 @@ module.exports = {
     lookupSession,
     deleteSession,
     deleteUserSessions,
+    deleteAdminSessions,
     pruneExpiredSessions
 };

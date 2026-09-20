@@ -9,7 +9,7 @@ shared state); see `tests/` for the tests that pin each claim.
 | State | Where it lives | Why it matters |
 |---|---|---|
 | Sessions (user login tokens) | `Session` collection in MongoDB, TTL index on `expiresAt` | A login minted on replica A works on replica B; blocking or deleting an account revokes the session on every replica; a restart no longer logs everyone out. |
-| Admin auth | Signed JWTs (`JWT_SECRET`) | Stateless verification, no shared store needed. |
+| Admin auth | Signed JWT for transport **plus** an admin row in the same `Session` collection (`kind: 'admin'`) | The token's signature is checked, but access also requires a live session — so logging out, removing an admin from the whitelist, or changing their role/permissions takes effect on the next request instead of when the 7-day token expires. The JWT alone is *not* sufficient. |
 | AI face match pool | Cached in each instance, but rebuilt from MongoDB and invalidated on every API write | Each instance compares the same records. |
 | Rate limit counters | `RateLimit` collection in MongoDB, TTL index on `resetAt` | The ceiling is global instead of per replica, and a deploy does not clear an attacker's progress on the admin login. If the database is unreachable the store counts per process (`functions/rateLimitStore.js`) — it never disables the limit and never fails the request. |
 | All application data | MongoDB Atlas | Single source of truth. |

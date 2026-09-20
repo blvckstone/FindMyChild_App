@@ -24,7 +24,9 @@ const makeSessionModel = (rows = []) => {
         async deleteMany(filter) {
             const before = state.rows.length;
             if (filter.userId !== undefined) {
-                state.rows = state.rows.filter((row) => row.userId !== filter.userId);
+                // `kind` narrows the delete the same way it does in MongoDB, so an admin
+                // revocation must never take a user's sessions with it.
+                state.rows = state.rows.filter((row) => row.userId !== filter.userId || (filter.kind !== undefined && row.kind !== filter.kind));
             } else if (filter.expiresAt && filter.expiresAt.$lte) {
                 const cutoff = filter.expiresAt.$lte.getTime();
                 state.rows = state.rows.filter((row) => new Date(row.expiresAt).getTime() > cutoff);

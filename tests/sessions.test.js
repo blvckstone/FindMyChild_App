@@ -130,6 +130,15 @@ test('G1: the session schema carries a TTL index and the app no longer keeps tok
     assert.match(auth, /await lookupSession\(Session, token\)/);
     assert.match(auth, /await registerUserToken\(token, user\._id\)/);
 
+    // F1: the admin side used to keep the same kind of Map, and worse, requireAdmin fell back to
+    // stateless JWT verification when it missed — so nothing could ever be revoked.
+    assert.doesNotMatch(auth, /adminTokens/, 'admin tokens must not live in process memory either');
+    assert.match(auth, /await registerAdminToken\(token, /, 'admin logins must record a revocable session');
+    assert.match(auth, /await revokeAdminTokens\(admin\._id\)|revokeAdminTokens/, 'admin sessions must be revocable');
+    const requireAdminBody = auth.slice(auth.indexOf('const requireAdmin ='));
+    assert.match(requireAdminBody, /lookupSession\(Session, token\)/, 'requireAdmin must check the shared store, not just the signature');
+    assert.match(requireAdminBody, /session\.kind !== 'admin'/, 'a user session must never authenticate an admin');
+
     const server = fs.readFileSync(path.join(ROOT, 'server.js'), 'utf8');
     assert.match(server, /await revokeUserTokens\(req\.params\.id\)/, 'revocation must be awaited so the write completes');
 });

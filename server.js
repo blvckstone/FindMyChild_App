@@ -152,7 +152,7 @@ const publicLimiter = limiter({ name: 'public', windowMs: 60 * 1000, max: 300, m
 //-----------------------------------------------Functions Module--------------------------------------------------------------->
 const fmcConnectMongoDB = require('./functions/fmcDB/fmcMongoDB');
 const getModels = require('./functions/dbModels');
-const { loginAdmin, loginAdminGoogle, signupUser, loginUser, findOrCreateGoogleUser, logout, revokeUserTokens, requireAuth, requireAdmin, requireSuperAdmin, hasPermission, isValidPhone, sanitize, SUPER_ADMIN_EMAIL } = require('./functions/auth');
+const { loginAdmin, loginAdminGoogle, signupUser, loginUser, findOrCreateGoogleUser, logout, revokeUserTokens, revokeAdminTokens, registerAdminToken, signAdminToken, requireAuth, requireAdmin, requireSuperAdmin, hasPermission, isValidPhone, sanitize, SUPER_ADMIN_EMAIL } = require('./functions/auth');
 const { PUBLIC_CHILD_FIELDS, AUTHENTICATED_CHILD_FIELDS, ADMIN_CHILD_FIELDS, NGO_CONTACT_FIELDS, PRAISE_CHILD_FIELDS, pickFields } = require('./functions/publicProjection');
 const { sendOTP, verifyOTP, sendWelcomeEmail } = require('./functions/email');
 // const userConnectMongoDB = require('./functions/userDB/userMongoDB');
@@ -980,12 +980,17 @@ app.post('/api/safechild/match', faceScanLimiter, async (req, res) => {
 });
 
 // ---- Admin: login / logout ----
-app.post('/api/admin/login', adminLoginLimiter, (req, res) => {
-    const result = loginAdmin(req.body.username, req.body.password);
-    if (result) {
-        res.json({ success: true, token: result.token, role: result.role, name: result.name });
-    } else {
-        res.status(401).json({ success: false, message: "Invalid username or password." });
+app.post('/api/admin/login', adminLoginLimiter, async (req, res) => {
+    try {
+        const result = await loginAdmin(req.body.username, req.body.password);
+        if (result) {
+            return res.json({ success: true, token: result.token, role: result.role, name: result.name });
+        }
+        return res.status(401).json({ success: false, message: "Invalid username or password." });
+    } catch (error) {
+        // A failed session write must not look like a wrong password.
+        console.error('[AUTH] admin login failed:', error.message);
+        res.status(503).json({ success: false, message: 'Login is temporarily unavailable. Please try again.' });
     }
 });
 
@@ -1076,7 +1081,10 @@ app.put('/api/admin/me', requireAdmin, async (req, res) => {
             role: admin.role,
             permissions: newPerms
         });
-        adminTokens.set(newToken, { id: admin._id, email: admin.email, role: admin.role, permissions: newPerms });
+        // The client replaces its token with this one, so the previous session is retired with
+        // it: a profile save must not leave a second usable token lying around.
+        await registerAdminToken(newToken, admin._id);
+        await logout(req.token);
         notifyDataChanged();
         res.json({ success: true, admin, token: newToken });
     } catch (e) {
@@ -1759,8 +1767,11 @@ app.put('/api/admin/admins/:id', requireAdmin, requireSuperAdmin, async (req, re
         if (canManageDonations !== undefined) admin.canManageDonations = canManageDonations;
         if (canManageAdmins !== undefined) admin.canManageAdmins = canManageAdmins;
         await admin.save();
+        // Role, active flag or permissions may have changed: retire their live tokens so the new
+        // rules apply on their next request instead of up to 7 days from now.
+        const revoked = await revokeAdminTokens(admin._id);
         notifyDataChanged();
-        res.json({ success: true, data: admin });
+        res.json({ success: true, data: admin, revokedSessions: revoked });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
@@ -1776,8 +1787,10 @@ app.delete('/api/admin/admins/:id', requireAdmin, requireSuperAdmin, async (req,
             return res.status(403).json({ success: false, message: 'Cannot delete the super admin.' });
         }
         await AdminUser.findByIdAndDelete(req.params.id);
+        // Removing access has to remove it now, not when their token expires.
+        const revoked = await revokeAdminTokens(admin._id);
         notifyDataChanged();
-        res.json({ success: true, message: 'Admin removed.' });
+        res.json({ success: true, message: 'Admin removed.', revokedSessions: revoked });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }

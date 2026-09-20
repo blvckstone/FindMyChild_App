@@ -6,7 +6,8 @@ const {
     createSession,
     lookupSession,
     deleteSession,
-    deleteUserSessions
+    deleteUserSessions,
+    deleteAdminSessions
 } = require('./sessions');
 
 // Legacy admin login (username/password) — MUST be set in environment variables
@@ -25,6 +26,9 @@ if (!LEGACY_ADMIN_ENABLED) {
 // Super admin email - cannot be removed or demoted
 const SUPER_ADMIN_EMAIL = process.env.SUPER_ADMIN_EMAIL || 'iblvckstone@gmail.com';
 
+// Owner id for the env-configured super admin, who has no AdminUser row.
+const LEGACY_ADMIN_ID = 'super_admin_legacy';
+
 // JWT config for admin tokens — MUST be set in environment variables
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRES = process.env.JWT_EXPIRES_IN || '7d';
@@ -33,8 +37,20 @@ if (!JWT_SECRET) {
     console.error('[SECURITY] CRITICAL: JWT_SECRET not set in environment. Auth tokens will fail.');
 }
 
-// Admin tokens: token -> { email, role, permissions } (kept as cache, but JWT is primary)
-const adminTokens = new Map();
+// Admin tokens used to be tracked in a module-level Map whose only purpose was to be *bypassed*:
+// requireAdmin fell back to stateless JWT verification, so the Map was per-process and
+// revocation never actually worked — an admin removed from the whitelist, disabled, or demoted
+// kept full access until their 7-day token expired, and logging out only deleted the local
+// copy. Admin tokens are now sessions in shared storage, exactly like user tokens, and the
+// stateless fallback is gone.
+
+// Record an admin session so the token can be revoked later. `adminId` is the AdminUser id, or
+// the literal 'super_admin_legacy' for the env-configured super admin.
+const registerAdminToken = async (token, adminId) => {
+    const { Session } = await getModels();
+    await createSession(Session, { token, userId: String(adminId || 'unknown'), kind: 'admin' });
+    return token;
+};
 
 // Create admin JWT token
 function signAdminToken(payload) {
@@ -58,19 +74,18 @@ const safeEqual = (a, b) => {
 };
 
 // Legacy admin login (username/password)
-const loginAdmin = (username, password) => {
+const loginAdmin = async (username, password) => {
     if (!LEGACY_ADMIN_ENABLED) return null;
     if (!username || !password) return null;
     if (safeEqual(username, ADMIN_USERNAME) && safeEqual(password, ADMIN_PASS)) {
         const adminPayload = {
-            id: 'super_admin_legacy',
+            id: LEGACY_ADMIN_ID,
             email: SUPER_ADMIN_EMAIL,
             role: 'super_admin',
             permissions: { all: true }
         };
         const token = signAdminToken(adminPayload);
-        // Also cache in Map for backward compat
-        adminTokens.set(token, adminPayload);
+        await registerAdminToken(token, LEGACY_ADMIN_ID);
         console.log('[AUTH] Legacy admin login succeeded for', adminPayload.email);
         return { token, role: 'super_admin', email: SUPER_ADMIN_EMAIL, name: 'Admin' };
     }
@@ -112,7 +127,7 @@ const loginAdminGoogle = async (profile) => {
         }
         const adminPayload = { id: admin._id, email, role: 'super_admin', permissions: { all: true } };
         const token = signAdminToken(adminPayload);
-        adminTokens.set(token, adminPayload);
+        await registerAdminToken(token, admin._id);
         return { token, admin: { id: admin._id, email, name: admin.name, photo: admin.photo, role: 'super_admin', permissions: { all: true } } };
     }
 
@@ -147,7 +162,7 @@ const loginAdminGoogle = async (profile) => {
 
     const adminPayload = { id: admin._id, email, role: admin.role, permissions };
     const token = signAdminToken(adminPayload);
-    adminTokens.set(token, adminPayload);
+    await registerAdminToken(token, admin._id);
 
     return { token, admin: { id: admin._id, email, name: admin.name, photo: admin.photo, role: admin.role, permissions } };
 };
@@ -202,7 +217,6 @@ const loginUser = async (identifier, password) => {
 };
 
 const logout = async (token) => {
-    adminTokens.delete(token);
     if (!token) return 0;
     try {
         const { Session } = await getModels();
@@ -228,6 +242,15 @@ const revokeUserTokens = async (userId) => {
     return deleteUserSessions(Session, String(userId));
 };
 
+// Drop every live admin token belonging to one admin. Called whenever the admin record changes
+// in a way that affects authorisation — removing them from the whitelist, disabling them, or
+// changing their role/permissions — so the change takes effect on the next request instead of
+// when their 7-day token happens to expire.
+const revokeAdminTokens = async (adminId) => {
+    const { Session } = await getModels();
+    return deleteAdminSessions(Session, String(adminId));
+};
+
 // Express middleware: requires a valid USER token. Sets req.userId.
 const requireAuth = async (req, res, next) => {
     const header = req.headers.authorization || '';
@@ -247,37 +270,40 @@ const requireAuth = async (req, res, next) => {
     }
 };
 
-// Express middleware: requires a valid ADMIN token. Sets req.adminInfo.
-const requireAdmin = (req, res, next) => {
+// Express middleware: requires a valid ADMIN token with a live session. Sets req.adminInfo.
+//
+// The signature check stays (it rejects garbage cheaply and pins the payload), but a session row
+// must also exist: that is what makes logout, removal and demotion take effect immediately.
+// There is deliberately no stateless fallback — that was the bug.
+const requireAdmin = async (req, res, next) => {
     const header = req.headers.authorization || '';
     const token = header.startsWith('Bearer ') ? header.slice(7) : '';
     if (!token) {
         return res.status(401).json({ success: false, message: "Unauthorized. Please log in as admin." });
     }
-    // Try in-memory cache first (fast path)
-    let adminInfo = adminTokens.get(token);
-    if (!adminInfo) {
-        // Fall back to JWT verification (survives server restarts)
-        const decoded = verifyAdminToken(token);
-        if (decoded && decoded.email) {
-            adminInfo = {
-                id: decoded.id || null,
-                email: decoded.email,
-                role: decoded.role,
-                permissions: decoded.permissions
-            };
-            // Re-cache for future requests
-            adminTokens.set(token, adminInfo);
-        } else {
-            return res.status(401).json({ success: false, message: "Unauthorized. Please log in as admin." });
+    const decoded = verifyAdminToken(token);
+    if (!decoded || !decoded.email) {
+        return res.status(401).json({ success: false, message: "Unauthorized. Please log in as admin." });
+    }
+    try {
+        const { Session } = await getModels();
+        const session = await lookupSession(Session, token);
+        if (!session || session.kind !== 'admin') {
+            return res.status(401).json({ success: false, message: "Session expired. Please log in again." });
         }
-    }
-    if (adminInfo) {
         req.token = token;
-        req.adminInfo = adminInfo;
+        req.adminInfo = {
+            id: decoded.id || null,
+            email: decoded.email,
+            role: decoded.role,
+            permissions: decoded.permissions
+        };
         return next();
+    } catch (error) {
+        // Fail closed: an unreachable session store must never mean "authenticated".
+        console.error('[auth] admin session lookup failed:', error.message);
+        return res.status(401).json({ success: false, message: "Unauthorized. Please log in as admin." });
     }
-    return res.status(401).json({ success: false, message: "Unauthorized. Please log in as admin." });
 };
 
 // Middleware: requires super_admin role
@@ -375,6 +401,7 @@ const findOrCreateGoogleUser = async (profile) => {
 
 module.exports = {
     loginAdmin, loginAdminGoogle, signupUser, loginUser, findOrCreateGoogleUser,
-    logout, registerUserToken, revokeUserTokens, requireAuth, requireAdmin, requireSuperAdmin, hasPermission,
-    normalizePhone, isValidPhone, sanitize, SUPER_ADMIN_EMAIL
+    logout, registerUserToken, registerAdminToken, revokeUserTokens, revokeAdminTokens,
+    requireAuth, requireAdmin, requireSuperAdmin, hasPermission,
+    signAdminToken, normalizePhone, isValidPhone, sanitize, SUPER_ADMIN_EMAIL, LEGACY_ADMIN_ID
 };
