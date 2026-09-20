@@ -281,6 +281,14 @@ app.get('/api/health', async (req, res) => {
     });
 });
 
+// An admin id as a value that can safely be written into an ObjectId reference.
+//
+// The env-configured super admin logs in with the sentinel id 'super_admin_legacy', which is not
+// an ObjectId. Casting it into `createdBy` / `reviewedBy` failed validation, so creating an NGO
+// contact or reviewing a SafeChild registration answered 500 for that account — which is the
+// account the ADMIN_USERNAME/ADMIN_PASS login produces. Such a reference is simply left unset.
+const adminRef = (id) => (/^[0-9a-fA-F]{24}$/.test(String(id || '')) ? id : undefined);
+
 // Save an uploaded photo to Cloudinary and return its URL. By the time a route calls this the
 // bytes have already been verified and re-encoded by validateUploads above.
 const saveImage = async (file) => {
@@ -698,7 +706,7 @@ app.post('/api/admin/ngo-contacts', requireAdmin, async (req, res) => {
             priority: Number(priority) || 0,
             active: active !== false,
             primary: primary === true,
-            createdBy: req.adminInfo.id || null
+            createdBy: adminRef(req.adminInfo.id)
         });
         await AuditLog.create({ action: 'ngo_contact_created', entityType: 'NGOContact', entityId: contact._id, performedBy: req.adminInfo.email, details: { displayName: contact.displayName } });
         notifyDataChanged();
@@ -1848,7 +1856,7 @@ app.put('/api/admin/safe-children/:id', requireAdmin, async (req, res) => {
         if (address !== undefined) update.address = String(address).trim();
         if (parentContact !== undefined) update.parentContact = String(parentContact).trim();
         if (medicalInfo !== undefined) update.medicalInfo = String(medicalInfo).trim();
-        update.reviewedBy = req.adminInfo.id || null;
+        update.reviewedBy = adminRef(req.adminInfo.id);
         update.reviewedAt = new Date();
         const child = await PreRegisteredChild.findByIdAndUpdate(req.params.id, { $set: update }, { new: true }).select('-faceDescriptor');
         if (!child) return res.status(404).json({ success: false, message: 'SafeChild record not found.' });

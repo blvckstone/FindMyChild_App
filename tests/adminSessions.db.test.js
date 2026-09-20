@@ -8,6 +8,7 @@
  */
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const mongoose = require('mongoose');
 const { startDbServer, startSecondInstance, JWT_SECRET } = require('./helpers/dbServer');
 
 // The spawned server gets this from the helper's env; this process needs it to mint tokens
@@ -90,6 +91,32 @@ test('F1: demoting or disabling an admin also revokes their live token', async (
     assert.equal(update.status, 200);
 
     assert.equal((await ctx.api('/api/admin/children', { token })).status, 401, 'a permission change must retire the token');
+});
+
+test('F1: the env-configured super admin can write records that reference it', async () => {
+    // This admin logs in with the sentinel id 'super_admin_legacy', which is not an ObjectId.
+    // Casting it into an ObjectId ref made both these actions answer 500.
+    const contact = await ctx.api('/api/admin/ngo-contacts', {
+        method: 'POST',
+        token: adminToken,
+        body: { displayName: 'Test "Contact"', phone: '8055137761', priority: 0, active: true }
+    });
+    assert.equal(contact.status, 201, `creating an NGO contact failed: ${JSON.stringify(contact.json)}`);
+    assert.equal(contact.json.data.createdBy, undefined, 'an unusable admin id must be left unset, not stored as a string');
+
+    const preRegistered = await ctx.models.PreRegisteredChild.create({
+        parentId: new mongoose.Types.ObjectId(),
+        childName: 'Pre Registered',
+        faceDescriptor: Array.from({ length: 128 }, (_, i) => 0.001 * (i % 10)),
+        status: 'pending'
+    });
+    const reviewed = await ctx.api(`/api/admin/safe-children/${preRegistered._id}`, {
+        method: 'PUT',
+        token: adminToken,
+        body: { status: 'approved' }
+    });
+    assert.equal(reviewed.status, 200, `reviewing a SafeChild failed: ${JSON.stringify(reviewed.json)}`);
+    assert.equal(reviewed.json.data.status, 'approved');
 });
 
 test('F1: a signed token that was never issued by this server is refused', async () => {

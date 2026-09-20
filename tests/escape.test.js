@@ -96,6 +96,55 @@ test('A4: no user panel handler interpolates a value by hand', () => {
     );
 });
 
+test('A6: the same breakout is closed in the admin panel', () => {
+    const adminPage = fs.readFileSync(path.join(__dirname, '../public/admin.html'), 'utf8');
+
+    // The panel now depends on the helper, so it must actually load it.
+    assert.match(adminPage, /<script src="\/js\/fmc-escape\.js"><\/script>/, 'admin.html must load the escaping helper');
+
+    const handlers = [...adminPage.matchAll(/on(?:click|change|input)="[^"]*"/g)].map((match) => match[0]);
+    assert.ok(handlers.length > 50, `expected many handlers, found ${handlers.length}`);
+
+    assert.deepEqual(
+        handlers.filter((handler) => handler.includes('esc(')),
+        [],
+        'esc() decodes to a raw quote inside the handler — jsArg() is required'
+    );
+
+    // Only the helper's own placeholder and the two pagers (a function name plus a numeric
+    // expression) may be interpolated without jsArg().
+    const allowed = /^onclick="(?:\$\{onclick\}|\$\{(?:goFn|loader)\}\(\$\{(?:page|current)[+-]1\}\))"$/;
+    for (const handler of handlers.filter((h) => /'\+|\$\{/.test(h) && !h.includes('jsArg('))) {
+        assert.match(handler, allowed, `a non-numeric value is interpolated into an admin handler: ${handler}`);
+    }
+
+    assert.ok(
+        handlers.filter((handler) => handler.includes('jsArg(')).length >= 25,
+        'the admin panel is expected to build its handler arguments through jsArg()'
+    );
+});
+
+test('A6: admin handler values survive miniBtn and hostile slugs', () => {
+    // miniBtn embeds the source it is handed straight into the attribute, so the escaping has to
+    // happen where the value is placed. This reproduces that path end to end.
+    const miniBtn = (source) => `<button onclick="${source}">x</button>`;
+    const attrOf = (html) => html.match(/onclick="([^"]*)"/)[1];
+
+    const payload = "');alert('xss');//";
+    const { calls, alerts } = runHandler(decodeAttribute(attrOf(miniBtn(`deleteSafeChildAdmin(${jsArg(payload)})`))), 'deleteSafeChildAdmin');
+    assert.deepEqual(alerts, [], 'the payload executed');
+    assert.deepEqual(calls[0], [payload], 'the value did not round-trip');
+
+    // An admin-editable slug is the one admin value a user can influence indirectly.
+    const slug = 'privacy");alert(1);//';
+    const emitted = `editLegalPage(&quot;${legacyEsc(slug)}&quot;)`;
+    const emittedFixed = `editLegalPage(${jsArg(slug)})`;
+    assert.deepEqual(runHandler(decodeAttribute(emitted), 'editLegalPage').alerts, [1], 'the old entity-quoted pattern was exploitable');
+    const fixed = runHandler(decodeAttribute(attrOf(miniBtn(emittedFixed))), 'editLegalPage');
+    assert.deepEqual(fixed.alerts, []);
+    assert.deepEqual(fixed.calls[0], [slug]);
+});
+
 test('A4: escapeHtml still escapes for HTML text contexts', () => {
     assert.equal(escapeHtml('<b>&"\'</b>'), '&lt;b&gt;&amp;&quot;&#39;&lt;/b&gt;');
     assert.equal(escapeHtml(null), '');
