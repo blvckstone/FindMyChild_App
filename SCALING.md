@@ -35,6 +35,7 @@ shared state); see `tests/` for the tests that pin each claim.
 | `SOCKET_QUERY_WINDOW_MS` | 60 s | Length of that window. |
 | `SOCKET_MAX_IN_FLIGHT` | 4 | How many realtime queries one connection may have running at once; a client that pipelines without waiting is refused rather than queued. |
 | `DEBUG_SOCKET` | unset | Set to `1` to log socket connections and per-event activity. Off by default: realtime request payloads are user data and are never logged. |
+| `ALLOWED_ORIGINS` | unset (same-origin only) | Comma-separated hosts or origins allowed to call the API from a browser. Unset means only requests whose Origin matches the Host serving them are answered with CORS headers — which is all this app needs, since one server serves both panels. Set `*` only if you deliberately want any website to be able to call it. |
 
 ## Anonymous realtime traffic
 
@@ -46,8 +47,35 @@ a query budget plus a cap on queries in flight. Per-connection, not global, so o
 cannot starve the others. Every refusal is answered on the event the client is already listening
 for, so an older client degrades quietly.
 
+## Browser origins
+
+Responses carry CORS headers only for the origin that served the page (`functions/origins.js`).
+Previously every response advertised `Access-Control-Allow-Origin: *` and socket.io advertised
+`origin: "*"`, so any website could call the API from a visitor's browser and read the reply. Add
+a browser client that lives on another host through `ALLOWED_ORIGINS` rather than by widening the
+default. The socket handshake applies the same rule and also refuses a cross-origin browser
+outright (requests with no Origin — curl, health probes, a native app — are allowed, because CORS
+exists to constrain browsers).
+
+## Uploads
+
+Every uploaded image is verified before any route sees it (`functions/imageValidation.js`, called
+from the `validateUploads` middleware in `server.js`): the magic numbers must be a JPEG/PNG/WEBP/GIF
+signature, the declared MIME type must agree with the bytes, `sharp` must be able to decode it, its
+dimensions must stay under 8000 px and 40 MP, and it is then re-encoded. The re-encode is what
+actually removes the old trust in a client-chosen content type: it drops EXIF (including GPS),
+strips trailing content, and caps the stored image at 1600 px. Because the check lives in
+middleware, a new upload endpoint inherits it. Validating costs CPU per upload, so a burst of large
+uploads is the one thing to watch on a small container — resize-client-side before changing this.
+
 ## Verifying a multi-replica setup
 
 The tests in `tests/multiInstance.db.test.js` start two real server processes against one
 database and assert that a login works on both, that a restart does not log users out, and that
 blocking an account on one instance rejects its tokens on the other.
+
+`tests/transport.db.test.js` covers the transport rules against the real server: same-origin is
+allowed and a foreign site is not (HTTP and socket handshake alike), an explicitly listed origin
+is allowed, the removed admin debug route is gone, and a non-image upload is refused with a 400
+before the route runs. `tests/imageValidation.test.js` and `tests/origins.test.js` cover the two
+modules directly.

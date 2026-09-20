@@ -4,6 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const cors = require('cors');
 const fileUpload = require('express-fileupload');
+const { createOriginPolicy, corsOriginCheck } = require('./functions/origins');
 const { Server } = require('socket.io');
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
@@ -34,10 +35,59 @@ const server = http.createServer(app);
 
 //-----------------------------------------------Middleware-------------------------------------------------------------------->
 app.set('trust proxy', 1); // Trust Northflank proxy - fixes http/https protocol detection
-app.use(cors());
+
+// Only same-origin browsers may read our responses unless ALLOWED_ORIGINS says otherwise.
+// Both panels are served by this same server, so nothing legitimate needs a wildcard.
+const originPolicy = createOriginPolicy(process.env.ALLOWED_ORIGINS);
+if (originPolicy.mode === 'any') {
+    console.warn('[SECURITY] ALLOWED_ORIGINS=* — every website may call this API from a browser.');
+} else if (originPolicy.mode === 'list') {
+    console.log(`[STARTUP] CORS: same-origin plus ${originPolicy.hosts.join(', ')}`);
+} else {
+    console.log('[STARTUP] CORS: same-origin only (set ALLOWED_ORIGINS to add browser clients).');
+}
+app.use(cors((req, callback) => callback(null, {
+    origin: originPolicy.isAllowed(req.headers.origin, req.headers.host),
+    credentials: false
+})));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use(express.json({ limit: '1mb' }));
-app.use(fileUpload({ limits: { fileSize: 5 * 1024 * 1024 } }));
+// abortOnLimit stops a truncated file from being treated as a complete upload; the type is
+// checked from the bytes themselves in validateUploads below.
+app.use(fileUpload({ limits: { fileSize: 5 * 1024 * 1024 }, abortOnLimit: true }));
+
+// Every uploaded image is verified before any route sees it: magic-number sniff, MIME/contents
+// agreement, a real decode, bounded dimensions, then a re-encode that strips EXIF (and with it
+// any GPS location). The verified bytes replace the original, so `saveImage` can never be
+// handed something that is not an image. Doing it here rather than per-route means a new
+// upload endpoint inherits the check instead of having to remember it.
+const validateUploads = async (req, res, next) => {
+    try {
+        const files = req.files;
+        if (!files) return next();
+        for (const field of Object.keys(files)) {
+            const value = files[field];
+            const list = Array.isArray(value) ? value : [value];
+            const checked = [];
+            for (const file of list) {
+                const normalized = await validateAndNormalize(file);
+                file.data = normalized.data;
+                file.mimetype = normalized.mimetype;
+                file.size = normalized.size;
+                checked.push(file);
+            }
+            files[field] = Array.isArray(value) ? checked : checked[0];
+        }
+        next();
+    } catch (error) {
+        if (error instanceof ImageValidationError) {
+            return res.status(error.status || 400).json({ success: false, message: error.message });
+        }
+        console.error('Upload validation error:', error.message);
+        return res.status(500).json({ success: false, message: 'The image could not be processed.' });
+    }
+};
+app.use(validateUploads);
 
 // ── Security Headers ────────────────────────────────────────────────────────
 app.use((req, res, next) => {
@@ -172,7 +222,14 @@ passport.deserializeUser((obj, done) => done(null, obj));
 
 // Admin Google login handled via state parameter in strategy callback
 //-----------------------------------------------Socket.io---------------------------------------------------------------------->
-const io = new Server(server, { cors: { origin: "*" } });
+// socket.io: the long-polling transport goes through the same origin policy, and the handshake
+// itself is refused outright for a cross-origin browser (allowRequest has the request, so the
+// same-origin comparison can use the Host header). A missing Origin (native client, curl) is
+// allowed — CORS only exists to constrain browsers.
+const io = new Server(server, {
+    cors: { origin: corsOriginCheck(originPolicy) },
+    allowRequest: (req, callback) => callback(null, originPolicy.isAllowed(req.headers.origin, req.headers.host))
+});
 
 // Which slice of the data the in-flight request writes to. Populated by the middleware below,
 // so a route only has to call notifyDataChanged() and gets scoped notifications for free.
@@ -196,6 +253,7 @@ function notifyDataChanged(scope) {
 
 //-----------------------------------------------Cloudinary image storage------------------------------------------------------>
 const { uploadImage, deleteImage, replaceImage } = require('./functions/cloudinary');
+const { validateAndNormalize, ImageValidationError } = require('./functions/imageValidation');
 //------------------------------------------------------------------------------------------------------------------------------>
 
 //-----------------------------------------------Routes------------------------------------------------------------------------->
@@ -223,20 +281,10 @@ app.get('/api/health', async (req, res) => {
     });
 });
 
-// Save an uploaded photo to Cloudinary and return its URL.
-const ALLOWED_IMG = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+// Save an uploaded photo to Cloudinary and return its URL. By the time a route calls this the
+// bytes have already been verified and re-encoded by validateUploads above.
 const saveImage = async (file) => {
     if (!file) return '';
-    if (!ALLOWED_IMG.includes(file.mimetype)) {
-        const err = new Error("Only JPG, PNG, WEBP or GIF images are allowed.");
-        err.status = 400;
-        throw err;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-        const err = new Error("Image must be smaller than 5 MB.");
-        err.status = 400;
-        throw err;
-    }
     const url = await uploadImage(file);
     if (!url) {
         const err = new Error("Image upload to Cloudinary failed.");
@@ -1036,23 +1084,6 @@ app.put('/api/admin/me', requireAdmin, async (req, res) => {
     }
 });
 
-// Debug endpoint - test admin auth without middleware
-app.get('/api/admin/debug', (req, res) => {
-    const header = req.headers.authorization || '';
-    const token = header.startsWith('Bearer ') ? header.slice(7) : '';
-    console.log('[DEBUG] /api/admin/debug called | token length:', token.length, '| token start:', token.substring(0, 30));
-    if (!token) return res.json({ ok: false, reason: 'no token in header', headers: Object.keys(req.headers) });
-    try {
-        const jwt = require('jsonwebtoken');
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        console.log('[DEBUG] JWT verified OK:', JSON.stringify(decoded));
-        res.json({ ok: true, decoded });
-    } catch (e) {
-        console.log('[DEBUG] JWT verification FAILED:', e.message);
-        res.json({ ok: false, reason: e.message });
-    }
-});
-
 app.post('/api/admin/logout', requireAdmin, async (req, res) => {
     await logout(req.token);
     res.clearCookie('fmc_admin_token', { path: '/' });
@@ -1573,8 +1604,11 @@ app.post('/api/admin/ads', requireAdmin, async (req, res) => {
                 const img = Array.isArray(req.files.image) ? req.files.image : [req.files.image];
                 allFiles.push(...img);
             }
+            // A failed upload must not be swallowed: the ad would be saved without the image
+            // the admin just chose, with no indication anything went wrong.
             for (const file of allFiles) {
-                try { const p = await saveImage(file); if (p) imageUrls.push(p); } catch(e) { /* skip */ }
+                const p = await saveImage(file);
+                if (p) imageUrls.push(p);
             }
             if (imageUrls.length) imageUrl = imageUrls[0];
         }
@@ -1616,21 +1650,18 @@ app.put('/api/admin/ads/:id', requireAdmin, async (req, res) => {
         if (b.imageUrl !== undefined) update.imageUrl = String(b.imageUrl).trim();
         const imagePath = await saveImage(req.files && req.files.image);
         if (imagePath) update.imageUrl = imagePath;
+        // Only the gallery field goes on to be uploaded here. `image` was already uploaded
+        // above for `update.imageUrl`; including it again stored the same photo twice on
+        // Cloudinary on every ad edit and then pointed imageUrl at the duplicate.
         const putFiles = [];
-        if (req.files) {
-            if (req.files.images) {
-                const imgs = Array.isArray(req.files.images) ? req.files.images : [req.files.images];
-                putFiles.push(...imgs);
-            }
-            if (req.files.image) {
-                const img = Array.isArray(req.files.image) ? req.files.image : [req.files.image];
-                putFiles.push(...img);
-            }
+        if (req.files && req.files.images) {
+            putFiles.push(...(Array.isArray(req.files.images) ? req.files.images : [req.files.images]));
         }
         if (putFiles.length) {
             const urls = [];
             for (const file of putFiles) {
-                try { const p = await saveImage(file); if (p) urls.push(p); } catch(e) {}
+                const p = await saveImage(file);
+                if (p) urls.push(p);
             }
             if (urls.length) { update.imageUrls = urls; update.imageUrl = urls[0]; }
         }
