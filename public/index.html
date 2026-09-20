@@ -1065,7 +1065,17 @@ main{scroll-padding-top:10px}
 <script>
 const socket=io();const $=id=>document.getElementById(id);
 let allData=[],messages=[],results=[],userToken=localStorage.getItem('fmc_user_token')||'',me=null;
-let approvedFoundChildIds=new Set();let ownFoundChildIdsReady=!userToken;let ownFoundChildIdsPromise=null;let ownFoundChildIdsToken='';let ownFoundChildIdsLoadedToken='';
+// Is this browser signed in? A password login leaves a token here; a Google login (or any login
+// once storage is cleared) is held in an httpOnly cookie this page cannot read, so it is
+// confirmed by asking /api/auth/me. Every "am I logged in?" decision below asks this, not
+// `userToken` — the token is only used when this page actually holds one.
+let hasSession=!!userToken;
+// Identifies the current session for caching purposes ('cookie' for a cookie-only session).
+const sessionKey=()=>userToken||'cookie';
+// Authorization header, sent only when there is a local token; otherwise the browser attaches
+// the httpOnly auth cookie on its own.
+const authHeader=()=>userToken?{Authorization:'Bearer '+userToken}:{};
+let approvedFoundChildIds=new Set();let ownFoundChildIdsReady=!hasSession;let ownFoundChildIdsPromise=null;let ownFoundChildIdsToken='';let ownFoundChildIdsLoadedToken='';
 let ngoContactsCache=null;let ngoContactsPromise=null;let ngoContactsFailed=false;
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money=n=>'₹'+Number(n||0).toLocaleString('en-IN');
@@ -1074,7 +1084,7 @@ const byDateDesc=(a,b)=>dateKey(b).localeCompare(dateKey(a));
 const fmtDate=d=>d?new Date(d).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}):'';
 
 function toast(msg,type){const t=$('toast');t.textContent=msg;t.className='show '+(type||'ok');setTimeout(()=>t.className='',3200)}
-async function api(path,opts={}){const h=opts.headers||{};if(userToken)h.Authorization='Bearer '+userToken;opts.cache='no-store';const url=new URL(path,window.location.origin);url.searchParams.append('_t',Date.now());const fetchPath=url.pathname+url.search;const r=await fetch(fetchPath,{...opts,headers:h});const j=await r.json().catch(()=>({}));if(r.status===401&&opts.auth){localStorage.removeItem('fmc_user_token');userToken='';me=null;renderMe();throw new Error(j.message||'Please log in.')}if(!r.ok)throw new Error(j.message||'Request failed');return j}
+async function api(path,opts={}){const h=opts.headers||{};Object.assign(h,authHeader());opts.cache='no-store';const url=new URL(path,window.location.origin);url.searchParams.append('_t',Date.now());const fetchPath=url.pathname+url.search;const r=await fetch(fetchPath,{...opts,headers:h});const j=await r.json().catch(()=>({}));if(r.status===401&&opts.auth){localStorage.removeItem('fmc_user_token');userToken='';me=null;renderMe();throw new Error(j.message||'Please log in.')}if(!r.ok)throw new Error(j.message||'Request failed');return j}
 
 /* --- SVG templates for cards --- */
 const iconChild='<svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>';
@@ -1240,8 +1250,8 @@ function renderFound(){
   if(!paged.length){$('foundList').innerHTML='<div class="empty"><p>'+(totalFound?'No matches for your search.':'No children found yet.')+'</p></div>';$('foundPagination').innerHTML='';return}
   $('foundList').innerHTML=paged.map(c=>{
     const imgTag=c.image?'<img src="'+esc(c.image)+'" loading="lazy" onerror="this.style.display=\'none\'">':'';
-    const isFinder=!!(userToken&&ownFoundChildIdsReady&&approvedFoundChildIds.has(String(c._id)));
-    const actionsHtml=!ownFoundChildIdsReady&&userToken?'<div class="factions" style="justify-content:center"><span style="font-size:12px;color:var(--text3);font-style:italic">Checking your finder status...</span></div>':isFinder?'<div class="factions" style="justify-content:center"><span style="font-size:12px;color:var(--text3);font-style:italic">You are the finder — you cannot praise or gift yourself</span></div>':'<div class="factions"><button class="action-btn gold" onclick="openPraiseForm('+jsArg(c._id)+','+jsArg(c.fullName||'')+')">Praise</button><button class="action-btn green" onclick="openGiftForm('+jsArg(c._id)+','+jsArg(c.fullName||'')+')">Give a gift</button></div>';
+    const isFinder=!!(hasSession&&ownFoundChildIdsReady&&approvedFoundChildIds.has(String(c._id)));
+    const actionsHtml=!ownFoundChildIdsReady&&hasSession?'<div class="factions" style="justify-content:center"><span style="font-size:12px;color:var(--text3);font-style:italic">Checking your finder status...</span></div>':isFinder?'<div class="factions" style="justify-content:center"><span style="font-size:12px;color:var(--text3);font-style:italic">You are the finder — you cannot praise or gift yourself</span></div>':'<div class="factions"><button class="action-btn gold" onclick="openPraiseForm('+jsArg(c._id)+','+jsArg(c.fullName||'')+')">Praise</button><button class="action-btn green" onclick="openGiftForm('+jsArg(c._id)+','+jsArg(c.fullName||'')+')">Give a gift</button></div>';
     return '<div class="fcard" id="fcard-'+esc(c._id)+'"><div class="fhead" onclick="toggleFound('+jsArg(c._id)+')"><div class="favatar"><div class="ph">'+iconChild+'</div>'+imgTag+'</div><div class="finfo"><div class="fname">'+(esc(c.fullName)||'Unknown')+'</div><div class="finder"><svg viewBox="0 0 24 24" style="width:13px;height:13px;fill:var(--green);vertical-align:middle"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> Found by '+(esc(c.finderName||'Someone'))+'</div><div class="fdate">'+fmtDate(c.foundDate||c.createdAt)+'</div></div><div class="farrow" id="fcarrow-'+esc(c._id)+'">&#9662;</div></div><div class="fbody" id="fbody-'+esc(c._id)+'"><div id="praiseBox-'+esc(c._id)+'"><div class="empty"><p style="font-size:12px">Loading...</p></div></div>'+actionsHtml+'</div></div>'
   }).join('');
   // Pagination
@@ -1261,8 +1271,8 @@ async function submitReport(){
   const btn=$('reportBtn');
   const restoreReportButton=()=>{if(btn){btn.disabled=false;btn.innerHTML=btn.getAttribute('data-original-text')||'Submit for review'}};
   if(btn){btn.disabled=true;btn.setAttribute('data-original-text',btn.innerHTML);btn.innerHTML='<span class="spinner"></span> Submitting report...'}
-  if(!userToken){restoreReportButton();openModal('Login Required',`<div style=\"text-align:center;padding:20px 0\"><div style=\"font-size:40px;margin-bottom:12px\">🔒</div><div style=\"font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px\">Login to submit a report</div><div style=\"font-size:13px;color:var(--text3);margin-bottom:20px\">You need an account to report a missing child</div><div class=\"actions\"><button class=\"btn\" style=\"margin:0\" onclick=\"closeModal();showView('me')\">Login / Sign Up</button><button class=\"btn-ghost\" onclick=\"closeModal()\">Cancel</button></div></div>`);return}
-  const name=$('r_name').value.trim(),contact=$('r_contact').value.trim(),msg=$('reportMsg');if(!name){msg.textContent='Enter the child\'s full name.';restoreReportButton();return}const fd=new FormData();fd.append('fullName',name);fd.append('gender',$('r_gender').value);fd.append('age',$('r_age').value);fd.append('address',$('r_address').value.trim());fd.append('state',$('r_state').value.trim());if(contact)fd.append('contactNumber',contact);fd.append('missingDate',$('r_date').value);fd.append('missingTime',$('r_time').value);fd.append('missingLocation',$('r_location').value.trim());fd.append('info',$('r_info').value.trim());const ngoCheckboxes=document.querySelectorAll('#r_ngo_contacts input[type=checkbox]:checked');const selectedNGOs=[];ngoCheckboxes.forEach(cb=>{if(cb.dataset.ngoId)selectedNGOs.push(cb.dataset.ngoId)});if(selectedNGOs.length)fd.append('selectedNGOContacts',JSON.stringify(selectedNGOs));  const file=$('r_photo').files[0];if(file){fd.append('image',file);try{await fmcFace.loadFaceApi();const desc=await fmcFace.extractFaceDescriptor(file);if(desc)fd.append('faceDescriptor',JSON.stringify(desc))}catch(e){console.warn('Face extraction skipped:',e)}}msg.textContent='';try{const r=await fetch('/api/children',{method:'POST',headers:{'Authorization':'Bearer '+userToken},body:fd});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.message||'Failed');msg.textContent=j.message;showReportResult(true,j.message||'Your report has been submitted and is pending verification. It will appear publicly once approved by an admin.')}catch(e){msg.textContent=e.message;showReportResult(false,e.message||'Unable to submit the report.')}finally{restoreReportButton()}}
+  if(!hasSession){restoreReportButton();openModal('Login Required',`<div style=\"text-align:center;padding:20px 0\"><div style=\"font-size:40px;margin-bottom:12px\">🔒</div><div style=\"font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px\">Login to submit a report</div><div style=\"font-size:13px;color:var(--text3);margin-bottom:20px\">You need an account to report a missing child</div><div class=\"actions\"><button class=\"btn\" style=\"margin:0\" onclick=\"closeModal();showView('me')\">Login / Sign Up</button><button class=\"btn-ghost\" onclick=\"closeModal()\">Cancel</button></div></div>`);return}
+  const name=$('r_name').value.trim(),contact=$('r_contact').value.trim(),msg=$('reportMsg');if(!name){msg.textContent='Enter the child\'s full name.';restoreReportButton();return}const fd=new FormData();fd.append('fullName',name);fd.append('gender',$('r_gender').value);fd.append('age',$('r_age').value);fd.append('address',$('r_address').value.trim());fd.append('state',$('r_state').value.trim());if(contact)fd.append('contactNumber',contact);fd.append('missingDate',$('r_date').value);fd.append('missingTime',$('r_time').value);fd.append('missingLocation',$('r_location').value.trim());fd.append('info',$('r_info').value.trim());const ngoCheckboxes=document.querySelectorAll('#r_ngo_contacts input[type=checkbox]:checked');const selectedNGOs=[];ngoCheckboxes.forEach(cb=>{if(cb.dataset.ngoId)selectedNGOs.push(cb.dataset.ngoId)});if(selectedNGOs.length)fd.append('selectedNGOContacts',JSON.stringify(selectedNGOs));  const file=$('r_photo').files[0];if(file){fd.append('image',file);try{await fmcFace.loadFaceApi();const desc=await fmcFace.extractFaceDescriptor(file);if(desc)fd.append('faceDescriptor',JSON.stringify(desc))}catch(e){console.warn('Face extraction skipped:',e)}}msg.textContent='';try{const r=await fetch('/api/children',{method:'POST',headers:authHeader(),body:fd});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.message||'Failed');msg.textContent=j.message;showReportResult(true,j.message||'Your report has been submitted and is pending verification. It will appear publicly once approved by an admin.')}catch(e){msg.textContent=e.message;showReportResult(false,e.message||'Unable to submit the report.')}finally{restoreReportButton()}}
 
 
 /* --- Navigation --- */
@@ -1330,9 +1340,11 @@ async function sendOtp(){const email=($('as_email')||{}).value||'';const normali
 async function verifyOtpCode(autoComplete){const email=($('as_email')||{}).value||'';const normalizedEmail=email.trim().toLowerCase();const code=($('as_otp')||{}).value||'';if(!otpSent){showOtpMsg('Request an OTP first','err');return}if(!code||code.length!==6){showOtpMsg('Enter 6-digit code','err');return}try{await api('/api/auth/verify-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:normalizedEmail,code})});otpVerified=true;verifiedOtpEmail=normalizedEmail;resetOtpCountdown();showOtpMsg('Email verified! You can now create your account.','ok');$('as_otp').style.borderColor='var(--green)';$('as_otp').disabled=true;$('verifyOtpBtn').textContent='Verified';$('verifyOtpBtn').disabled=true;$('verifyOtpBtn').style.color='var(--green)';$('sendOtpBtn').disabled=true;const complete=$('signupCompleteBtn');if(complete){complete.disabled=false;complete.textContent='Create account'}if(autoComplete)await doSignup()}catch(e){showOtpMsg(e.message,'err')}}
 function showOtpMsg(msg,type){const el=$('otpMsg');el.style.display='block';el.textContent=msg;el.style.color=type==='ok'?'var(--green)':'var(--red)'}
 function checkPwStrength(){const pw=($('as_pass')||{}).value||'';const el=$('pwStrength');if(!pw){el.style.display='none';return}let msg='',ok=false;if(pw.length>=8&&/[A-Z]/.test(pw)&&/[0-9]/.test(pw)&&/[!@#$%^&*()_+\-=\[\]{};':"\\\|,.<>\/?]/.test(pw)){msg='Strong password';ok=true}else{msg='Need 8+ chars, 1 uppercase, 1 number, 1 special'}el.style.display='block';el.textContent=msg;el.style.color=ok?'var(--green)':'var(--red)'}
-async function doLogin(){try{const id=($('ai_id')||{}).value||'';const pw=($('ai_pass')||{}).value||'';if(!id){toast('Enter phone or email','err');return}if(!pw){toast('Enter password','err');return}const j=await api('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({identifier:id.trim(),password:pw})});userToken=j.token;localStorage.setItem('fmc_user_token',j.token);me=j.user;approvedFoundChildIds=new Set();ownFoundChildIdsReady=false;ownFoundChildIdsLoadedToken='';renderFound();loadMyRequests2();track('login');toast(j.message);renderMe()}catch(e){toast(e.message,'err')}}
-async function doSignup(){try{const name=($('as_name')||{}).value||'';const phone=($('as_contact')||{}).value||'';const email=($('as_email')||{}).value||'';const normalizedEmail=email.trim().toLowerCase();const pw=($('as_pass')||{}).value||'';const cleanDigits=phone.trim().replace(/[\s\-().]/g,'').replace(/^(\+91|91|0)/,'');const intlPhone=phone.trim().replace(/[\s\-()]/g,'');if(!name.trim()||name.trim().length<2){toast('Name must be at least 2 characters','err');return}if(!normalizedEmail||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)){toast('Enter a valid email address','err');return}if(!otpSent){await sendOtp();return}if(!otpVerified||verifiedOtpEmail!==normalizedEmail){await verifyOtpCode(true);return}if(!/^[6-9]\d{9}$/.test(cleanDigits)&&!/^\+?[1-9]\d{6,14}$/.test(intlPhone)){toast('Please enter a valid phone number','err');return}if(pw.length<8||!/[A-Z]/.test(pw)||!/[0-9]/.test(pw)||!/[!@#$%^&*()_+\-=\[\]{};':"\\\|,.<>\/?]/.test(pw)){toast('Password needs 8+ chars, uppercase, number, special','err');return}const j=await api('/api/auth/signup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fullName:name.trim(),contactNumber:phone.trim(),emailId:normalizedEmail,password:pw})});userToken=j.token;localStorage.setItem('fmc_user_token',j.token);me=j.user;approvedFoundChildIds=new Set();ownFoundChildIdsReady=false;renderFound();loadMyRequests2();track('signup');sessionStorage.setItem('fmc_just_signed_up','true');toast(j.message);renderMe()}catch(e){toast(e.message,'err')}}
-function logoutUser(){if(userToken)fetch('/api/auth/logout',{method:'POST',headers:{Authorization:'Bearer '+userToken}}).catch(()=>{});sessionStorage.removeItem('fmc_just_signed_up');localStorage.removeItem('fmc_user_token');userToken='';me=null;approvedFoundChildIds=new Set();ownFoundChildIdsReady=true;ownFoundChildIdsPromise=null;ownFoundChildIdsToken='';ownFoundChildIdsLoadedToken='';toast('Logged out.');renderMe()}
+async function doLogin(){try{const id=($('ai_id')||{}).value||'';const pw=($('ai_pass')||{}).value||'';if(!id){toast('Enter phone or email','err');return}if(!pw){toast('Enter password','err');return}const j=await api('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({identifier:id.trim(),password:pw})});userToken=j.token;hasSession=true;localStorage.setItem('fmc_user_token',j.token);me=j.user;approvedFoundChildIds=new Set();ownFoundChildIdsReady=false;ownFoundChildIdsLoadedToken='';renderFound();loadMyRequests2();track('login');toast(j.message);renderMe()}catch(e){toast(e.message,'err')}}
+async function doSignup(){try{const name=($('as_name')||{}).value||'';const phone=($('as_contact')||{}).value||'';const email=($('as_email')||{}).value||'';const normalizedEmail=email.trim().toLowerCase();const pw=($('as_pass')||{}).value||'';const cleanDigits=phone.trim().replace(/[\s\-().]/g,'').replace(/^(\+91|91|0)/,'');const intlPhone=phone.trim().replace(/[\s\-()]/g,'');if(!name.trim()||name.trim().length<2){toast('Name must be at least 2 characters','err');return}if(!normalizedEmail||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)){toast('Enter a valid email address','err');return}if(!otpSent){await sendOtp();return}if(!otpVerified||verifiedOtpEmail!==normalizedEmail){await verifyOtpCode(true);return}if(!/^[6-9]\d{9}$/.test(cleanDigits)&&!/^\+?[1-9]\d{6,14}$/.test(intlPhone)){toast('Please enter a valid phone number','err');return}if(pw.length<8||!/[A-Z]/.test(pw)||!/[0-9]/.test(pw)||!/[!@#$%^&*()_+\-=\[\]{};':"\\\|,.<>\/?]/.test(pw)){toast('Password needs 8+ chars, uppercase, number, special','err');return}const j=await api('/api/auth/signup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fullName:name.trim(),contactNumber:phone.trim(),emailId:normalizedEmail,password:pw})});userToken=j.token;hasSession=true;localStorage.setItem('fmc_user_token',j.token);me=j.user;approvedFoundChildIds=new Set();ownFoundChildIdsReady=false;renderFound();loadMyRequests2();track('signup');sessionStorage.setItem('fmc_just_signed_up','true');toast(j.message);renderMe()}catch(e){toast(e.message,'err')}}
+// Always tell the server, even with no local token: a cookie-only session would otherwise stay
+// alive server-side while the page claimed to be logged out.
+function logoutUser(){if(hasSession)fetch('/api/auth/logout',{method:'POST',headers:authHeader()}).catch(()=>{});sessionStorage.removeItem('fmc_just_signed_up');localStorage.removeItem('fmc_user_token');userToken='';hasSession=false;me=null;approvedFoundChildIds=new Set();ownFoundChildIdsReady=true;ownFoundChildIdsPromise=null;ownFoundChildIdsToken='';ownFoundChildIdsLoadedToken='';toast('Logged out.');renderMe()}
 function openProfileEdit(){openModal('Edit Profile',`<div class="field"><label>Full Name</label><input id="pe_name" type="text" value="${esc(me&&me.userFullName||'')}" placeholder="Your full name"></div><div class="field"><label>Phone Number</label><input id="pe_contact" type="tel" value="${esc(me&&me.userContactNumber||'')}" placeholder="8055137760"></div><div class="actions"><button class="btn" style="margin:0" onclick="submitProfileEdit()">Save Changes</button><button class="btn-ghost" onclick="closeModal()">Cancel</button></div>`)}
 async function submitProfileEdit(){try{const j=await api('/api/auth/me',{method:'PUT',auth:true,headers:{'Content-Type':'application/json'},body:JSON.stringify({userFullName:$('pe_name').value.trim(),userContactNumber:$('pe_contact').value.trim()})});if(j.user){me=j.user}closeModal();toast(j.message||'Profile updated!');renderMe()}catch(e){toast(e.message,'err')}}
 function editMyPraise(id,currentText){openModal('Edit Praise',`<div class="field"><label>Your praise</label><textarea id="ep_text" rows="4" style="width:100%;padding:10px;border-radius:10px;border:1.5px solid var(--border);font-size:14px;resize:vertical">${esc(currentText)}</textarea></div><div style="font-size:11px;color:var(--text3);margin-bottom:12px">Editing will reset status to pending for admin re-approval.</div><div style="display:flex;gap:12px;margin-top:20px"><button type="button" onclick="submitEditMyPraise(${jsArg(id)})" style="flex:1;height:48px;border-radius:14px;background:var(--dark);color:#fff;border:none;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center">Save</button><button type="button" onclick="closeModal()" style="flex:1;height:48px;border-radius:14px;background:var(--border);color:var(--text);border:none;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center">Cancel</button></div>`)}
@@ -1365,18 +1377,18 @@ if($('profSafe')){const d=s.safeChildren||[];const pg=profPages.safe;const pgd=d
 $('profSafe').innerHTML=pgd.length?pgd.map(c=>'<div style="display:flex;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer;transition:transform 0.15s" onclick="openSafeChildDetail('+jsArg(c._id)+')" onmousedown="this.style.transform=\'scale(0.98)\'" onmouseup="this.style.transform=\'scale(1)\'" onmouseleave="this.style.transform=\'scale(1)\'">'+(c.photoUrl?'<img src="'+esc(c.photoUrl)+'" style="width:40px;height:40px;border-radius:8px;object-fit:cover;margin-right:12px;flex-shrink:0">':'<div style="width:40px;height:40px;border-radius:8px;background:var(--bg2);display:flex;align-items:center;justify-content:center;margin-right:12px;flex-shrink:0;font-size:18px">👶</div>')+'<div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-weight:600;font-size:13px">'+esc(c.childName||'Unknown')+(c.status?'<span style="font-size:9px;font-weight:800;padding:3px 6px;border-radius:5px;text-transform:uppercase;background:'+(c.status==='approved'?'#eaf9ef':c.status==='rejected'?'var(--red-light)':'var(--orange-light)')+';color:'+(c.status==='approved'?'#16803c':c.status==='rejected'?'var(--red)':'#b45309')+'">'+esc(c.status)+'</span>':'')+'</div><div style="font-size:11px;color:var(--text3)">'+fmtDate(c.createdAt)+(c.age?' · '+c.age+' yrs':'')+(c.gender?' · '+esc(c.gender):'')+'</div></div><div style="display:flex;gap:6px;flex-shrink:0;margin-left:8px"><button onclick="event.stopPropagation();openSafeChildEdit('+jsArg(c._id)+','+jsArg(c.childName||'')+','+(c.age||'null')+','+jsArg(c.gender||'')+','+jsArg(c.address||'')+','+jsArg(c.parentContact||'')+','+jsArg(c.medicalInfo||'')+')" style="font-size:11px;color:var(--accent);background:none;border:1px solid var(--accent);border-radius:6px;padding:4px 8px;cursor:pointer">Edit</button><button onclick="event.stopPropagation();deleteRegisteredChild('+jsArg(c._id)+')" style="font-size:11px;color:var(--red);background:none;border:1px solid var(--red);border-radius:6px;padding:4px 8px;cursor:pointer">Del</button></div></div>').join(''):'<div style="padding:12px 0;text-align:center;font-size:13px;color:var(--text3)">No SafeChild registrations yet.</div>';
 $('profSafePag').innerHTML=profPagHtml('safe',d.length)}}
 async function loadMyRequests2(){
-  if(!userToken){approvedFoundChildIds=new Set();ownFoundChildIdsReady=true;ownFoundChildIdsLoadedToken='';renderFound();return Promise.resolve()}
-  if(ownFoundChildIdsLoadedToken===userToken&&ownFoundChildIdsReady)return Promise.resolve();
-  if(ownFoundChildIdsPromise&&ownFoundChildIdsToken===userToken)return ownFoundChildIdsPromise;
-  const requestToken=userToken;ownFoundChildIdsToken=requestToken;
+  if(!hasSession){approvedFoundChildIds=new Set();ownFoundChildIdsReady=true;ownFoundChildIdsLoadedToken='';renderFound();return Promise.resolve()}
+  if(ownFoundChildIdsLoadedToken===sessionKey()&&ownFoundChildIdsReady)return Promise.resolve();
+  if(ownFoundChildIdsPromise&&ownFoundChildIdsToken===sessionKey())return ownFoundChildIdsPromise;
+  const requestToken=sessionKey();ownFoundChildIdsToken=requestToken;
   ownFoundChildIdsPromise=api('/api/found-requests/me',{auth:true}).then(j=>{
-    if(requestToken!==userToken)return;
+    if(requestToken!==sessionKey())return;
     const requests=j.data||[];userActivity.foundReqs=requests;
     approvedFoundChildIds=new Set(requests.filter(r=>r.status==='approved'&&r.childId).map(r=>String(r.childId._id||r.childId)));
     ownFoundChildIdsReady=true;ownFoundChildIdsLoadedToken=requestToken;renderProfActivity();renderFound();
   }).catch(e=>{
-    if(requestToken===userToken){approvedFoundChildIds=new Set();ownFoundChildIdsReady=true;renderFound()}
-    else if(!userToken){approvedFoundChildIds=new Set();ownFoundChildIdsReady=true;ownFoundChildIdsLoadedToken='';renderFound()}
+    if(requestToken===sessionKey()){approvedFoundChildIds=new Set();ownFoundChildIdsReady=true;renderFound()}
+    else if(!hasSession){approvedFoundChildIds=new Set();ownFoundChildIdsReady=true;ownFoundChildIdsLoadedToken='';renderFound()}
   }).finally(()=>{if(ownFoundChildIdsToken===requestToken){ownFoundChildIdsPromise=null;ownFoundChildIdsToken=''}});
   return ownFoundChildIdsPromise;
 }
@@ -1699,7 +1711,7 @@ async function submitRegistration(){
   if(!name){$('regStatus').textContent='Child name is required';$('regStatus').style.color='var(--red)';return}
   if(!contact){$('regStatus').textContent='Parent contact is required';$('regStatus').style.color='var(--red)';return}
   if(!regPhotoFile){$('regStatus').textContent='Please upload a face photo';$('regStatus').style.color='var(--red)';return}
-  if(!userToken){toast('Please log in first','err');showView('me');return}
+  if(!hasSession){toast('Please log in first','err');showView('me');return}
   
   const btn=$('regSubmitBtn');btn.disabled=true;btn.textContent='Processing face...';
   $('regStatus').textContent='Loading AI models...';$('regStatus').style.color='var(--accent)';
@@ -1723,7 +1735,7 @@ async function submitRegistration(){
     fd.append('medicalInfo',$('regMedical').value.trim());
     fd.append('faceDescriptor',JSON.stringify(descriptor));
     fd.append('photo',regPhotoFile);
-    const r=await fetch('/api/safechild/register',{method:'POST',headers:{'Authorization':'Bearer '+userToken},body:fd});
+    const r=await fetch('/api/safechild/register',{method:'POST',headers:authHeader(),body:fd});
     const j=await r.json().catch(()=>({}));
     if(!r.ok||!j.success)throw new Error(j.message||'Registration failed');
     $('regStatus').textContent='✅ '+j.message;$('regStatus').style.color='var(--green)';
@@ -1744,9 +1756,9 @@ function renderMyRegisteredChildren(children){
 }
 
 async function loadMyRegisteredChildren(){
-  const box=$('myRegisteredChildren');if(!box||!userToken)return;
+  const box=$('myRegisteredChildren');if(!box||!hasSession)return;
   try{
-    const r=await fetch('/api/safechild/children',{headers:{'Authorization':'Bearer '+userToken}});
+    const r=await fetch('/api/safechild/children',{headers:authHeader()});
     const j=await r.json().catch(()=>({}));
     if(!j.success||!j.data){box.innerHTML='<p style="font-size:13px;color:var(--text3);text-align:center;padding:16px">No children registered yet.</p>';return}
     userActivity.safeChildren=j.data;
@@ -1801,7 +1813,7 @@ async function submitSafeChildEdit(id){
       }
       fd.append('photo',file);
     }
-    const r=await fetch('/api/safechild/children/'+id,{method:'PUT',headers:{'Authorization':'Bearer '+userToken},body:fd});
+    const r=await fetch('/api/safechild/children/'+id,{method:'PUT',headers:authHeader(),body:fd});
     const j=await r.json().catch(()=>({}));
     if(!r.ok||!j.success)throw new Error(j.message||'Update failed');
     closeModal();toast('Child details updated!','ok');loadMyRegisteredChildren();
@@ -1812,7 +1824,7 @@ async function submitSafeChildEdit(id){
 async function deleteRegisteredChild(id){
   if(!confirm('Remove this child from SafeChild registry?'))return;
   try{
-    const r=await fetch('/api/safechild/children/'+id,{method:'DELETE',headers:{'Authorization':'Bearer '+userToken}});
+    const r=await fetch('/api/safechild/children/'+id,{method:'DELETE',headers:authHeader()});
     const j=await r.json().catch(()=>({}));
     if(!r.ok||!j.success)throw new Error(j.message||'Failed to delete');
     userActivity.safeChildren=(userActivity.safeChildren||[]).filter(c=>String(c._id)!==String(id));
@@ -1967,8 +1979,8 @@ async function openScanDetail(id,detailType,btnElement){
       openScanDetail._refresh(id,detailType);
       return;
     }
-    const opts=isSafeChild?{}:userToken?{auth:true}:{headers:{}};
-    const url=isSafeChild?'/api/safechild/children/'+id+'/public':userToken?'/api/children/'+id+'/detail':'/api/children/'+id;
+    const opts=isSafeChild?{}:hasSession?{auth:true}:{headers:{}};
+    const url=isSafeChild?'/api/safechild/children/'+id+'/public':hasSession?'/api/children/'+id+'/detail':'/api/children/'+id;
     const j=await api(url,opts);
     if(!j.success||!j.data){toast('Child not found','err');return}
     closeScanModal();
@@ -1979,8 +1991,8 @@ async function openScanDetail(id,detailType,btnElement){
 openScanDetail._refresh=async function(id,detailType){
   try{
     const isSafeChild=detailType==='safechild';
-    const opts=isSafeChild?{}:userToken?{auth:true}:{headers:{}};
-    const url=isSafeChild?'/api/safechild/children/'+id+'/public':userToken?'/api/children/'+id+'/detail':'/api/children/'+id;
+    const opts=isSafeChild?{}:hasSession?{auth:true}:{headers:{}};
+    const url=isSafeChild?'/api/safechild/children/'+id+'/public':hasSession?'/api/children/'+id+'/detail':'/api/children/'+id;
     const j=await api(url,opts);
     if(j.success&&j.data&&$('sheet').classList.contains('show'))renderScanDetail(j.data,j.ngoContacts!=null?j.ngoContacts:ngoContactsCache,isSafeChild);
   }catch(e){/* Cached details remain usable if the background refresh fails. */}
@@ -2008,11 +2020,20 @@ function renderScanDetail(c,providedNgo,isSafeChild){
 /* --- Boot --- */
 $('backdrop').addEventListener('click',closeDetail);
 $('sheetClose').addEventListener('click',closeDetail);
-/* --- Handle Google OAuth redirect --- */
+/* --- Session check (also handles the Google OAuth redirect) --- */
+// The Google callback used to send the token here in the URL (?google_token=...), which wrote it
+// into browser history, the Referer header of every request the page made, and any proxy log.
+// The token now arrives in an httpOnly cookie, so this page asks the server who it is instead of
+// reading a token. `?google=1` is just a hint that we came back from the Google flow.
 const urlParams=new URLSearchParams(window.location.search);
-const gToken=urlParams.get('google_token');
-if(gToken){userToken=gToken;localStorage.setItem('fmc_user_token',gToken);window.history.replaceState({},'',window.location.pathname);toast('Signed in with Google!','ok');}
-if(userToken){loadMyRequests2();api('/api/auth/me',{auth:true}).then(j=>{me=j.user;renderMe()}).catch(()=>{})}
+const fromGoogle=urlParams.get('google')==='1';
+if(urlParams.has('google'))window.history.replaceState({},'',window.location.pathname);
+if(hasSession){loadMyRequests2();api('/api/auth/me',{auth:true}).then(j=>{me=j.user;renderMe()}).catch(()=>{})}
+else{
+  // No token in this page. If the browser holds an httpOnly cookie from a Google login, this is
+  // the only way to find out — and if it does not, we simply stay logged out.
+  api('/api/auth/me',{auth:true}).then(j=>{me=j.user;hasSession=true;ownFoundChildIdsReady=false;ownFoundChildIdsToken='';renderFound();renderMe();loadMyRequests2();if(fromGoogle)toast('Signed in with Google!','ok')}).catch(()=>{})
+}
 
 /* --- Instant load from cache + background refresh --- */
 const cachedData=loadCache('allData',600000);

@@ -6,7 +6,9 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="admin-version" content="a8f2e7c1"><script>(function(){var t=localStorage.getItem('fmc_admin_token');var m=document.cookie.match(/(^|;)\s*fmc_admin_token=([^;]+)/);if(t||(m&&m[2]))document.documentElement.classList.add('is-auth')})();</script><style>html.is-auth #loginView{display:none!important}html.is-auth #appView{display:block!important}</style><title>Admin — Gumshuda Bacho Ki Talash</title>
+<meta name="admin-version" content="a8f2e7c1"><script>(function(){/* Hint only. The real token now lives in an httpOnly cookie that this script cannot read,
+   so a session that has no stored token is confirmed by asking /api/admin/me (see the init block
+   at the bottom). This just avoids a login flash for the common case. */if(localStorage.getItem('fmc_admin_token'))document.documentElement.classList.add('is-auth')})();</script><style>html.is-auth #loginView{display:none!important}html.is-auth #appView{display:block!important}</style><title>Admin — Gumshuda Bacho Ki Talash</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -602,7 +604,11 @@ function showLogin(){$('loginView').style.display='flex';$('appView').style.disp
 function showApp(){$('loginView').style.display='none';$('appView').style.display='block'}
 $('loginBtn').addEventListener('click',async()=>{try{const r=await api('/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:$('loginUser').value,password:$('loginPass').value})});token=r.token;localStorage.setItem('fmc_admin_token',token);showApp();loadDashboard()}catch(e){toast(e.message,'err')}});
 $('loginPass').addEventListener('keydown',e=>{if(e.key==='Enter')$('loginBtn').click()});
-$('logoutBtn').addEventListener('click',async()=>{try{await api('/api/admin/logout',{method:'POST'})}catch(e){}localStorage.removeItem('fmc_admin_token');localStorage.removeItem('fmc_admin_name');localStorage.removeItem('fmc_admin_role');document.cookie='fmc_admin_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';document.cookie='fmc_admin_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/api/admin/auth/google/callback;';token='';showLogin()});
+// The server revokes the session *and* expires the httpOnly cookie in this same call; JavaScript
+// cannot (and no longer needs to) touch that cookie itself. The old version here deleted a
+// same-named cookie on two different paths while the real one — set with path=/ and readable —
+// survived, so "logout" left a working login behind in the browser.
+$('logoutBtn').addEventListener('click',async()=>{try{await api('/api/admin/logout',{method:'POST'})}catch(e){}localStorage.removeItem('fmc_admin_token');localStorage.removeItem('fmc_admin_name');localStorage.removeItem('fmc_admin_role');token='';showLogin()});
 
 // Dashboard
 async function loadDashboard(){
@@ -1811,20 +1817,16 @@ function rteToggleSource(id){
 }
 
 // Init — show app immediately if token exists to avoid login flash
-/* Handle Google OAuth redirect for admin */
-const adminUrlParams=new URLSearchParams(window.location.search);
-const adminTokenParam=adminUrlParams.get("admin_token");
-const adminNameParam=adminUrlParams.get("admin_name");
-const adminRoleParam=adminUrlParams.get("admin_role");
-// Read token from cookie as backup
-function getCookie(name){const v=document.cookie.match('(^|;) ?'+name+'=([^;]*)(;|$)');return v?v[2]:null;}
-const cookieToken=getCookie('fmc_admin_token');
-const finalToken=adminTokenParam||cookieToken||'';
-if(finalToken){token=finalToken;localStorage.setItem("fmc_admin_token",finalToken);if(adminNameParam)localStorage.setItem("fmc_admin_name",decodeURIComponent(adminNameParam));if(adminRoleParam)localStorage.setItem("fmc_admin_role",adminRoleParam);window.history.replaceState({},'',window.location.pathname);}
 
-if(token){console.log('[ADMIN] Token found, showing app...');$('loginView').style.display='none';$('appView').style.display='block';
+// The admin token used to arrive three ways: a `?admin_token=` URL parameter, a
+// JavaScript-readable cookie, and localStorage. The URL parameter and the readable cookie are
+// gone — the token is now an httpOnly cookie the browser sends automatically and no script can
+// read, so it cannot be recovered from this page at all. A session with no stored token is
+// confirmed by asking the server who we are; the token itself never has to be handled here.
+function enterAdminApp(){
+$('loginView').style.display='none';$('appView').style.display='block';
 // Verify token via /api/admin/me (also loads permissions)
-applyPermissions().then(()=>{
+return applyPermissions().then(()=>{
   console.log('[ADMIN] Permissions loaded, adminPerms:',adminPerms);
   // Auto-landing: if admin is sub-admin without children permission, skip empty dashboard
   // and land on first section where they have actual data
@@ -1846,7 +1848,19 @@ applyPermissions().then(()=>{
   // Non-fatal: show error in dashboard but keep app visible
   var dr=document.getElementById('dashRecent');if(dr) dr.innerHTML='<div style="padding:16px;color:#ef4444;font-weight:600;font-size:14px">Load error: '+String(e.message||e)+'</div>';
 });
-}else{console.log('[ADMIN] No token, showing login');showLogin()}
+}
+
+if(token){
+  console.log('[ADMIN] Stored token found, showing app...');
+  enterAdminApp();
+}else{
+  // Nothing readable in this page. Either we are logged out, or the browser holds the httpOnly
+  // cookie from a password or Google login. The server is the only one that can tell.
+  console.log('[ADMIN] No stored token — asking the server whether this browser is signed in...');
+  fetch('/api/admin/me',{cache:'no-store'})
+    .then(r=>r.ok?enterAdminApp():showLogin())
+    .catch(()=>showLogin());
+}
 
 // Real-time badge updates + active view sync via Socket.io
 let _socketRefreshBusy=false,_socketRefreshPending=false,_socketRefreshScopes=null;

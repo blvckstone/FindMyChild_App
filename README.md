@@ -52,6 +52,24 @@ origin only (plus the two fonts hosts). It cannot stop injected inline code — 
 from inline scripts — but it stops a script from another origin loading, and stops stolen data
 being sent anywhere. Adding a new external service means adding it to the policy in `server.js`.
 
+## How login works
+
+Both panels are authenticated by an **httpOnly cookie** (`fmc_user_token`, `fmc_admin_token`).
+The token is never put in a URL and JavaScript cannot read it, so an injected or third-party
+script has nothing to steal. The cookie is `SameSite=Lax`, which also keeps the browser from
+attaching it to a write triggered by another site.
+
+The token is still returned in the JSON reply and still accepted as `Authorization: Bearer`, so
+a non-browser client (a script, a future mobile app) is not locked out. Requests authenticated
+by cookie are additionally checked for an `Origin` that this app trusts — that is the second
+half of the CSRF defence, and it is enforced inside `requireAuth`/`requireAdmin` so no route can
+be written without it.
+
+A session is a row in the `sessions` collection. Logging out, removing an admin, disabling one,
+or changing their permissions deletes it, and the next request is refused — immediately, on every
+instance. Two client-side consequences worth knowing: neither panel needs to hold a token any
+more, and a session that has one (from an older build) is replaced on the next login.
+
 ## Configuration
 
 Every variable is documented in `.env.example`. The short version: `DB_ATLAS` and `JWT_SECRET`

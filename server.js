@@ -4,6 +4,13 @@ const path = require('path');
 const cors = require('cors');
 const fileUpload = require('express-fileupload');
 const { createOriginPolicy, corsOriginCheck } = require('./functions/origins');
+const {
+    USER_COOKIE,
+    ADMIN_COOKIE,
+    readAuth,
+    setAuthCookie,
+    clearAuthCookie
+} = require('./functions/cookies');
 const { Server } = require('socket.io');
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
@@ -429,6 +436,7 @@ app.post('/api/auth/signup', authLimiter, async (req, res) => {
         if (r.error) return res.status(400).json({ success: false, message: r.error });
         verifiedSignups.delete(email);
         notifyDataChanged();
+        setAuthCookie(res, req, USER_COOKIE, r.token);
         res.status(201).json({ success: true, message: "Account created! Welcome to Find My Child.", token: r.token, user: r.user });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -439,6 +447,7 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
     try {
         const r = await loginUser(req.body.identifier, req.body.password);
         if (r.error) return res.status(401).json({ success: false, message: r.error });
+        setAuthCookie(res, req, USER_COOKIE, r.token);
         res.json({ success: true, message: "Welcome back!", token: r.token, user: r.user });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -446,8 +455,11 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
 });
 
 app.post('/api/auth/logout', async (req, res) => {
-    const header = req.headers.authorization || '';
-    await logout(header.slice(7));
+    // Accepts the token from the cookie too, otherwise a browser logged in by cookie alone
+    // would be told "logged out" while its session stayed alive server-side.
+    const { token } = readAuth(req, USER_COOKIE);
+    await logout(token);
+    clearAuthCookie(res, req, USER_COOKIE);
     res.json({ success: true });
 });
 
@@ -506,7 +518,13 @@ if (googleClientId && googleClientSecret) {
                 console.error('[USER-GOOGLE-CB] Error:', err ? err.message : 'No user');
                 return res.redirect('/?error=' + encodeURIComponent(err ? err.message : 'google_failed'));
             }
-            res.redirect('/?google_token=' + user.token);
+            // The token goes into an httpOnly cookie; the URL carries nothing. It used to be
+            // `/?google_token=<token>`, which wrote the token into history, the Referer header
+            // and every log between here and the browser.
+            setAuthCookie(res, req, USER_COOKIE, user.token);
+            // `?google=1` tells the page its cookie session is new (so it can greet the user);
+            // it carries nothing sensitive, unlike the token that used to be in this URL.
+            res.redirect('/?google=1');
         })(req, res, next);
     });
 }
@@ -1018,6 +1036,7 @@ app.post('/api/admin/login', adminLoginLimiter, async (req, res) => {
     try {
         const result = await loginAdmin(req.body.username, req.body.password);
         if (result) {
+            setAuthCookie(res, req, ADMIN_COOKIE, result.token);
             return res.json({ success: true, token: result.token, role: result.role, name: result.name });
         }
         return res.status(401).json({ success: false, message: "Invalid username or password." });
@@ -1050,8 +1069,11 @@ if (googleClientId && googleClientSecret) {
                 return res.redirect('/admin?error=' + encodeURIComponent(err ? err.message : 'not_whitelisted'));
             }
             console.log('[ADMIN-GOOGLE-CB] Success! Redirecting to admin panel');
-            res.cookie('fmc_admin_token', result.token, { httpOnly: false, maxAge: 7 * 24 * 60 * 60 * 1000, sameSite: 'lax', path: '/' });
-            res.redirect('/admin?v=a8f2e7c1&t=' + Date.now() + '&admin_token=' + result.token + '&admin_name=' + encodeURIComponent(result.admin.name || '') + '&admin_role=' + (result.admin.role || 'admin'));
+            // The token used to be in this URL (`&admin_token=...`) *and* in a cookie JavaScript
+            // could read. Now it is httpOnly-cookie-only, and the panel discovers who it is by
+            // asking /api/admin/me.
+            setAuthCookie(res, req, ADMIN_COOKIE, result.token);
+            res.redirect('/admin');
         })(req, res, next);
     });
 }
@@ -1119,6 +1141,10 @@ app.put('/api/admin/me', requireAdmin, async (req, res) => {
         // it: a profile save must not leave a second usable token lying around.
         await registerAdminToken(newToken, admin._id);
         await logout(req.token);
+        // This reply retires the old token, so the cookie must be replaced in the same
+        // response. Otherwise a browser logged in by cookie alone would keep presenting a token
+        // that was just revoked and be logged out by its own profile save.
+        setAuthCookie(res, req, ADMIN_COOKIE, newToken);
         notifyDataChanged();
         res.json({ success: true, admin, token: newToken });
     } catch (e) {
@@ -1128,7 +1154,7 @@ app.put('/api/admin/me', requireAdmin, async (req, res) => {
 
 app.post('/api/admin/logout', requireAdmin, async (req, res) => {
     await logout(req.token);
-    res.clearCookie('fmc_admin_token', { path: '/' });
+    clearAuthCookie(res, req, ADMIN_COOKIE);
     res.json({ success: true });
 });
 

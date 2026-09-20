@@ -70,18 +70,28 @@ const startDbServer = async () => {
         await mongo.stop();
     };
 
-    const api = async (path, { method = 'GET', token, body } = {}) => {
-        const headers = {};
+    // `cookie` sends a Cookie header verbatim and `headers` adds anything else (Origin, the
+    // forwarded-proto header that marks a request as HTTPS). setCookie exposes the response's
+    // cookies so a test can act like a browser that keeps them.
+    const api = async (path, { method = 'GET', token, body, cookie, headers: extra, redirect = 'follow' } = {}) => {
+        const headers = { ...(extra || {}) };
         if (token) headers.Authorization = `Bearer ${token}`;
+        if (cookie) headers.Cookie = cookie;
         if (body !== undefined) headers['Content-Type'] = 'application/json';
         const res = await fetch(`${base}${path}`, {
             method,
             headers,
+            redirect,
             body: body === undefined ? undefined : JSON.stringify(body)
         });
         let json = null;
         try { json = await res.json(); } catch { /* non-JSON response */ }
-        return { status: res.status, json };
+        return {
+            status: res.status,
+            json,
+            setCookie: res.headers.getSetCookie ? res.headers.getSetCookie() : [],
+            location: res.headers.get('location')
+        };
     };
 
     const adminToken = async () => {
@@ -142,9 +152,10 @@ const startSecondInstance = async (ctx, { label = 'B' } = {}) => {
         throw new Error(`instance ${label} never became ready:\n${log}`);
     }
 
-    const api = async (path, { method = 'GET', token, body } = {}) => {
-        const headers = {};
+    const api = async (path, { method = 'GET', token, body, cookie, headers: extra } = {}) => {
+        const headers = { ...(extra || {}) };
         if (token) headers.Authorization = `Bearer ${token}`;
+        if (cookie) headers.Cookie = cookie;
         if (body !== undefined) headers['Content-Type'] = 'application/json';
         const res = await fetch(`${base}${path}`, {
             method,
@@ -153,7 +164,7 @@ const startSecondInstance = async (ctx, { label = 'B' } = {}) => {
         });
         let json = null;
         try { json = await res.json(); } catch { /* non-JSON response */ }
-        return { status: res.status, json };
+        return { status: res.status, json, setCookie: res.headers.getSetCookie ? res.headers.getSetCookie() : [] };
     };
 
     return { base, child, api, log: () => log, stop: () => child.kill() };

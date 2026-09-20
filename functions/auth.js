@@ -9,6 +9,8 @@ const {
     deleteUserSessions,
     deleteAdminSessions
 } = require('./sessions');
+const { USER_COOKIE, ADMIN_COOKIE, readAuth } = require('./cookies');
+const { isCrossSiteWrite } = require('./csrf');
 
 // Legacy admin login (username/password) — MUST be set in environment variables
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || '';
@@ -252,10 +254,15 @@ const revokeAdminTokens = async (adminId) => {
 };
 
 // Express middleware: requires a valid USER token. Sets req.userId.
+//
+// The token is accepted from the Authorization header OR from the httpOnly auth cookie, so the
+// browser can stay logged in without JavaScript ever handling the token.
 const requireAuth = async (req, res, next) => {
-    const header = req.headers.authorization || '';
-    const token = header.startsWith('Bearer ') ? header.slice(7) : '';
+    const { token, viaCookie } = readAuth(req, USER_COOKIE);
     if (!token) return res.status(401).json({ success: false, message: "Please log in first." });
+    if (viaCookie && isCrossSiteWrite(req)) {
+        return res.status(403).json({ success: false, message: "Request blocked: cross-site write." });
+    }
     try {
         const { Session } = await getModels();
         const session = await lookupSession(Session, token);
@@ -276,10 +283,12 @@ const requireAuth = async (req, res, next) => {
 // must also exist: that is what makes logout, removal and demotion take effect immediately.
 // There is deliberately no stateless fallback — that was the bug.
 const requireAdmin = async (req, res, next) => {
-    const header = req.headers.authorization || '';
-    const token = header.startsWith('Bearer ') ? header.slice(7) : '';
+    const { token, viaCookie } = readAuth(req, ADMIN_COOKIE);
     if (!token) {
         return res.status(401).json({ success: false, message: "Unauthorized. Please log in as admin." });
+    }
+    if (viaCookie && isCrossSiteWrite(req)) {
+        return res.status(403).json({ success: false, message: "Request blocked: cross-site write." });
     }
     const decoded = verifyAdminToken(token);
     if (!decoded || !decoded.email) {
