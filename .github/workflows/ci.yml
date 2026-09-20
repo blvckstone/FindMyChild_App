@@ -1,0 +1,39 @@
+# Runs on every push and pull request: parse every JavaScript file, then run the whole test
+# suite against a real (in-memory) MongoDB.
+#
+# This is the gate that was missing — until now nothing checked a change before it reached the
+# host, so a broken edit only surfaced when a user hit it.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      # `npm ci` installs exactly package-lock.json, so CI and production agree.
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Syntax check
+        run: npm run check
+
+      - name: Lint (bugs only, not style)
+        run: npm run lint
+
+      # The suite boots the real server and several in-memory databases, so keep the parallelism
+      # moderate on a two-core runner.
+      - name: Test
+        run: node --test --test-concurrency=2

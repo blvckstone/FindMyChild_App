@@ -21,7 +21,6 @@ const legacyEsc = (value) => String(value == null ? '' : value).replace(/[&<>"']
 const runHandler = (decodedSource, fnName = 'openX') => {
     const calls = [];
     const alerts = [];
-    // eslint-disable-next-line no-new-func
     new Function(fnName, 'alert', decodedSource)(
         (...args) => calls.push(args),
         (message) => alerts.push(message)

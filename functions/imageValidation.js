@@ -69,14 +69,6 @@ const sniffImageFormat = (buffer) => {
     return null;
 };
 
-const sizeOf = (file) => {
-    if (!file) return 0;
-    if (typeof file.size === 'number') return file.size;
-    if (Buffer.isBuffer(file.data)) return file.data.length;
-    if (file.data && typeof file.data.length === 'number') return file.data.length;
-    return 0;
-};
-
 /**
  * Validate an uploaded file and return bytes safe to store.
  *

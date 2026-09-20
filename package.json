@@ -3,10 +3,16 @@
   "version": "1.0.0",
   "description": "Find My Child Application's Backend Server",
   "main": "server.js",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
     "test": "node --test",
+    "check": "node scripts/check-syntax.js",
+    "lint": "eslint .",
+    "ci": "npm run check && npm run lint && npm test",
     "migrate:dates": "node scripts/normalize-dates.js"
   },
   "author": "",
@@ -30,6 +36,7 @@
     "socket.io": "^4.8.0"
   },
   "devDependencies": {
+    "eslint": "^10.11.0",
     "mongodb-memory-server-core": "^11.2.0",
     "socket.io-client": "^4.8.3"
   }

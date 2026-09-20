@@ -1,22 +1,81 @@
+# Deploy blueprint.
+#
+# The app is currently hosted on Northflank, which configures its environment through the
+# dashboard — not through this file. It is kept as a working Render blueprint for a portable
+# deployment, and as the reference list of variables the server needs (see .env.example for
+# what each one does).
+#
+# `sync: false` means the value is entered in the host's dashboard and never committed.
 services:
   - type: web
     name: fmc-backend
     runtime: node
-    plan: free
-    buildCommand: npm install
+    # Small instances are enough to run the app; the AI match pool is bounded by
+    # FACEMATCH_MAX_POOL rather than by the machine's memory.
+    plan: starter
+    buildCommand: npm ci
     startCommand: node server.js
+    healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
         value: production
+
+      # Core
+      - key: PORT
+        value: 8080
       - key: DB_ATLAS
         sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: SESSION_TTL_MS
+        value: 2592000000
+
+      # Admin access
+      - key: ADMIN_USERNAME
+        sync: false
+      - key: ADMIN_PASS
+        sync: false
+      - key: SUPER_ADMIN_EMAIL
+        sync: false
+
+      # Google sign-in (optional — leave unset to disable)
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_CALLBACK_URL
+        sync: false
+
+      # Email / OTP (optional — leave unset to disable)
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+
+      # Image storage
       - key: CLOUDINARY_CLOUD_NAME
         sync: false
       - key: CLOUDINARY_API_KEY
         sync: false
       - key: CLOUDINARY_API_SECRET
         sync: false
-      - key: ADMIN_USERNAME
+
+      # Browser origins (unset = same-origin only, which is the default behaviour)
+      - key: ALLOWED_ORIGINS
         sync: false
-      - key: ADMIN_PASS
-        sync: false
+
+      # Anonymous realtime search budget
+      - key: SOCKET_QUERY_WINDOW_MS
+        value: 60000
+      - key: SOCKET_QUERY_LIMIT
+        value: 60
+      - key: SOCKET_MAX_IN_FLIGHT
+        value: 4
+
+      # AI face matching
+      - key: FACEMATCH_MAX_POOL
+        value: 20000
+      - key: FACEMATCH_POOL_TTL_MS
+        value: 300000

@@ -6,6 +6,8 @@ const { spawn } = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
 
+const { freePort } = require('./helpers/ports');
+
 const ROOT = path.resolve(__dirname, '..');
 const SERVER_SOURCE = fs.readFileSync(path.join(ROOT, 'server.js'), 'utf8');
 
@@ -28,11 +30,13 @@ test('A2/A5: the admin login route is rate limited and blocked users are revoked
 
 // ----------------------------------------------------------- live smoke tests
 
-const PORT = 9450 + Math.floor(Math.random() * 200);
+// Assigned per boot from the OS, so parallel test files cannot land on the same port.
+let PORT = 0;
 let server;
 let output = '';
 
 const bootServer = async () => {
+    PORT = await freePort();
     server = spawn(process.execPath, ['server.js'], {
         cwd: ROOT,
         env: {

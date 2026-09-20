@@ -1,5 +1,4 @@
 const cloudinary = require('cloudinary').v2;
-const path = require('path');
 
 // Configure Cloudinary from environment
 cloudinary.config({

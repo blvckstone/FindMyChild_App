@@ -5,9 +5,9 @@ const assert = require('node:assert/strict');
 const { spawn } = require('node:child_process');
 const path = require('node:path');
 const { MongoMemoryServer } = require('mongodb-memory-server-core');
+const { freePort } = require('./helpers/ports');
 
 const ROOT = path.resolve(__dirname, '..');
-let portCursor = 9200 + Math.floor(Math.random() * 300);
 
 // An admin login now records a revocable session, so a successful login needs storage. Tests
 // that only assert a *rejection* still run against an unreachable database on purpose.
@@ -54,7 +54,7 @@ const startServer = async (port, { db = dbUri } = {}) => {
 };
 
 const withServer = async (fn, options = {}) => {
-    const port = portCursor++;
+    const port = await freePort();
     const { child, output } = await startServer(port, options);
     const base = `http://127.0.0.1:${port}`;
     const postLogin = (body) => fetch(`${base}/api/admin/login`, {

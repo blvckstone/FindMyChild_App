@@ -8,6 +8,7 @@ const { spawn } = require('node:child_process');
 const path = require('node:path');
 
 const { startDbServer } = require('./helpers/dbServer');
+const { freePort } = require('./helpers/ports');
 
 const ROOT = path.resolve(__dirname, '..');
 let ctx;
@@ -61,7 +62,7 @@ test('a preflight from a foreign origin is not granted permission', async () => 
 });
 
 test('ALLOWED_ORIGINS lets an explicitly listed site through', async () => {
-    const port = 9800 + Math.floor(Math.random() * 100);
+    const port = await freePort();
     const child = spawn(process.execPath, ['server.js'], {
         cwd: ROOT,
         env: {

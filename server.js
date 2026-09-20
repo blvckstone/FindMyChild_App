@@ -1,7 +1,6 @@
 const express = require('express');
 const http = require('http');
 const path = require('path');
-const fs = require('fs');
 const cors = require('cors');
 const fileUpload = require('express-fileupload');
 const { createOriginPolicy, corsOriginCheck } = require('./functions/origins');
@@ -152,9 +151,9 @@ const publicLimiter = limiter({ name: 'public', windowMs: 60 * 1000, max: 300, m
 //-----------------------------------------------Functions Module--------------------------------------------------------------->
 const fmcConnectMongoDB = require('./functions/fmcDB/fmcMongoDB');
 const getModels = require('./functions/dbModels');
-const { loginAdmin, loginAdminGoogle, signupUser, loginUser, findOrCreateGoogleUser, logout, revokeUserTokens, revokeAdminTokens, registerAdminToken, signAdminToken, requireAuth, requireAdmin, requireSuperAdmin, hasPermission, isValidPhone, sanitize, SUPER_ADMIN_EMAIL } = require('./functions/auth');
-const { PUBLIC_CHILD_FIELDS, AUTHENTICATED_CHILD_FIELDS, ADMIN_CHILD_FIELDS, NGO_CONTACT_FIELDS, PRAISE_CHILD_FIELDS, pickFields } = require('./functions/publicProjection');
-const { sendOTP, verifyOTP, sendWelcomeEmail } = require('./functions/email');
+const { loginAdmin, loginAdminGoogle, signupUser, loginUser, findOrCreateGoogleUser, logout, revokeUserTokens, revokeAdminTokens, registerAdminToken, signAdminToken, requireAuth, requireAdmin, requireSuperAdmin, hasPermission } = require('./functions/auth');
+const { PUBLIC_CHILD_FIELDS, AUTHENTICATED_CHILD_FIELDS, NGO_CONTACT_FIELDS, PRAISE_CHILD_FIELDS, pickFields } = require('./functions/publicProjection');
+const { sendOTP, verifyOTP } = require('./functions/email');
 // const userConnectMongoDB = require('./functions/userDB/userMongoDB');
 const getAllData = require('./functions/getAllData/getAllData.js');
 const getStats = require('./functions/getStats/getStats.js');
@@ -252,7 +251,7 @@ function notifyDataChanged(scope) {
 }
 
 //-----------------------------------------------Cloudinary image storage------------------------------------------------------>
-const { uploadImage, deleteImage, replaceImage } = require('./functions/cloudinary');
+const { uploadImage, deleteImage } = require('./functions/cloudinary');
 const { validateAndNormalize, ImageValidationError } = require('./functions/imageValidation');
 //------------------------------------------------------------------------------------------------------------------------------>
 
@@ -547,7 +546,7 @@ app.post('/api/found-requests', requireAuth, async (req, res) => {
 
 app.get('/api/found-requests/me', requireAuth, async (req, res) => {
     try {
-        const { FoundRequest, Child } = await getModels();
+        const { FoundRequest } = await getModels();
         const data = await FoundRequest.find({ userId: req.userId }).sort({ createdAt: -1 }).populate('childId', 'fullName childName');
         res.json({ success: true, data });
     } catch (error) {
@@ -1285,7 +1284,7 @@ app.delete('/api/admin/children/:id', requireAdmin, async (req, res) => {
 app.get('/api/admin/found-requests', requireAdmin, async (req, res) => {
     if (!hasPermission(req, 'children')) return res.status(403).json({ success: false, message: 'Permission denied.' });
     try {
-        const { FoundRequest, Child } = await getModels();
+        const { FoundRequest } = await getModels();
         const filter = {};
         if (req.query.status) filter.status = req.query.status;
         const data = await FoundRequest.find(filter).sort({ createdAt: -1 }).populate('childId', 'fullName image');

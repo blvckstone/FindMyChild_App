@@ -5,18 +5,17 @@ const path = require('node:path');
 // The -core package has no install script, so a production `npm install` never downloads a
 // MongoDB binary to run the tests. It fetches the binary on first test run instead.
 const { MongoMemoryServer } = require('mongodb-memory-server-core');
+const { freePort } = require('./ports');
 
 const ROOT = path.resolve(__dirname, '../..');
 
 const ADMIN = { username: 'Shoeb', password: 'S3cret!' };
 const JWT_SECRET = 'test-secret';
 
-let portCursor = 9600 + Math.floor(Math.random() * 200);
-
 const startDbServer = async () => {
     const mongo = await MongoMemoryServer.create();
     const uri = mongo.getUri('fmc_test');
-    const port = portCursor++;
+    const port = await freePort();
     const base = `http://127.0.0.1:${port}`;
 
     const child = spawn(process.execPath, ['server.js'], {
@@ -105,7 +104,7 @@ const startDbServer = async () => {
  * instance has to work on another, and a revocation has to apply everywhere.
  */
 const startSecondInstance = async (ctx, { label = 'B' } = {}) => {
-    const port = portCursor++;
+    const port = await freePort();
     const base = `http://127.0.0.1:${port}`;
     const child = spawn(process.execPath, ['server.js'], {
         cwd: ROOT,

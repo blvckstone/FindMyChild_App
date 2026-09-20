@@ -447,7 +447,7 @@ test('D3: activity keeps a readable child name after the child record is deleted
     // A missing child can receive a found request; a recovered one can receive praise.
     const child = await ctx.models.Child.create(approvedChild({ fullName: 'Orphan Target' }));
     const foundChild = await ctx.models.Child.create(approvedChild({ fullName: 'Praise Target', found: true, finderUserId: new mongoose.Types.ObjectId() }));
-    const user = await ctx.models.User.create({
+    await ctx.models.User.create({
         userFullName: 'Orphan Tester',
         userContactNumber: '9876500033',
         emailId: 'orphan@example.com',

@@ -9,7 +9,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { io } = require('socket.io-client');
-const { startDbServer, describeFace } = require('./helpers/dbServer');
+const { startDbServer } = require('./helpers/dbServer');
 
 let ctx;
 let adminToken;
