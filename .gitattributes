@@ -1,0 +1,4 @@
+# The compiled stylesheet is a build artefact that is committed and served directly.
+# Pinning it to LF keeps `npm run build:css` byte-identical on every platform, so CI can rebuild
+# it and fail if the committed copy is stale.
+public/css/tailwind.css text eol=lf

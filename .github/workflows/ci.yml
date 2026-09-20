@@ -33,6 +33,13 @@ jobs:
       - name: Lint (bugs only, not style)
         run: npm run lint
 
+      # The stylesheet is built from the markup and committed. If a utility class was added or
+      # removed without rerunning the build, the served CSS no longer matches the pages.
+      - name: Verify the stylesheet is up to date
+        run: |
+          npm run build:css
+          git diff --exit-code -- public/css/tailwind.css
+
       # The suite boots the real server and several in-memory databases, so keep the parallelism
       # moderate on a two-core runner.
       - name: Test

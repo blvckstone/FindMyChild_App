@@ -27,15 +27,30 @@ reports `degraded` — but anything that reads or writes data fails.
 ## Checks
 
 ```bash
-npm run check   # every JavaScript file parses
-npm run lint    # bug-focused rules (undefined references, dead code) — not style
-npm test        # the full suite, against a real in-memory MongoDB
-npm run ci      # all three, in the order CI runs them
+npm run check      # every JavaScript file parses
+npm run lint       # bug-focused rules (undefined references, dead code) — not style
+npm test           # the full suite, against a real in-memory MongoDB
+npm run build:css  # rebuild the stylesheet from the markup
+npm run ci         # the checks and the suite, in the order CI runs them
 ```
 
 `npm test` starts real server processes and several temporary databases, so it takes a couple of
-minutes and needs no setup beyond `npm install`. The same three commands run on every push and
-pull request through `.github/workflows/ci.yml`.
+minutes and needs no setup beyond `npm install`. The same commands run on every push and pull
+request through `.github/workflows/ci.yml`, which additionally rebuilds the stylesheet and fails
+if the committed copy is stale.
+
+## Front-end assets
+
+The user panel's Tailwind stylesheet is compiled ahead of time into `public/css/tailwind.css` and
+served from this origin. **After adding or removing a utility class in `public/index.html`, run
+`npm run build:css`** — otherwise the element renders unstyled, which the test suite catches
+before CI does. It replaced `https://cdn.tailwindcss.com`, a third-party script that compiled CSS
+in the visitor's browser and had full access to the page.
+
+Responses carry a Content-Security-Policy that allows scripts, styles and connections from this
+origin only (plus the two fonts hosts). It cannot stop injected inline code — the pages are built
+from inline scripts — but it stops a script from another origin loading, and stops stolen data
+being sent anywhere. Adding a new external service means adding it to the policy in `server.js`.
 
 ## Configuration
 

@@ -1,0 +1,6 @@
+/* Tailwind entry point — compiled into public/css/tailwind.css by `npm run build:css`.
+   The preflight layer is kept because the CDN provided it, and the page's own CSS is written
+   on top of it. Do not edit the generated file; edit this one and rebuild. */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;

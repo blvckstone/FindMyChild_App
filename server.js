@@ -89,10 +89,37 @@ const validateUploads = async (req, res, next) => {
 app.use(validateUploads);
 
 // ── Security Headers ────────────────────────────────────────────────────────
+// Content-Security-Policy: the page still needs 'unsafe-inline' because it is built from inline
+// scripts and inline event handlers, so this cannot stop injected inline code. What it does stop
+// is the two things that turn an injected line into a stolen account: loading a script from
+// someone else's server, and sending data to one. Exfiltration has nowhere to go.
+//
+// `script-src 'self'` is what makes the third-party case impossible — the panel used to load
+// Tailwind's CDN, which was a script with full access to the page running from someone else's
+// origin. `connect-src 'self'` likewise allows the realtime channel to this origin only.
+const CSP = [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline'",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "font-src 'self' data: https://fonts.gstatic.com",
+    // Photos live on Cloudinary, donation QR codes come from qrserver, and a Google account
+    // photo lives on googleusercontent. Nothing else may be requested as an image.
+    "img-src 'self' data: blob: https://res.cloudinary.com https://api.qrserver.com https://*.googleusercontent.com",
+    "connect-src 'self'",
+    "media-src 'self' blob:",
+    "worker-src 'self' blob:",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'"
+].join('; ');
+
 app.use((req, res, next) => {
+    res.setHeader('Content-Security-Policy', CSP);
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('X-Frame-Options', 'DENY');
-    res.setHeader('X-XSS-Protection', '1; mode=block');
+    // Superseded by the CSP above, and disabled in modern browsers.
+    res.setHeader('X-XSS-Protection', '0');
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
     res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
     if (req.secure || req.headers['x-forwarded-proto'] === 'https') {
